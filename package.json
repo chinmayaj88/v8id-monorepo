@@ -1,0 +1,30 @@
+{
+  "name": "v8id-cloud",
+  "version": "1.0.0",
+  "description": "Personal Cloud Storage built with Node.js and OCI Cloud",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:web": "pnpm --filter web dev",
+    "build:backend": "pnpm --filter backend build",
+    "build:web": "pnpm --filter web build",
+    "test:backend": "pnpm --filter backend test",
+    "test:web": "pnpm --filter web test",
+    "lint": "pnpm --filter backend lint",
+    "clean": "pnpm --filter backend clean"
+  },
+  "keywords": [
+    "cloud-storage",
+    "file-management",
+    "monorepo",
+    "oci"
+  ],
+  "author": "jenachinmaya51@gmail.com",
+  "license": "ISC"
+}

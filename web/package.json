@@ -1,0 +1,18 @@
+{
+  "name": "@v8id-cloud/web",
+  "version": "1.0.0",
+  "description": "Web frontend for v8id-cloud",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src --ext .ts,.tsx",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
+
