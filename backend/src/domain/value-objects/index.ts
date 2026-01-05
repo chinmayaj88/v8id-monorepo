@@ -5,12 +5,5 @@
  * Used to represent concepts like Email, FilePath, etc.
  */
 
-// TODO: Create value objects
-// - Email
-// - FilePath
-// - FileSize
-// - FilePermissions
-// - etc.
-
-export {};
-
+export { Email } from './email';
+export { Password } from './password';
