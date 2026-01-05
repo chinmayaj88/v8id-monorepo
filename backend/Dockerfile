@@ -42,13 +42,23 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy backend package.json
 COPY backend/package.json ./backend/
 
-# Install production dependencies only
-RUN pnpm install --frozen-lockfile --prod
-
-# Copy built application and Prisma files from builder
-COPY --from=builder /app/backend/dist ./backend/dist
+# Copy Prisma schema (needed for client generation)
 COPY --from=builder /app/backend/prisma ./backend/prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Install all dependencies (needed for Prisma client generation)
+# We keep dev dependencies to ensure Prisma CLI is available
+# This is acceptable for containerized deployments
+RUN pnpm install --frozen-lockfile
+
+# Generate Prisma client in production stage
+WORKDIR /app/backend
+RUN pnpm prisma:generate
+
+# Copy built application from builder
+COPY --from=builder /app/backend/dist ./backend/dist
+
+# Copy generated Prisma client from builder (custom output path)
+COPY --from=builder /app/backend/generated ./backend/generated
 
 WORKDIR /app/backend
 

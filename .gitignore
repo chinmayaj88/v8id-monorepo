@@ -13,6 +13,10 @@ dist/
 build/
 *.tsbuildinfo
 
+# Prisma generated client (custom output)
+generated/
+backend/generated/
+
 # Environment variables
 .env
 .env.local
