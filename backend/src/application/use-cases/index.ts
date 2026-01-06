@@ -1,20 +1,13 @@
 /**
  * Application Use Cases
  * 
- * Use cases orchestrate domain objects to perform specific application tasks.
- * Each use case represents a single user action or business operation.
+ * Use cases represent the application's business logic.
+ * Each use case handles a specific business operation.
  */
 
-// TODO: Create use cases
-// - UploadFileUseCase
-// - DownloadFileUseCase
-// - CreateFolderUseCase
-// - ShareFileUseCase
-// - DeleteFileUseCase
-// - ListFilesUseCase
-// - CreateUserUseCase
-// - AuthenticateUserUseCase
-// - etc.
-
-export {};
-
+export { LoginUseCase, type LoginResult } from './login.use-case';
+export { VerifyCredentialsUseCase, type VerifyCredentialsResult } from './verify-credentials.use-case';
+export { VerifyTotpLoginUseCase, type VerifyTotpLoginResult, type VerifyTotpLoginDTO } from './verify-totp-login.use-case';
+export { CreateUserUseCase, type CreateUserResult } from './create-user.use-case';
+export { RefreshTokenUseCase, type RefreshTokenResult } from './refresh-token.use-case';
+export { LogoutUseCase } from './logout.use-case';

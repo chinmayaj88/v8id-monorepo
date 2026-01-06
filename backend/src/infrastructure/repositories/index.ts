@@ -5,12 +5,6 @@
  * These handle persistence and external data access.
  */
 
-// TODO: Implement repositories
-// - FileRepository (implements IFileRepository)
-// - UserRepository (implements IUserRepository)
-// - FolderRepository (implements IFolderRepository)
-// - ShareRepository (implements IShareRepository)
-// - etc.
-
-export {};
-
+export { UserRepository } from './user.repository';
+export { DeviceSessionRepository } from './device-session.repository';
+export { TotpBackupCodeRepository } from './totp-backup-code.repository';

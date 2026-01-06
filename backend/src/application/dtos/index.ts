@@ -1,17 +1,8 @@
 /**
- * Data Transfer Objects (DTOs)
+ * Application DTOs
  * 
- * Objects used to transfer data between layers, especially for
- * input/output of use cases. DTOs have no business logic.
+ * Data Transfer Objects for request/response handling.
  */
 
-// TODO: Create DTOs
-// - CreateFileDTO
-// - UpdateFileDTO
-// - CreateUserDTO
-// - LoginDTO
-// - ShareFileDTO
-// - etc.
-
-export {};
-
+export * from './auth.dto';
+export * from './user.dto';

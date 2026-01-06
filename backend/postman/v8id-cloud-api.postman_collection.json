@@ -1,0 +1,357 @@
+{
+	"info": {
+		"_postman_id": "v8id-cloud-api-collection",
+		"name": "v8id-cloud API",
+		"description": "Postman collection for v8id-cloud backend API - Authentication and User Management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Two-Step Login",
+					"item": [
+						{
+							"name": "Step 1: Verify Credentials",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    const jsonData = pm.response.json();",
+											"    if (jsonData.success && jsonData.data) {",
+											"        pm.environment.set(\"tempToken\", jsonData.data.tempToken);",
+											"        pm.environment.set(\"userId\", jsonData.data.user.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"UserPassword123!\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/verify-credentials",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"auth",
+										"verify-credentials"
+									]
+								},
+								"description": "First step of two-step login: Verify email and password. Returns a temporary token if TOTP is required."
+							},
+							"response": []
+						},
+						{
+							"name": "Step 2: Verify TOTP",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"if (pm.response.code === 200) {",
+											"    const jsonData = pm.response.json();",
+											"    if (jsonData.success && jsonData.data) {",
+											"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+											"        pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+											"        pm.environment.set(\"userId\", jsonData.data.user.id);",
+											"        pm.environment.set(\"sessionId\", jsonData.data.deviceSession.id);",
+											"    }",
+											"}"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"tempToken\": \"{{tempToken}}\",\n  \"totpCode\": \"123456\",\n  \"deviceType\": \"WEB\",\n  \"deviceName\": \"Chrome on Windows\",\n  \"deviceId\": \"web-device-001\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/auth/verify-totp",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"auth",
+										"verify-totp"
+									]
+								},
+								"description": "Second step of two-step login: Verify TOTP code using the temporary token from step 1. Returns access and refresh tokens."
+							},
+							"response": []
+						}
+					],
+					"description": "Two-step login flow: First verify credentials, then verify TOTP code."
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "Refresh access token using refresh token. Returns a new access token."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sessionId\": \"{{sessionId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Logout and revoke the current device session."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for login, token refresh, and logout."
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create User (Admin Only)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"NewUserPassword123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"USER\",\n  \"storageQuota\": 10737418240\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Create a new user account. Only admins can create users. Password must be at least 12 characters with uppercase, lowercase, number, and special character.\n\n**IMPORTANT**: TOTP is MANDATORY. The response includes:\n- `totpSetup.qrCodeUrl`: Base64 QR code image (display to user)\n- `totpSetup.secret`: TOTP secret for manual entry\n- `totpSetup.backupCodes`: Array of 10 backup codes (user must save these)\n\nThe user must scan the QR code with an authenticator app (Google Authenticator, Authy, etc.) before they can login."
+					},
+					"response": []
+				},
+				{
+					"name": "List Users (Admin Only)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users?page=1&limit=50&search=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "50",
+									"description": "Items per page (default: 50)"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search by email or name (optional)"
+								}
+							]
+						},
+						"description": "List all users with pagination. Only admins can access this endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "Get the current authenticated user's profile information."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Current User",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\",\n  \"avatarUrl\": \"https://example.com/avatar.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "Update the current authenticated user's profile (firstName, lastName, avatarUrl)."
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints. Admin-only endpoints require admin role."
+		},
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/health",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"health"
+					]
+				},
+				"description": "Health check endpoint to verify the server is running."
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4000",
+			"type": "string"
+		}
+	]
+}
+
