@@ -1,10 +1,49 @@
-import { PrismaClient } from '../generated/prisma';
+import 'dotenv/config';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import { PrismaClient } from '../generated/prisma/client.js';
 import { PasswordService } from '../src/infrastructure/services/password.service';
 import { TotpService } from '../src/infrastructure/services/totp.service';
 import fs from 'fs';
 import path from 'path';
 
-const prisma = new PrismaClient();
+// Parse DATABASE_URL or use individual environment variables
+function getDatabaseConfig() {
+  if (process.env.DATABASE_URL) {
+    try {
+      // Parse mysql://user:password@host:port/database
+      const url = new URL(process.env.DATABASE_URL.replace(/^mysql:\/\//, 'http://'));
+      return {
+        host: process.env.DATABASE_HOST || url.hostname || 'localhost',
+        port: process.env.DATABASE_PORT ? parseInt(process.env.DATABASE_PORT, 10) : (url.port ? parseInt(url.port, 10) : 3306),
+        user: process.env.DATABASE_USER || url.username || 'root',
+        password: process.env.DATABASE_PASSWORD || url.password || '',
+        database: process.env.DATABASE_NAME || url.pathname.replace(/^\//, '') || '',
+      };
+    } catch {
+      // Fallback to individual env vars if URL parsing fails
+    }
+  }
+  
+  return {
+    host: process.env.DATABASE_HOST || 'localhost',
+    port: process.env.DATABASE_PORT ? parseInt(process.env.DATABASE_PORT, 10) : 3306,
+    user: process.env.DATABASE_USER || 'root',
+    password: process.env.DATABASE_PASSWORD || '',
+    database: process.env.DATABASE_NAME || '',
+  };
+}
+
+const dbConfig = getDatabaseConfig();
+const adapter = new PrismaMariaDb({
+  ...dbConfig,
+  connectionLimit: 5,
+});
+
+const prisma = new PrismaClient({ adapter });
+
+// Initialize services
+const passwordService = new PasswordService(parseInt(process.env.BCRYPT_ROUNDS || '12', 10));
+const totpService = new TotpService(process.env.TOTP_ISSUER || 'v8id-cloud');
 
 async function main() {
   console.log('🌱 Starting database seed...\n');
@@ -52,24 +91,24 @@ async function main() {
 
   // Hash password
   console.log('🔐 Hashing password...');
-  const passwordHash = await PasswordService.hashPassword(adminPassword);
+  const passwordHash = await passwordService.hashPassword(adminPassword);
 
   // Generate TOTP setup (mandatory)
   console.log('🔑 Generating TOTP setup...');
-  const totpSetup = await TotpService.generateTotpSetup(adminEmail);
+  const totpSetup = await totpService.generateTotpSetup(adminEmail);
   const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
   
   if (encryptionKey === 'default-key-change-in-production') {
     console.log('⚠️  WARNING: Using default TOTP encryption key. Change TOTP_ENCRYPTION_KEY in production!');
   }
 
-  const encryptedSecret = TotpService.encryptSecret(totpSetup.secret, encryptionKey);
+  const encryptedSecret = totpService.encryptSecret(totpSetup.secret, encryptionKey);
 
   // Hash backup codes for storage
   console.log('🔒 Hashing backup codes...');
   const hashedBackupCodes = await Promise.all(
     totpSetup.backupCodes.map(async (code) => {
-      return await PasswordService.hashPassword(code);
+      return await passwordService.hashPassword(code);
     })
   );
 
