@@ -28,6 +28,7 @@ export class UserRepository implements IUserRepository {
       prismaUser.isActive,
       prismaUser.totpSecret ?? undefined,
       prismaUser.totpVerified,
+      prismaUser.tokenVersion ?? 0,
       prismaUser.lastLoginAt ?? undefined,
       prismaUser.createdAt,
       prismaUser.updatedAt
@@ -96,6 +97,7 @@ export class UserRepository implements IUserRepository {
       isActive?: boolean;
       totpSecret?: string;
       totpVerified?: boolean;
+      tokenVersion?: number;
       lastLoginAt?: Date;
     }>
   ): Promise<User> {

@@ -144,6 +144,18 @@ export class DeviceSessionRepository implements IDeviceSessionRepository {
     });
   }
 
+  async updateTokens(sessionId: string, accessToken: string, refreshToken: string): Promise<void> {
+    await prisma.deviceSession.update({
+      where: { id: sessionId },
+      data: {
+        accessToken,
+        refreshToken,
+        lastActiveAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
   async deleteExpired(): Promise<number> {
     const result = await prisma.deviceSession.deleteMany({
       where: {

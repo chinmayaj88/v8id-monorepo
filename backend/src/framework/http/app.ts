@@ -1,5 +1,6 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
+import { generalRateLimiter } from '../../presentation/middleware/rate-limit.middleware';
 
 export async function createApp(): Promise<Express> {
   const app = express();
@@ -14,6 +15,9 @@ export async function createApp(): Promise<Express> {
 
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Apply general rate limiting to all API routes
+  app.use('/api', generalRateLimiter);
 
   // Health check
   app.get('/health', (_req, res) => {

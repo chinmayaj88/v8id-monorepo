@@ -58,6 +58,19 @@ export function authMiddleware(
         return;
       }
 
+      // TOKEN VERSIONING: Verify token version matches user's current version
+      // If password was changed, tokenVersion increments and old tokens become invalid
+      if (payload.tokenVersion !== undefined && payload.tokenVersion !== user.tokenVersion) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Token has been invalidated. Please login again.',
+          },
+        });
+        return;
+      }
+
       // CRITICAL: Verify session is still valid (not revoked)
       // Check if the access token belongs to an active, non-revoked session
       const session = await deviceSessionRepository.findByAccessToken(token);

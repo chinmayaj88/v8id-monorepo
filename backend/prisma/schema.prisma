@@ -42,12 +42,16 @@ model User {
   totpSecret   String? // Encrypted TOTP secret (if exists, TOTP is enabled)
   totpVerified Boolean @default(false) // Whether TOTP setup is complete
 
+  // Token versioning - increment on password change to invalidate all tokens
+  tokenVersion Int @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
   deviceSessions  DeviceSession[]
   totpBackupCodes TotpBackupCode[]
+  auditLogs       AuditLog[]
 
   @@index([email])
   @@index([isActive])
@@ -101,4 +105,26 @@ model TotpBackupCode {
   @@index([userId])
   @@index([isUsed])
   @@map("totp_backup_codes")
+}
+
+// Audit Log Model - Security event logging
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  // Null for system events
+  eventType String   // LOGIN, LOGOUT, LOGIN_FAILED, PASSWORD_CHANGE, TOKEN_REFRESH, etc.
+  eventData Json?    // Additional event data (IP, device, etc.)
+  ipAddress String?
+  userAgent String?
+  success   Boolean  @default(true)
+  errorMessage String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([success])
+  @@map("audit_logs")
 }

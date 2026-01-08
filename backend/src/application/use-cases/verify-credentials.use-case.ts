@@ -49,10 +49,12 @@ export class VerifyCredentialsUseCase {
     const requiresTotp = !!user.totpSecret;
 
     // 5. Generate temporary token (short-lived, 5 minutes) for TOTP verification
+    // Include tokenVersion to ensure token is valid
     const tempToken = JwtService.generateTempToken({
       userId: user.id,
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     });
 
     return {

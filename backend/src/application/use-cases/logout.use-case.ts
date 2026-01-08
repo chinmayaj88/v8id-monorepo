@@ -5,10 +5,12 @@
  */
 
 import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface';
+import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 
 export class LogoutUseCase {
   constructor(
-    private deviceSessionRepository: IDeviceSessionRepository
+    private deviceSessionRepository: IDeviceSessionRepository,
+    private auditLogService: AuditLogService
   ) {}
 
   async execute(sessionId: string, userId: string): Promise<void> {
@@ -27,6 +29,11 @@ export class LogoutUseCase {
 
     // 3. Revoke session
     await this.deviceSessionRepository.revoke(sessionId);
+
+    // 4. Log logout
+    await this.auditLogService.logLogout(userId, {
+      sessionId,
+    });
   }
 }
 

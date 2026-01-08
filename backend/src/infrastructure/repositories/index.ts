@@ -8,3 +8,4 @@
 export { UserRepository } from './user.repository';
 export { DeviceSessionRepository } from './device-session.repository';
 export { TotpBackupCodeRepository } from './totp-backup-code.repository';
+export { AuditLogRepository } from './audit-log.repository';

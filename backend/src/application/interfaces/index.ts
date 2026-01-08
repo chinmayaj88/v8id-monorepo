@@ -11,3 +11,7 @@ export {
   type DeviceSession,
 } from './device-session-repository.interface';
 export { ITotpBackupCodeRepository } from './totp-backup-code-repository.interface';
+export {
+  IAuditLogRepository,
+  type AuditLog,
+} from './audit-log-repository.interface';

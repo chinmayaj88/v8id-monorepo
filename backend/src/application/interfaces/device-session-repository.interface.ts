@@ -79,6 +79,11 @@ export interface IDeviceSessionRepository {
   updateLastActive(sessionId: string): Promise<void>;
 
   /**
+   * Update tokens for a session (for token rotation)
+   */
+  updateTokens(sessionId: string, accessToken: string, refreshToken: string): Promise<void>;
+
+  /**
    * Delete expired sessions
    */
   deleteExpired(): Promise<number>;

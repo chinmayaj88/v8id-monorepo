@@ -43,6 +43,7 @@ export interface IUserRepository {
     isActive?: boolean;
     totpSecret?: string;
     totpVerified?: boolean;
+    tokenVersion?: number;
     lastLoginAt?: Date;
   }>): Promise<User>;
 

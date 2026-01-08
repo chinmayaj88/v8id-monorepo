@@ -14,6 +14,7 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: string;
+  tokenVersion?: number; // Token version for invalidation on password change
 }
 
 export class JwtService {

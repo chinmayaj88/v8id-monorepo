@@ -5,3 +5,4 @@
  */
 
 export { authMiddleware, adminMiddleware, type AuthenticatedRequest } from './auth.middleware';
+export { generalRateLimiter, authRateLimiter, totpRateLimiter, refreshRateLimiter } from './rate-limit.middleware';

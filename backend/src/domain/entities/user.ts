@@ -22,6 +22,7 @@ export class User {
     public readonly isActive: boolean = true,
     public readonly totpSecret?: string,
     public readonly totpVerified: boolean = false,
+    public readonly tokenVersion: number = 0,
     public readonly lastLoginAt?: Date,
     public readonly createdAt: Date = new Date(),
     public readonly updatedAt: Date = new Date()

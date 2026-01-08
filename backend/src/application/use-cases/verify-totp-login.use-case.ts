@@ -112,11 +112,12 @@ export class VerifyTotpLoginUseCase {
       }
     }
 
-    // 8. Generate tokens
+    // 8. Generate tokens (include tokenVersion for invalidation on password change)
     const finalTokenPayload = {
       userId: user.id,
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     };
 
     const accessToken = JwtService.generateAccessToken(finalTokenPayload);

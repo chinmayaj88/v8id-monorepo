@@ -10,6 +10,7 @@ import { IDeviceSessionRepository } from '../interfaces/device-session-repositor
 import { PasswordService } from '../../infrastructure/services/password.service';
 import { JwtService } from '../../infrastructure/services/jwt.service';
 import { TotpService } from '../../infrastructure/services/totp.service';
+import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 import { LoginDTO } from '../dtos/auth.dto';
 
 export interface LoginResult {
@@ -34,18 +35,34 @@ export interface LoginResult {
 export class LoginUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private deviceSessionRepository: IDeviceSessionRepository
+    private deviceSessionRepository: IDeviceSessionRepository,
+    private auditLogService: AuditLogService
   ) {}
 
   async execute(dto: LoginDTO, ipAddress?: string): Promise<LoginResult> {
     // 1. Find user by email
     const user = await this.userRepository.findByEmail(dto.email);
     if (!user) {
+      // Log failed login attempt
+      await this.auditLogService.logLogin('', false, {
+        ipAddress,
+        userAgent: dto.deviceName,
+        deviceType: dto.deviceType,
+        deviceName: dto.deviceName,
+        errorMessage: 'User not found',
+      });
       throw new Error('Invalid credentials');
     }
 
     // 2. Check if user is active
     if (!user.isUserActive()) {
+      await this.auditLogService.logLogin(user.id, false, {
+        ipAddress,
+        userAgent: dto.deviceName,
+        deviceType: dto.deviceType,
+        deviceName: dto.deviceName,
+        errorMessage: 'Account is inactive',
+      });
       throw new Error('Account is inactive');
     }
 
@@ -55,6 +72,13 @@ export class LoginUseCase {
       user.passwordHash
     );
     if (!isPasswordValid) {
+      await this.auditLogService.logLogin(user.id, false, {
+        ipAddress,
+        userAgent: dto.deviceName,
+        deviceType: dto.deviceType,
+        deviceName: dto.deviceName,
+        errorMessage: 'Invalid password',
+      });
       throw new Error('Invalid credentials');
     }
 
@@ -141,11 +165,12 @@ export class LoginUseCase {
       }
     }
 
-    // 6. Generate tokens
+    // 6. Generate tokens (include tokenVersion for invalidation on password change)
     const tokenPayload = {
       userId: user.id,
       email: user.email,
       role: user.role,
+      tokenVersion: user.tokenVersion,
     };
 
     const accessToken = JwtService.generateAccessToken(tokenPayload);
