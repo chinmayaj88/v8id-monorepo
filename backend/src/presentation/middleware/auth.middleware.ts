@@ -1,9 +1,3 @@
-/**
- * Authentication Middleware
- * 
- * Verifies JWT tokens and attaches user information to the request.
- */
-
 import { Request, Response, NextFunction } from 'express';
 import { JwtService } from '../../infrastructure/services/jwt.service';
 import { IUserRepository } from '../../application/interfaces/user-repository.interface';

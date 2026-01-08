@@ -6,18 +6,14 @@
 
 import { Request, Response } from 'express';
 import { LoginUseCase } from '../../application/use-cases/login.use-case';
-import { VerifyCredentialsUseCase } from '../../application/use-cases/verify-credentials.use-case';
-import { VerifyTotpLoginUseCase } from '../../application/use-cases/verify-totp-login.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
-import { LoginDTO, RefreshTokenDTO, VerifyCredentialsDTO, VerifyTotpDTO } from '../../application/dtos/auth.dto';
+import { LoginDTO, RefreshTokenDTO } from '../../application/dtos/auth.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export class AuthController {
   constructor(
     private loginUseCase: LoginUseCase,
-    private verifyCredentialsUseCase: VerifyCredentialsUseCase,
-    private verifyTotpLoginUseCase: VerifyTotpLoginUseCase,
     private refreshTokenUseCase: RefreshTokenUseCase,
     private logoutUseCase: LogoutUseCase
   ) {}
@@ -56,85 +52,6 @@ export class AuthController {
         success: false,
         error: {
           code: 'LOGIN_ERROR',
-          message,
-        },
-      });
-    }
-  }
-
-  /**
-   * POST /api/auth/verify-credentials
-   * First step: Verify email and password, return temp token for TOTP verification
-   */
-  async verifyCredentials(req: Request, res: Response): Promise<void> {
-    try {
-      const dto: VerifyCredentialsDTO = req.body;
-
-      if (!dto.email || !dto.password) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Email and password are required',
-          },
-        });
-        return;
-      }
-
-      const result = await this.verifyCredentialsUseCase.execute(dto.email, dto.password);
-
-      res.status(200).json({
-        success: true,
-        data: result,
-        message: result.requiresTotp 
-          ? 'Credentials verified. TOTP code required.' 
-          : 'Credentials verified.',
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Credential verification failed';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'VERIFY_CREDENTIALS_ERROR',
-          message,
-        },
-      });
-    }
-  }
-
-  /**
-   * POST /api/auth/verify-totp
-   * Second step: Verify TOTP code and complete login
-   */
-  async verifyTotp(req: Request, res: Response): Promise<void> {
-    try {
-      const dto: VerifyTotpDTO = req.body;
-
-      if (!dto.tempToken || !dto.totpCode || !dto.deviceType || !dto.deviceName || !dto.deviceId) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Temporary token, TOTP code, and device information are required',
-          },
-        });
-        return;
-      }
-
-      const ipAddress = req.ip || req.socket.remoteAddress || undefined;
-      const result = await this.verifyTotpLoginUseCase.execute(dto, ipAddress);
-
-      res.status(200).json({
-        success: true,
-        data: result,
-        message: 'Login successful',
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'TOTP verification failed';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'VERIFY_TOTP_ERROR',
           message,
         },
       });

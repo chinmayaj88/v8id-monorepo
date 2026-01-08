@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "v8id-cloud-api-collection",
 		"name": "v8id-cloud API",
-		"description": "Postman collection for v8id-cloud backend API - Authentication and User Management",
+		"description": "Postman collection for v8id-cloud backend API - Authentication and User Management\n\n## 🔒 Security Features\n\n### Token Versioning\n- All tokens include a `tokenVersion` field that matches the user's current token version\n- When a password is changed, the user's `tokenVersion` is incremented\n- All existing tokens become invalid immediately (even if not expired)\n- Users must login again after password change\n- This prevents token reuse after password compromise\n\n### Rate Limiting\nAll endpoints are protected by rate limiting to prevent brute force attacks:\n\n- **Authentication endpoints** (`/api/auth/login`):\n  - 5 requests per 15 minutes per IP\n  - Successful requests are NOT counted (skipSuccessfulRequests: true)\n  - Rate limit headers: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`\n\n- **Token refresh** (`/api/auth/refresh`):\n  - 20 requests per 15 minutes per IP\n  - All requests are counted\n\n- **General API** (all `/api/*` routes):\n  - 100 requests per 15 minutes per IP\n  - Applied to all API endpoints\n\n**Rate Limit Headers:**\n- `RateLimit-Limit`: Maximum requests allowed\n- `RateLimit-Remaining`: Remaining requests in current window\n- `RateLimit-Reset`: Unix timestamp when the rate limit resets\n\n### Audit Logging\nAll security events are logged to the `audit_logs` table:\n\n- **Login events**: LOGIN, LOGIN_FAILED\n- **Logout events**: LOGOUT\n- **Token events**: TOKEN_REFRESH, TOKEN_REFRESH_FAILED\n- **TOTP events**: TOTP_VERIFIED, TOTP_VERIFICATION_FAILED, TOTP_SETUP\n- **Password events**: PASSWORD_CHANGE, PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE\n- **User events**: USER_CREATED, USER_UPDATED, USER_DEACTIVATED, USER_ACTIVATED\n- **Session events**: SESSION_REVOKED, SESSION_EXPIRED\n- **Security events**: RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY\n\nEach log entry includes:\n- User ID (if applicable)\n- Event type\n- IP address\n- User agent\n- Success/failure status\n- Error message (if failed)\n- Timestamp\n- Additional event data (device info, etc.)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -10,104 +10,78 @@
 			"name": "Authentication",
 			"item": [
 				{
-					"name": "Two-Step Login",
-					"item": [
+					"name": "Login",
+					"event": [
 						{
-							"name": "Step 1: Verify Credentials",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"if (pm.response.code === 200) {",
-											"    const jsonData = pm.response.json();",
-											"    if (jsonData.success && jsonData.data) {",
-											"        pm.environment.set(\"tempToken\", jsonData.data.tempToken);",
-											"        pm.environment.set(\"userId\", jsonData.data.user.id);",
-											"    }",
-											"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Log rate limit info",
+									"if (pm.response.headers.get(\"RateLimit-Limit\")) {",
+									"    console.log(\"Rate Limit Info:\");",
+									"    console.log(\"  Limit: \" + pm.response.headers.get(\"RateLimit-Limit\"));",
+									"    console.log(\"  Remaining: \" + pm.response.headers.get(\"RateLimit-Remaining\"));",
+									"    console.log(\"  Reset: \" + new Date(parseInt(pm.response.headers.get(\"RateLimit-Reset\")) * 1000));",
+									"}",
+									"",
+									"// Save tokens and session info",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"        pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"        pm.environment.set(\"userId\", jsonData.data.user.id);",
+									"        pm.environment.set(\"sessionId\", jsonData.data.deviceSession.id);",
+									"        ",
+									"        // Verify token versioning",
+									"        pm.test(\"Token includes version\", function () {",
+									"            const tokenParts = jsonData.data.accessToken.split('.');",
+									"            if (tokenParts.length === 3) {",
+									"                const payload = JSON.parse(atob(tokenParts[1]));",
+									"                pm.expect(payload.tokenVersion).to.exist;",
+									"                console.log(\"Token version: \" + payload.tokenVersion);",
+									"            }",
+									"});",
+									"    }",
+									"}"
 								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"UserPassword123!\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/auth/verify-credentials",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"api",
-										"auth",
-										"verify-credentials"
-									]
-								},
-								"description": "First step of two-step login: Verify email and password. Returns a temporary token if TOTP is required."
-							},
-							"response": []
-						},
-						{
-							"name": "Step 2: Verify TOTP",
-							"event": [
-								{
-									"listen": "test",
-									"script": {
-										"exec": [
-											"if (pm.response.code === 200) {",
-											"    const jsonData = pm.response.json();",
-											"    if (jsonData.success && jsonData.data) {",
-											"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
-											"        pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
-											"        pm.environment.set(\"userId\", jsonData.data.user.id);",
-											"        pm.environment.set(\"sessionId\", jsonData.data.deviceSession.id);",
-											"    }",
-											"}"
-										],
-										"type": "text/javascript"
-									}
-								}
-							],
-							"request": {
-								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": "application/json"
-									}
-								],
-								"body": {
-									"mode": "raw",
-									"raw": "{\n  \"tempToken\": \"{{tempToken}}\",\n  \"totpCode\": \"123456\",\n  \"deviceType\": \"WEB\",\n  \"deviceName\": \"Chrome on Windows\",\n  \"deviceId\": \"web-device-001\"\n}"
-								},
-								"url": {
-									"raw": "{{baseUrl}}/api/auth/verify-totp",
-									"host": [
-										"{{baseUrl}}"
-									],
-									"path": [
-										"api",
-										"auth",
-										"verify-totp"
-									]
-								},
-								"description": "Second step of two-step login: Verify TOTP code using the temporary token from step 1. Returns access and refresh tokens."
-							},
-							"response": []
+								"type": "text/javascript"
+							}
 						}
 					],
-					"description": "Two-step login flow: First verify credentials, then verify TOTP code."
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"UserPassword123!\",\n  \"totpCode\": \"123456\",\n  \"deviceType\": \"WEB\",\n  \"deviceName\": \"Chrome on Windows\",\n  \"deviceId\": \"web-device-001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "**Login with email, password, and TOTP code**\n\nLogin with email, password, and TOTP code in one request.\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP\n- Successful requests are NOT counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Successful login logged as `LOGIN`\n- Failed login attempts logged as `LOGIN_FAILED`\n- Includes IP address, user agent, device information, and error message\n\n**Token Versioning:**\n- Access token includes `tokenVersion` field\n- Token version matches user's current token version\n- If password is changed, token version increments and all tokens become invalid\n\n**Device Limits:**\n- Maximum 2 mobile devices + 1 web session per user\n- Oldest sessions are automatically revoked when limits are exceeded\n\n**Response:**\n- `accessToken`: JWT access token (15 minutes)\n- `refreshToken`: JWT refresh token (7 days)\n- `user`: User information\n- `deviceSession`: Device session information"
+					},
+					"response": []
 				},
 				{
 					"name": "Refresh Token",
@@ -116,10 +90,36 @@
 							"listen": "test",
 							"script": {
 								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Log rate limit info",
+									"if (pm.response.headers.get(\"RateLimit-Limit\")) {",
+									"    console.log(\"Rate Limit Info:\");",
+									"    console.log(\"  Limit: \" + pm.response.headers.get(\"RateLimit-Limit\"));",
+									"    console.log(\"  Remaining: \" + pm.response.headers.get(\"RateLimit-Remaining\"));",
+									"    console.log(\"  Reset: \" + new Date(parseInt(pm.response.headers.get(\"RateLimit-Reset\")) * 1000));",
+									"}",
+									"",
+									"// Update access token",
 									"if (pm.response.code === 200) {",
 									"    const jsonData = pm.response.json();",
 									"    if (jsonData.success && jsonData.data) {",
 									"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"        ",
+									"        // Verify token versioning",
+									"        pm.test(\"New token includes version\", function () {",
+									"            const tokenParts = jsonData.data.accessToken.split('.');",
+									"            if (tokenParts.length === 3) {",
+									"                const payload = JSON.parse(atob(tokenParts[1]));",
+									"                pm.expect(payload.tokenVersion).to.exist;",
+									"                console.log(\"New token version: \" + payload.tokenVersion);",
+									"            }",
+									"});",
 									"    }",
 									"}"
 								],
@@ -150,12 +150,35 @@
 								"refresh"
 							]
 						},
-						"description": "Refresh access token using refresh token. Returns a new access token."
+						"description": "**Refresh access token**\n\nRefresh access token using refresh token. Returns a new access token.\n\n**Rate Limiting:**\n- 20 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Successful refresh logged as `TOKEN_REFRESH`\n- Failed refresh logged as `TOKEN_REFRESH_FAILED`\n- Includes IP address and user agent\n\n**Token Versioning:**\n- New access token includes `tokenVersion` field\n- Token version must match user's current token version\n- If password was changed, refresh will fail with 401 (token invalidated)\n- User must login again after password change\n\n**Response:**\n- `accessToken`: New JWT access token (15 minutes)"
 					},
 					"response": []
 				},
 				{
 					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify logout success",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Logout successful\", function () {",
+									"        const jsonData = pm.response.json();",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    // Clear tokens from environment",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    pm.environment.unset(\"sessionId\");",
+									"    console.log(\"Tokens cleared from environment\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -183,18 +206,46 @@
 								"logout"
 							]
 						},
-						"description": "Logout and revoke the current device session."
+						"description": "**Logout and revoke session**\n\nLogout and revoke the current device session. The session is marked as revoked and all tokens become invalid.\n\n**Audit Logging:**\n- Successful logout logged as `LOGOUT`\n- Includes session ID, IP address, and user agent\n\n**Token Versioning:**\n- After logout, the session is revoked\n- Access token becomes invalid immediately\n- Refresh token cannot be used to create new sessions for this device\n\n**Note:**\n- Session ID can be provided in request body or `X-Session-Id` header\n- If not provided, the session associated with the access token is revoked"
 					},
 					"response": []
 				}
 			],
-			"description": "Authentication endpoints for login, token refresh, and logout."
+			"description": "Authentication endpoints for login, token refresh, and logout.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of security events\n- **Token versioning** for security"
 		},
 		{
 			"name": "Users",
 			"item": [
 				{
 					"name": "Create User (Admin Only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify user creation",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"User created successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.user).to.exist;",
+									"        pm.expect(jsonData.data.totpSetup).to.exist;",
+									"    });",
+									"    ",
+									"    // Log TOTP setup info",
+									"    if (jsonData.data.totpSetup) {",
+									"        console.log(\"TOTP Setup Info:\");",
+									"        console.log(\"  QR Code URL: Base64 image (display to user)\");",
+									"        console.log(\"  Secret: \" + jsonData.data.totpSetup.secret);",
+									"        console.log(\"  Backup Codes: \" + jsonData.data.totpSetup.backupCodes.length + \" codes\");",
+									"        console.log(\"\\n⚠️ IMPORTANT: User must save backup codes securely!\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [
@@ -221,7 +272,7 @@
 								"users"
 							]
 						},
-						"description": "Create a new user account. Only admins can create users. Password must be at least 12 characters with uppercase, lowercase, number, and special character.\n\n**IMPORTANT**: TOTP is MANDATORY. The response includes:\n- `totpSetup.qrCodeUrl`: Base64 QR code image (display to user)\n- `totpSetup.secret`: TOTP secret for manual entry\n- `totpSetup.backupCodes`: Array of 10 backup codes (user must save these)\n\nThe user must scan the QR code with an authenticator app (Google Authenticator, Authy, etc.) before they can login."
+						"description": "**Create a new user account (Admin Only)**\n\nOnly admins can create users. Password must meet security requirements.\n\n**Password Requirements:**\n- Minimum 12 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character\n\n**TOTP Setup (MANDATORY):**\n- TOTP is automatically set up for all new users\n- Response includes:\n  - `totpSetup.qrCodeUrl`: Base64-encoded QR code image (display to user)\n  - `totpSetup.secret`: TOTP secret for manual entry (if QR code cannot be scanned)\n  - `totpSetup.backupCodes`: Array of 10 backup codes (user MUST save these securely)\n\n**⚠️ IMPORTANT:**\n- User must scan the QR code with an authenticator app (Google Authenticator, Authy, etc.)\n- User must save backup codes in a secure location\n- User cannot login until TOTP is verified\n\n**Audit Logging:**\n- User creation logged as `USER_CREATED`\n- Includes creator ID, new user ID, and user information\n\n**Response:**\n- `user`: Created user information\n- `totpSetup`: TOTP setup information (QR code, secret, backup codes)"
 					},
 					"response": []
 				},
@@ -262,12 +313,42 @@
 								}
 							]
 						},
-						"description": "List all users with pagination. Only admins can access this endpoint."
+						"description": "**List all users with pagination (Admin Only)**\n\nOnly admins can access this endpoint.\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 50)\n- `search`: Search by email or name (optional)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- `users`: Array of user objects\n- `pagination`: Pagination information (page, limit, total, totalPages)"
 					},
 					"response": []
 				},
 				{
 					"name": "Get Current User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify token versioning",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        // Check if token is still valid",
+									"        pm.test(\"User data retrieved\", function () {",
+									"            pm.expect(jsonData.data.id).to.exist;",
+									"            pm.expect(jsonData.data.email).to.exist;",
+									"        });",
+									"        ",
+									"        // If token was invalidated, we would get 401",
+									"        console.log(\"Token is valid - token version matches user's current version\");",
+									"    }",
+									"} else if (pm.response.code === 401) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"Token invalidated: \" + jsonData.error.message);",
+									"        console.log(\"This happens when password is changed - token version mismatch\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "GET",
 						"header": [
@@ -287,7 +368,7 @@
 								"me"
 							]
 						},
-						"description": "Get the current authenticated user's profile information."
+						"description": "**Get current authenticated user's profile**\n\nReturns the profile information of the currently authenticated user.\n\n**Token Versioning:**\n- This endpoint validates token version\n- If password was changed, token version increments\n- Old tokens become invalid and return 401 with message: \"Token has been invalidated. Please login again.\"\n- This prevents token reuse after password compromise\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- User profile information including:\n  - `id`, `email`, `firstName`, `lastName`, `avatarUrl`\n  - `role`, `storageQuota`, `storageUsed`\n  - `emailVerified`, `totpEnabled`, `totpVerified`\n  - `createdAt`, `updatedAt`"
 					},
 					"response": []
 				},
@@ -320,30 +401,36 @@
 								"me"
 							]
 						},
-						"description": "Update the current authenticated user's profile (firstName, lastName, avatarUrl)."
+						"description": "**Update current user's profile**\n\nUpdate the current authenticated user's profile information.\n\n**Allowed Fields:**\n- `firstName`: User's first name\n- `lastName`: User's last name\n- `avatarUrl`: URL to user's avatar image\n\n**Token Versioning:**\n- Token version is validated before allowing update\n- If token is invalid (password changed), returns 401\n\n**Audit Logging:**\n- User update logged as `USER_UPDATED`\n- Includes updated fields and user ID\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- Updated user information (id, firstName, lastName, avatarUrl, updatedAt)"
 					},
 					"response": []
 				}
 			],
-			"description": "User management endpoints. Admin-only endpoints require admin role."
+			"description": "User management endpoints. Admin-only endpoints require admin role.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of user events\n- **Token versioning** validation"
 		},
 		{
-			"name": "Health Check",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{baseUrl}}/health",
-					"host": [
-						"{{baseUrl}}"
-					],
-					"path": [
-						"health"
-					]
-				},
-				"description": "Health check endpoint to verify the server is running."
-			},
-			"response": []
+			"name": "Testing & Utilities",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "**Health check endpoint**\n\nCheck if the server is running and responding.\n\n**No authentication required**\n\n**Response:**\n- `status`: \"ok\"\n- `timestamp`: Current server timestamp"
+					},
+					"response": []
+				}
+			],
+			"description": "Testing and utility endpoints for verifying system functionality."
 		}
 	],
 	"variable": [
@@ -354,4 +441,3 @@
 		}
 	]
 }
-
