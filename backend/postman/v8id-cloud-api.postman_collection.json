@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "v8id-cloud-api-collection",
 		"name": "v8id-cloud API",
-		"description": "Postman collection for v8id-cloud backend API - Authentication and User Management\n\n## 🔒 Security Features\n\n### Token Versioning\n- All tokens include a `tokenVersion` field that matches the user's current token version\n- When a password is changed, the user's `tokenVersion` is incremented\n- All existing tokens become invalid immediately (even if not expired)\n- Users must login again after password change\n- This prevents token reuse after password compromise\n\n### Rate Limiting\nAll endpoints are protected by rate limiting to prevent brute force attacks:\n\n- **Authentication endpoints** (`/api/auth/verify-credentials`):\n  - 5 requests per 15 minutes per IP\n  - Successful requests are NOT counted (skipSuccessfulRequests: true)\n  - Rate limit headers: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`\n\n- **Token refresh** (`/api/auth/refresh`):\n  - 20 requests per 15 minutes per IP\n  - All requests are counted\n\n- **General API** (all `/api/*` routes):\n  - 100 requests per 15 minutes per IP\n  - Applied to all API endpoints\n\n**Rate Limit Headers:**\n- `RateLimit-Limit`: Maximum requests allowed\n- `RateLimit-Remaining`: Remaining requests in current window\n- `RateLimit-Reset`: Unix timestamp when the rate limit resets\n\n### Audit Logging\nAll security events are logged to the `audit_logs` table:\n\n- **Login events**: LOGIN, LOGIN_FAILED\n- **Logout events**: LOGOUT\n- **Token events**: TOKEN_REFRESH, TOKEN_REFRESH_FAILED\n- **TOTP events**: TOTP_VERIFIED, TOTP_VERIFICATION_FAILED, TOTP_SETUP\n- **Password events**: PASSWORD_CHANGE, PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE\n- **User events**: USER_CREATED, USER_UPDATED, USER_DEACTIVATED, USER_ACTIVATED\n- **Session events**: SESSION_REVOKED, SESSION_EXPIRED\n- **Security events**: RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY\n\nEach log entry includes:\n- User ID (if applicable)\n- Event type\n- IP address\n- User agent\n- Success/failure status\n- Error message (if failed)\n- Timestamp\n- Additional event data (device info, etc.)",
+		"description": "Postman collection for v8id-cloud backend API - Authentication and User Management\n\n## 🔒 Security Features\n\n### Token Versioning\n- All tokens include a `tokenVersion` field that matches the user's current token version\n- When a password is changed, the user's `tokenVersion` is incremented\n- All existing tokens become invalid immediately (even if not expired)\n- Users must login again after password change\n- This prevents token reuse after password compromise\n\n### Rate Limiting\nAll endpoints are protected by rate limiting to prevent brute force attacks:\n\n- **Authentication endpoints** (`/api/auth/verify-credentials`):\n  - 5 requests per 15 minutes per IP\n  - Successful requests are NOT counted (skipSuccessfulRequests: true)\n  - Rate limit headers: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`\n\n- **Token refresh** (`/api/auth/refresh`):\n  - 20 requests per 15 minutes per IP\n  - All requests are counted\n\n- **General API** (all `/api/*` routes):\n  - 100 requests per 15 minutes per IP\n  - Applied to all API endpoints\n\n**Rate Limit Headers:**\n- `RateLimit-Limit`: Maximum requests allowed\n- `RateLimit-Remaining`: Remaining requests in current window\n- `RateLimit-Reset`: Unix timestamp when the rate limit resets\n\n### Account Lockout\n- Account is locked after **5 failed login attempts** within **15 minutes**\n- Lockout expires automatically after 15 minutes from the first failed attempt\n- User receives clear error message with unlock time\n- Prevents brute force attacks\n- Failed attempts are tracked via audit logs\n\n### Security Headers (Helmet.js)\n- XSS Protection enabled\n- Content Security Policy (CSP) configured\n- HSTS (HTTP Strict Transport Security)\n- Request size limits (10MB)\n- Additional security headers for production\n\n### Audit Logging\nAll security events are logged to the `audit_logs` table:\n\n- **Login events**: LOGIN, LOGIN_FAILED\n- **Logout events**: LOGOUT\n- **Token events**: TOKEN_REFRESH, TOKEN_REFRESH_FAILED\n- **TOTP events**: TOTP_VERIFIED, TOTP_VERIFICATION_FAILED, TOTP_SETUP\n- **Password events**: PASSWORD_CHANGE, PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE\n- **User events**: USER_CREATED, USER_UPDATED, USER_DEACTIVATED, USER_ACTIVATED\n- **Session events**: SESSION_REVOKED, SESSION_EXPIRED\n- **Security events**: RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY\n\nEach log entry includes:\n- User ID (if applicable) - NULL for unknown users\n- Email address (for login attempts)\n- Event type\n- IP address (normalized - IPv6 localhost converted to IPv4)\n- User agent\n- Success/failure status\n- Error message (if failed)\n- Timestamp\n- Additional event data (device info, etc.)\n\n### Password Management\n- **Password Reset**: Forgot password flow with secure token (1 hour expiration)\n- **Password Change**: Requires current password + TOTP, invalidates all sessions\n- **Email Enumeration Prevention**: Password reset always returns success\n\n### Session Management\n- **List Sessions**: View all active device sessions\n- **Revoke Specific Session**: Logout from a specific device\n- **Revoke All Sessions**: Logout from all devices\n- All session operations are audit logged\n\n### Input Validation\n- Input sanitization middleware\n- Email normalization (lowercase, trim)\n- Control character removal\n- Required field validation",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -285,9 +285,209 @@
 						"description": "**Logout and revoke session**\n\nLogout and revoke the current device session. The session is marked as revoked and all tokens become invalid.\n\n**Audit Logging:**\n- Successful logout logged as `LOGOUT`\n- Includes session ID, IP address, and user agent\n\n**Token Versioning:**\n- After logout, the session is revoked\n- Access token becomes invalid immediately\n- Refresh token cannot be used to create new sessions for this device\n\n**Note:**\n- Session ID can be provided in request body or `X-Session-Id` header\n- If not provided, the session associated with the access token is revoked"
 					},
 					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Always returns success (prevents email enumeration)",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Request processed\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Password reset request processed\");",
+									"    console.log(\"📧 Check server logs for reset token (in production, email would be sent)\");",
+									"    console.log(\"⚠️ Reset token expires in 1 hour\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/forgot-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"forgot-password"
+							]
+						},
+						"description": "**Request password reset**\n\nRequest a password reset token. The token is sent via email (in production) or logged to console (in development).\n\n**⚠️ SECURITY - Email Enumeration Prevention:**\n- Always returns success (200) even if email doesn't exist\n- This prevents attackers from discovering which emails are registered\n- Response message is generic: \"If an account with that email exists, a password reset link has been sent.\"\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Request logged as `PASSWORD_RESET_REQUEST`\n- Includes email, IP address, and user agent\n- Logged even if user doesn't exist (for security monitoring)\n\n**Reset Token:**\n- Token expires in **1 hour**\n- Token is cryptographically random (32 bytes hex)\n- In development: Check server console logs for token\n- In production: Token sent via email\n\n**Response:**\n- Always returns success (200) with generic message\n- Prevents email enumeration attacks"
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Verify password reset success",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Password reset successful\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Password reset successful\");",
+									"    console.log(\"⚠️ All existing sessions have been invalidated\");",
+									"    console.log(\"⚠️ User must login again with new password\");",
+									"    ",
+									"    // Clear tokens if they exist",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    pm.environment.unset(\"sessionId\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Password reset failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"expired\")) {",
+									"            console.log(\"💡 Reset token has expired. Request a new one.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"reset-token-from-email-or-console\",\n  \"newPassword\": \"NewSecurePassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/reset-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password"
+							]
+						},
+						"description": "**Reset password using reset token**\n\nReset password using the token received from \"Forgot Password\" request.\n\n**⚠️ SECURITY:**\n- Token expires in **1 hour**\n- Token can only be used **once**\n- After successful reset, token is cleared\n- **All existing sessions are invalidated** (tokenVersion incremented)\n- User must login again with new password\n\n**Password Requirements:**\n- Minimum 12 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Successful reset logged as `PASSWORD_RESET_COMPLETE`\n- Password change logged as `PASSWORD_CHANGE`\n- Includes IP address and user agent\n\n**Token Versioning:**\n- User's `tokenVersion` is incremented\n- All existing access tokens become invalid\n- All existing refresh tokens become invalid\n- All device sessions remain but tokens are invalid\n\n**Response:**\n- Success message confirming password reset\n- Note that all sessions have been invalidated"
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify password change success",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Password change successful\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Password changed successfully\");",
+									"    console.log(\"⚠️ All existing sessions have been invalidated\");",
+									"    console.log(\"⚠️ Current access token is now invalid\");",
+									"    ",
+									"    // Clear tokens - user must login again",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    pm.environment.unset(\"sessionId\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Password change failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"TOTP\")) {",
+									"            console.log(\"💡 TOTP code is required for password change\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"current password\")) {",
+									"            console.log(\"💡 Current password is incorrect\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"different\")) {",
+									"            console.log(\"💡 New password must be different from current password\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"CurrentPassword123!\",\n  \"newPassword\": \"NewSecurePassword123!\",\n  \"totpCode\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/change-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"change-password"
+							]
+						},
+						"description": "**Change password (requires authentication + TOTP)**\n\nChange password for authenticated user. Requires current password and TOTP code.\n\n**⚠️ SECURITY:**\n- Requires **current password** verification\n- Requires **TOTP code** (mandatory for password change)\n- New password must be **different** from current password\n- **All existing sessions are invalidated** (tokenVersion incremented)\n- Current access token becomes invalid immediately\n- User must login again with new password\n\n**Password Requirements:**\n- Minimum 12 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character\n- Must be different from current password\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Password change logged as `PASSWORD_CHANGE`\n- Includes IP address and user agent\n- Logs success/failure with error message if failed\n\n**Token Versioning:**\n- User's `tokenVersion` is incremented\n- All existing access tokens become invalid\n- All existing refresh tokens become invalid\n- All device sessions remain but tokens are invalid\n\n**Response:**\n- Success message confirming password change\n- Note that all sessions have been invalidated"
+					},
+					"response": []
 				}
 			],
-			"description": "Authentication endpoints for login, token refresh, and logout.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of security events\n- **Token versioning** for security"
+			"description": "Authentication endpoints for login, token refresh, logout, and password management.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of security events\n- **Token versioning** for security\n- **Account lockout** after failed attempts\n- **Email enumeration prevention** (password reset)"
 		},
 		{
 			"name": "Users",
@@ -480,9 +680,200 @@
 						"description": "**Update current user's profile**\n\nUpdate the current authenticated user's profile information.\n\n**Allowed Fields:**\n- `firstName`: User's first name\n- `lastName`: User's last name\n- `avatarUrl`: URL to user's avatar image\n\n**Token Versioning:**\n- Token version is validated before allowing update\n- If token is invalid (password changed), returns 401\n\n**Audit Logging:**\n- User update logged as `USER_UPDATED`\n- Includes updated fields and user ID\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- Updated user information (id, firstName, lastName, avatarUrl, updatedAt)"
 					},
 					"response": []
+				},
+				{
+					"name": "List Active Sessions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify sessions list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Sessions retrieved\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.sessions).to.be.an('array');",
+									"    });",
+									"    ",
+									"    if (jsonData.data.sessions.length > 0) {",
+									"        console.log(\"📱 Active Sessions: \" + jsonData.data.sessions.length);",
+									"        jsonData.data.sessions.forEach((session, index) => {",
+									"            console.log(\"\\nSession \" + (index + 1) + \":\");",
+									"            console.log(\"  ID: \" + session.id);",
+									"            console.log(\"  Device: \" + session.deviceType + \" - \" + session.deviceName);",
+									"            console.log(\"  IP: \" + (session.ipAddress || 'N/A'));",
+									"            console.log(\"  Last Active: \" + new Date(session.lastActiveAt));",
+									"        });",
+									"        ",
+									"        // Save first session ID for testing",
+									"        if (jsonData.data.sessions[0]) {",
+									"            pm.environment.set(\"sessionId\", jsonData.data.sessions[0].id);",
+									"        }",
+									"    } else {",
+									"        console.log(\"No active sessions\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/sessions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"sessions"
+							]
+						},
+						"description": "**List all active sessions for current user**\n\nGet a list of all active device sessions for the authenticated user.\n\n**Session Information:**\n- `id`: Session ID (use for revoking specific session)\n- `deviceType`: MOBILE or WEB\n- `deviceName`: User-friendly device name\n- `deviceId`: Unique device identifier\n- `userAgent`: Browser/app user agent\n- `ipAddress`: IP address of the session\n- `location`: Approximate location (if available)\n- `lastActiveAt`: Last activity timestamp\n- `createdAt`: Session creation timestamp\n- `expiresAt`: Session expiration timestamp\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Session listing is not logged (read-only operation)\n\n**Response:**\n- Array of active session objects with device and location information"
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke Specific Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify session revocation",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Session revoked successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Session revoked successfully\");",
+									"    console.log(\"⚠️ All tokens for this session are now invalid\");",
+									"    ",
+									"    // If this was the current session, clear tokens",
+									"    const currentSessionId = pm.environment.get(\"sessionId\");",
+									"    const revokedSessionId = pm.variables.get(\"sessionId\") || pm.environment.get(\"sessionId\");",
+									"    if (currentSessionId === revokedSessionId) {",
+									"        pm.environment.unset(\"accessToken\");",
+									"        pm.environment.unset(\"refreshToken\");",
+									"        pm.environment.unset(\"sessionId\");",
+									"        console.log(\"⚠️ Current session was revoked - tokens cleared\");",
+									"    }",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Session not found or already revoked\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/sessions/:sessionId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"sessions",
+								":sessionId"
+							],
+							"variable": [
+								{
+									"key": "sessionId",
+									"value": "{{sessionId}}",
+									"description": "Session ID to revoke (get from List Active Sessions)"
+								}
+							]
+						},
+						"description": "**Revoke a specific device session**\n\nRevoke a specific device session by session ID. The session is marked as revoked and all tokens for that session become invalid.\n\n**⚠️ SECURITY:**\n- Session is immediately revoked\n- Access token for this session becomes invalid\n- Refresh token for this session becomes invalid\n- Session cannot be used again\n- If you revoke your current session, you'll be logged out\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Session revocation logged as `SESSION_REVOKED`\n- Includes session ID, IP address, and user agent\n\n**Path Parameter:**\n- `sessionId`: ID of the session to revoke (get from List Active Sessions endpoint)\n\n**Response:**\n- Success message confirming session revocation\n- Note that tokens for this session are now invalid"
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke All Sessions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify all sessions revoked",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"All sessions revoked successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ \" + jsonData.message);",
+									"    console.log(\"⚠️ All device sessions have been revoked\");",
+									"    console.log(\"⚠️ All tokens are now invalid\");",
+									"    console.log(\"⚠️ You must login again\");",
+									"    ",
+									"    // Clear all tokens",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    pm.environment.unset(\"sessionId\");",
+									"    pm.environment.unset(\"tempToken\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/sessions/revoke-all",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"sessions",
+								"revoke-all"
+							]
+						},
+						"description": "**Revoke all device sessions**\n\nRevoke all active device sessions for the authenticated user. This logs out the user from all devices.\n\n**⚠️ SECURITY:**\n- **All** device sessions are immediately revoked\n- **All** access tokens become invalid\n- **All** refresh tokens become invalid\n- User is logged out from all devices\n- User must login again on all devices\n\n**Use Cases:**\n- User suspects account compromise\n- User wants to logout from all devices\n- Security measure after password change (though password change already invalidates tokens)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Each session revocation logged as `SESSION_REVOKED`\n- Includes session ID, IP address, and user agent for each session\n- Multiple audit log entries (one per session)\n\n**Response:**\n- Success message with count of revoked sessions\n- Note that all tokens are now invalid"
+					},
+					"response": []
 				}
 			],
-			"description": "User management endpoints. Admin-only endpoints require admin role.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of user events\n- **Token versioning** validation"
+			"description": "User management endpoints including profile management and session management.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of user events\n- **Token versioning** validation\n- **Session management** (list, revoke specific, revoke all)"
 		},
 		{
 			"name": "Testing & Utilities",

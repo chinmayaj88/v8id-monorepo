@@ -51,4 +51,13 @@ export interface IAuditLogRepository {
    * Find failed login attempts for a user
    */
   findFailedLoginAttempts(userId: string, since?: Date): Promise<AuditLog[]>;
+
+  /**
+   * Find audit logs by user ID and event type with date filter
+   */
+  findByUserIdAndEventType(
+    userId: string,
+    eventType: string,
+    since?: Date
+  ): Promise<AuditLog[]>;
 }

@@ -176,6 +176,8 @@ export class AuditLogService {
     options?: {
       ipAddress?: string;
       userAgent?: string;
+      success?: boolean;
+      errorMessage?: string;
     }
   ): Promise<void> {
     await this.logEvent({
@@ -183,7 +185,56 @@ export class AuditLogService {
       eventType: AuditEventType.PASSWORD_CHANGE,
       ipAddress: options?.ipAddress,
       userAgent: options?.userAgent,
-      success: true,
+      success: options?.success ?? true,
+      errorMessage: options?.errorMessage,
+    });
+  }
+
+  /**
+   * Log password reset request
+   */
+  async logPasswordResetRequest(
+    userId: string | undefined,
+    success: boolean,
+    options?: {
+      ipAddress?: string;
+      userAgent?: string;
+      email?: string;
+      errorMessage?: string;
+    }
+  ): Promise<void> {
+    await this.logEvent({
+      userId: userId || undefined,
+      eventType: AuditEventType.PASSWORD_RESET_REQUEST,
+      eventData: {
+        email: options?.email,
+      },
+      ipAddress: options?.ipAddress,
+      userAgent: options?.userAgent,
+      success,
+      errorMessage: options?.errorMessage,
+    });
+  }
+
+  /**
+   * Log password reset completion
+   */
+  async logPasswordResetComplete(
+    userId: string | undefined,
+    success: boolean,
+    options?: {
+      ipAddress?: string;
+      userAgent?: string;
+      errorMessage?: string;
+    }
+  ): Promise<void> {
+    await this.logEvent({
+      userId: userId || undefined,
+      eventType: AuditEventType.PASSWORD_RESET_COMPLETE,
+      ipAddress: options?.ipAddress,
+      userAgent: options?.userAgent,
+      success,
+      errorMessage: options?.errorMessage,
     });
   }
 

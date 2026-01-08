@@ -3,7 +3,10 @@ import { VerifyCredentialsUseCase } from '../../application/use-cases/verify-cre
 import { VerifyTotpLoginUseCase } from '../../application/use-cases/verify-totp-login.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
-import { RefreshTokenDTO, VerifyCredentialsDTO, VerifyTotpDTO } from '../../application/dtos/auth.dto';
+import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password.use-case';
+import { ResetPasswordUseCase } from '../../application/use-cases/reset-password.use-case';
+import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case';
+import { RefreshTokenDTO, VerifyCredentialsDTO, VerifyTotpDTO, ForgotPasswordDTO, ResetPasswordDTO } from '../../application/dtos/auth.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { extractIpAddress } from '../utils/ip-address.util';
 
@@ -12,7 +15,10 @@ export class AuthController {
     private verifyCredentialsUseCase: VerifyCredentialsUseCase,
     private verifyTotpLoginUseCase: VerifyTotpLoginUseCase,
     private refreshTokenUseCase: RefreshTokenUseCase,
-    private logoutUseCase: LogoutUseCase
+    private logoutUseCase: LogoutUseCase,
+    private forgotPasswordUseCase: ForgotPasswordUseCase,
+    private resetPasswordUseCase: ResetPasswordUseCase,
+    private changePasswordUseCase: ChangePasswordUseCase
   ) {}
 
   /**
@@ -191,6 +197,148 @@ export class AuthController {
         success: false,
         error: {
           code: 'LOGOUT_ERROR',
+          message,
+        },
+      });
+    }
+  }
+
+  /**
+   * POST /api/auth/forgot-password
+   * Request password reset (sends reset token)
+   */
+  async forgotPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const dto: ForgotPasswordDTO = req.body;
+
+      if (!dto.email) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Email is required',
+          },
+        });
+        return;
+      }
+
+      const ipAddress = extractIpAddress(req);
+      const userAgent = req.headers['user-agent'] || undefined;
+
+      // Always return success to prevent email enumeration
+      await this.forgotPasswordUseCase.execute(dto.email, {
+        ipAddress,
+        userAgent,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.',
+      });
+    } catch (error) {
+      // Still return success to prevent email enumeration
+      res.status(200).json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.',
+      });
+    }
+  }
+
+  /**
+   * POST /api/auth/reset-password
+   * Reset password using reset token
+   */
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const dto: ResetPasswordDTO = req.body;
+
+      if (!dto.token || !dto.newPassword) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Token and new password are required',
+          },
+        });
+        return;
+      }
+
+      const ipAddress = extractIpAddress(req);
+      const userAgent = req.headers['user-agent'] || undefined;
+
+      await this.resetPasswordUseCase.execute(dto.token, dto.newPassword, {
+        ipAddress,
+        userAgent,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Password has been reset successfully. All existing sessions have been invalidated.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Password reset failed';
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'RESET_PASSWORD_ERROR',
+          message,
+        },
+      });
+    }
+  }
+
+  /**
+   * POST /api/auth/change-password
+   * Change password (requires authentication + current password + TOTP)
+   */
+  async changePassword(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        });
+        return;
+      }
+
+      const { currentPassword, newPassword, totpCode } = req.body;
+
+      if (!currentPassword || !newPassword || !totpCode) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Current password, new password, and TOTP code are required',
+          },
+        });
+        return;
+      }
+
+      const ipAddress = extractIpAddress(req);
+      const userAgent = req.headers['user-agent'] || undefined;
+
+      await this.changePasswordUseCase.execute(req.user.id, {
+        currentPassword,
+        newPassword,
+        totpCode,
+      }, {
+        ipAddress,
+        userAgent,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Password has been changed successfully. All existing sessions have been invalidated.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Password change failed';
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'CHANGE_PASSWORD_ERROR',
           message,
         },
       });

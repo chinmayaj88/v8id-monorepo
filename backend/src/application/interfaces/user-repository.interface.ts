@@ -45,7 +45,14 @@ export interface IUserRepository {
     totpVerified?: boolean;
     tokenVersion?: number;
     lastLoginAt?: Date;
+    passwordResetToken?: string | null;
+    passwordResetExpires?: Date | null;
   }>): Promise<User>;
+
+  /**
+   * Find user by password reset token
+   */
+  findByPasswordResetToken(token: string): Promise<User | null>;
 
   /**
    * Delete user (soft delete by setting isActive to false)

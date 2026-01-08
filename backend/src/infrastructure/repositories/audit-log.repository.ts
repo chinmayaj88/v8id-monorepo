@@ -133,4 +133,26 @@ export class AuditLogRepository implements IAuditLogRepository {
 
     return logs.map((log) => this.toDomain(log));
   }
+
+  async findByUserIdAndEventType(
+    userId: string,
+    eventType: string,
+    since?: Date
+  ): Promise<AuditLog[]> {
+    const where: any = {
+      userId,
+      eventType,
+    };
+
+    if (since) {
+      where.createdAt = { gte: since };
+    }
+
+    const logs = await prisma.auditLog.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return logs.map((log) => this.toDomain(log));
+  }
 }

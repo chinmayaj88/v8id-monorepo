@@ -10,6 +10,8 @@ import { CreateUserUseCase } from '../../application/use-cases/create-user.use-c
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 import { TotpBackupCodeRepository } from '../../infrastructure/repositories/totp-backup-code.repository';
 import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository';
+import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
+import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 
 const router: IRouter = Router();
@@ -18,12 +20,21 @@ const router: IRouter = Router();
 const userRepository = new UserRepository();
 const totpBackupCodeRepository = new TotpBackupCodeRepository();
 const deviceSessionRepository = new DeviceSessionRepository();
+const auditLogRepository = new AuditLogRepository();
+
+// Initialize services
+const auditLogService = new AuditLogService(auditLogRepository);
 
 // Initialize use cases
 const createUserUseCase = new CreateUserUseCase(userRepository, totpBackupCodeRepository);
 
 // Initialize controller
-const userController = new UserController(createUserUseCase, userRepository);
+const userController = new UserController(
+  createUserUseCase,
+  userRepository,
+  deviceSessionRepository,
+  auditLogService
+);
 
 // Routes
 // Admin-only routes
@@ -40,6 +51,17 @@ router.get('/me', authMiddleware(userRepository, deviceSessionRepository), (req,
 );
 router.patch('/me', authMiddleware(userRepository, deviceSessionRepository), (req, res) => 
   userController.updateCurrentUser(req, res)
+);
+
+// Session management routes
+router.get('/me/sessions', authMiddleware(userRepository, deviceSessionRepository), (req, res) => 
+  userController.listSessions(req, res)
+);
+router.delete('/me/sessions/:sessionId', authMiddleware(userRepository, deviceSessionRepository), (req, res) => 
+  userController.revokeSession(req, res)
+);
+router.post('/me/sessions/revoke-all', authMiddleware(userRepository, deviceSessionRepository), (req, res) => 
+  userController.revokeAllSessions(req, res)
 );
 
 export default router;

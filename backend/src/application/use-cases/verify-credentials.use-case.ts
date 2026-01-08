@@ -9,6 +9,7 @@ import { IUserRepository } from '../interfaces/user-repository.interface';
 import { PasswordService } from '../../infrastructure/services/password.service';
 import { JwtService } from '../../infrastructure/services/jwt.service';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
+import { AccountLockoutService } from '../../infrastructure/services/account-lockout.service';
 
 export interface VerifyCredentialsResult {
   requiresTotp: boolean;
@@ -31,7 +32,8 @@ export interface VerifyCredentialsOptions {
 export class VerifyCredentialsUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private auditLogService: AuditLogService
+    private auditLogService: AuditLogService,
+    private accountLockoutService: AccountLockoutService
   ) {}
 
   async execute(
@@ -62,6 +64,26 @@ export class VerifyCredentialsUseCase {
         errorMessage: 'Account is inactive',
       });
       throw new Error('Account is inactive');
+    }
+
+    // 2.5. Check if account is locked due to too many failed attempts
+    const lockoutStatus = await this.accountLockoutService.isAccountLocked(user.id);
+    if (lockoutStatus.locked) {
+      const unlockAt = lockoutStatus.unlockAt;
+      const minutesRemaining = unlockAt
+        ? Math.ceil((unlockAt.getTime() - Date.now()) / (60 * 1000))
+        : 15;
+      
+      await this.auditLogService.logLogin(user.id, false, {
+        ipAddress: options?.ipAddress,
+        userAgent: options?.userAgent,
+        email: options?.email || email,
+        errorMessage: `Account locked due to too many failed login attempts. Try again in ${minutesRemaining} minute(s).`,
+      });
+      
+      throw new Error(
+        `Account is temporarily locked due to too many failed login attempts. Please try again in ${minutesRemaining} minute(s).`
+      );
     }
 
     // 3. Verify password

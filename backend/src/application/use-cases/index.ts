@@ -11,3 +11,6 @@ export { VerifyTotpLoginUseCase, type VerifyTotpLoginResult, type VerifyTotpLogi
 export { CreateUserUseCase, type CreateUserResult } from './create-user.use-case';
 export { RefreshTokenUseCase, type RefreshTokenResult } from './refresh-token.use-case';
 export { LogoutUseCase } from './logout.use-case';
+export { ForgotPasswordUseCase } from './forgot-password.use-case';
+export { ResetPasswordUseCase } from './reset-password.use-case';
+export { ChangePasswordUseCase, type ChangePasswordDTO } from './change-password.use-case';

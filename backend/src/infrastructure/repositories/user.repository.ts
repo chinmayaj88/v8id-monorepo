@@ -99,6 +99,8 @@ export class UserRepository implements IUserRepository {
       totpVerified?: boolean;
       tokenVersion?: number;
       lastLoginAt?: Date;
+      passwordResetToken?: string | null;
+      passwordResetExpires?: Date | null;
     }>
   ): Promise<User> {
     const user = await prisma.user.update({
@@ -108,6 +110,23 @@ export class UserRepository implements IUserRepository {
         updatedAt: new Date(),
       },
     });
+
+    return this.toDomain(user);
+  }
+
+  async findByPasswordResetToken(token: string): Promise<User | null> {
+    const user = await prisma.user.findFirst({
+      where: {
+        passwordResetToken: token,
+        passwordResetExpires: {
+          gt: new Date(), // Token must not be expired
+        },
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
 
     return this.toDomain(user);
   }

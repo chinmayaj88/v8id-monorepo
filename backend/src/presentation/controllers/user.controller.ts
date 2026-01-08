@@ -7,14 +7,19 @@
 import { Response } from 'express';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
 import { IUserRepository } from '../../application/interfaces/user-repository.interface';
+import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface';
+import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 import { UpdateUserDTO, ListUsersDTO } from '../../application/dtos/user.dto';
 import { CreateUserDTO } from '../../application/dtos/auth.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { extractIpAddress } from '../utils/ip-address.util';
 
 export class UserController {
   constructor(
     private createUserUseCase: CreateUserUseCase,
-    private userRepository: IUserRepository
+    private userRepository: IUserRepository,
+    private deviceSessionRepository: IDeviceSessionRepository,
+    private auditLogService: AuditLogService
   ) {}
 
   /**
@@ -219,6 +224,175 @@ export class UserController {
         success: false,
         error: {
           code: 'INTERNAL_ERROR',
+          message,
+        },
+      });
+    }
+  }
+
+  /**
+   * GET /api/users/me/sessions
+   * List all active sessions for the current user
+   */
+  async listSessions(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        });
+        return;
+      }
+
+      const sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(req.user.id);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          sessions: sessions.map((session) => ({
+            id: session.id,
+            deviceType: session.deviceType,
+            deviceName: session.deviceName,
+            deviceId: session.deviceId,
+            userAgent: session.userAgent,
+            ipAddress: session.ipAddress,
+            location: session.location,
+            lastActiveAt: session.lastActiveAt,
+            createdAt: session.createdAt,
+            expiresAt: session.expiresAt,
+          })),
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to list sessions';
+      res.status(500).json({
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message,
+        },
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/users/me/sessions/:sessionId
+   * Revoke a specific session
+   */
+  async revokeSession(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        });
+        return;
+      }
+
+      const { sessionId } = req.params;
+
+      if (!sessionId) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Session ID is required',
+          },
+        });
+        return;
+      }
+
+      // Verify session belongs to user
+      const sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(req.user.id);
+      const session = sessions.find((s) => s.id === sessionId);
+
+      if (!session) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Session not found',
+          },
+        });
+        return;
+      }
+
+      // Revoke session
+      await this.deviceSessionRepository.revoke(sessionId);
+
+      // Log session revocation
+      const ipAddress = extractIpAddress(req);
+      const userAgent = req.headers['user-agent'] || undefined;
+      await this.auditLogService.logSessionRevoked(req.user.id, sessionId, {
+        ipAddress,
+        userAgent,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Session revoked successfully',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to revoke session';
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'REVOKE_SESSION_ERROR',
+          message,
+        },
+      });
+    }
+  }
+
+  /**
+   * POST /api/users/me/sessions/revoke-all
+   * Revoke all sessions for the current user
+   */
+  async revokeAllSessions(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        });
+        return;
+      }
+
+      // Get all active sessions before revoking
+      const sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(req.user.id);
+
+      // Revoke all sessions
+      await this.deviceSessionRepository.revokeAllForUser(req.user.id);
+
+      // Log session revocations
+      const ipAddress = extractIpAddress(req);
+      const userAgent = req.headers['user-agent'] || undefined;
+      for (const session of sessions) {
+        await this.auditLogService.logSessionRevoked(req.user.id, session.id, {
+          ipAddress,
+          userAgent,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: `All ${sessions.length} session(s) revoked successfully`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to revoke sessions';
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'REVOKE_SESSIONS_ERROR',
           message,
         },
       });
