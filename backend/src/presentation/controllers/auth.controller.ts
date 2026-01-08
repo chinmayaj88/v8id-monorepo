@@ -7,6 +7,8 @@ import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-passwo
 import { ResetPasswordUseCase } from '../../application/use-cases/reset-password.use-case';
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case';
 import { RefreshTokenDTO, VerifyCredentialsDTO, VerifyTotpDTO, ForgotPasswordDTO, ResetPasswordDTO } from '../../application/dtos/auth.dto';
+import { RegenerateBackupCodesUseCase } from '../../application/use-cases/regenerate-backup-codes.use-case';
+import { ResetupTotpUseCase } from '../../application/use-cases/resetup-totp.use-case';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { extractIpAddress } from '../utils/ip-address.util';
 
@@ -18,7 +20,9 @@ export class AuthController {
     private logoutUseCase: LogoutUseCase,
     private forgotPasswordUseCase: ForgotPasswordUseCase,
     private resetPasswordUseCase: ResetPasswordUseCase,
-    private changePasswordUseCase: ChangePasswordUseCase
+    private changePasswordUseCase: ChangePasswordUseCase,
+    private regenerateBackupCodesUseCase: RegenerateBackupCodesUseCase,
+    private resetupTotpUseCase: ResetupTotpUseCase
   ) {}
 
   /**
@@ -348,5 +352,119 @@ export class AuthController {
       });
     }
   }
+
+  /**
+   * POST /api/auth/regenerate-backup-codes
+   * Regenerate TOTP backup codes (requires password + TOTP)
+   */
+  async regenerateBackupCodes(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        });
+        return;
+      }
+
+      const { password, totpCode } = req.body;
+
+      if (!password || !totpCode) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Password and TOTP code are required',
+          },
+        });
+        return;
+      }
+
+      const ipAddress = extractIpAddress(req);
+      const userAgent = req.headers['user-agent'] || undefined;
+
+      const result = await this.regenerateBackupCodesUseCase.execute(
+        req.user.id,
+        { password, totpCode },
+        { ipAddress, userAgent }
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Backup codes regenerated successfully. Please save them securely.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to regenerate backup codes';
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'REGENERATE_BACKUP_CODES_ERROR',
+          message,
+        },
+      });
+    }
+  }
+
+  /**
+   * POST /api/auth/resetup-totp
+   * Re-setup TOTP (requires password verification)
+   */
+  async resetupTotp(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        });
+        return;
+      }
+
+      const { password } = req.body;
+
+      if (!password) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Password is required',
+          },
+        });
+        return;
+      }
+
+      const ipAddress = extractIpAddress(req);
+      const userAgent = req.headers['user-agent'] || undefined;
+
+      const result = await this.resetupTotpUseCase.execute(
+        req.user.id,
+        { password },
+        { ipAddress, userAgent }
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'TOTP re-setup successful. Please scan the QR code and verify with a TOTP code.',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to resetup TOTP';
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'RESETUP_TOTP_ERROR',
+          message,
+        },
+      });
+    }
+  }
+
+  /**
 }
 

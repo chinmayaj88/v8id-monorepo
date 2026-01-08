@@ -1,12 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the `dummy` table. If the table is not empty, all the data it contains will be lost.
-
-*/
--- DropTable
-DROP TABLE `dummy`;
-
 -- CreateTable
 CREATE TABLE `users` (
     `id` VARCHAR(191) NOT NULL,
@@ -23,9 +14,9 @@ CREATE TABLE `users` (
     `storageUsed` BIGINT NOT NULL DEFAULT 0,
     `isActive` BOOLEAN NOT NULL DEFAULT true,
     `lastLoginAt` DATETIME(3) NULL,
-    `totpEnabled` BOOLEAN NOT NULL DEFAULT false,
     `totpSecret` VARCHAR(191) NULL,
     `totpVerified` BOOLEAN NOT NULL DEFAULT false,
+    `tokenVersion` INTEGER NOT NULL DEFAULT 0,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -46,8 +37,8 @@ CREATE TABLE `device_sessions` (
     `userAgent` VARCHAR(191) NULL,
     `ipAddress` VARCHAR(191) NULL,
     `location` VARCHAR(191) NULL,
-    `accessToken` VARCHAR(191) NOT NULL,
-    `refreshToken` VARCHAR(191) NOT NULL,
+    `accessToken` VARCHAR(500) NOT NULL,
+    `refreshToken` VARCHAR(500) NOT NULL,
     `expiresAt` DATETIME(3) NOT NULL,
     `lastActiveAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `isActive` BOOLEAN NOT NULL DEFAULT true,
@@ -80,8 +71,30 @@ CREATE TABLE `totp_backup_codes` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `audit_logs` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NULL,
+    `eventType` VARCHAR(191) NOT NULL,
+    `eventData` JSON NULL,
+    `ipAddress` VARCHAR(191) NULL,
+    `userAgent` VARCHAR(191) NULL,
+    `success` BOOLEAN NOT NULL DEFAULT true,
+    `errorMessage` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    INDEX `audit_logs_userId_idx`(`userId`),
+    INDEX `audit_logs_eventType_idx`(`eventType`),
+    INDEX `audit_logs_createdAt_idx`(`createdAt`),
+    INDEX `audit_logs_success_idx`(`success`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
 ALTER TABLE `device_sessions` ADD CONSTRAINT `device_sessions_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `totp_backup_codes` ADD CONSTRAINT `totp_backup_codes_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `audit_logs` ADD CONSTRAINT `audit_logs_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

@@ -7,6 +7,9 @@ import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
 import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password.use-case';
 import { ResetPasswordUseCase } from '../../application/use-cases/reset-password.use-case';
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case';
+import { RegenerateBackupCodesUseCase } from '../../application/use-cases/regenerate-backup-codes.use-case';
+import { ResetupTotpUseCase } from '../../application/use-cases/resetup-totp.use-case';
+import { TotpBackupCodeRepository } from '../../infrastructure/repositories';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository';
 import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
@@ -27,6 +30,7 @@ const router: IRouter = Router();
 const userRepository = new UserRepository();
 const deviceSessionRepository = new DeviceSessionRepository();
 const auditLogRepository = new AuditLogRepository();
+const totpBackupCodeRepository = new TotpBackupCodeRepository();
 
 // Initialize services
 const auditLogService = new AuditLogService(auditLogRepository);
@@ -61,6 +65,16 @@ const changePasswordUseCase = new ChangePasswordUseCase(
   auditLogService,
   emailService
 );
+const regenerateBackupCodesUseCase = new RegenerateBackupCodesUseCase(
+  userRepository,
+  totpBackupCodeRepository,
+  auditLogService
+);
+const resetupTotpUseCase = new ResetupTotpUseCase(
+  userRepository,
+  totpBackupCodeRepository,
+  auditLogService
+);
 
 // Initialize controller
 const authController = new AuthController(
@@ -70,7 +84,9 @@ const authController = new AuthController(
   logoutUseCase,
   forgotPasswordUseCase,
   resetPasswordUseCase,
-  changePasswordUseCase
+  changePasswordUseCase,
+  regenerateBackupCodesUseCase,
+  resetupTotpUseCase
 );
 
 // Routes
@@ -92,6 +108,14 @@ router.post('/reset-password', authRateLimiter, (req, res) =>
 );
 router.post('/change-password', authMiddleware(userRepository, deviceSessionRepository), (req, res) =>
   authController.changePassword(req, res)
+);
+
+// TOTP management routes
+router.post('/regenerate-backup-codes', authMiddleware(userRepository, deviceSessionRepository), totpRateLimiter, (req, res) =>
+  authController.regenerateBackupCodes(req, res)
+);
+router.post('/resetup-totp', authMiddleware(userRepository, deviceSessionRepository), authRateLimiter, (req, res) =>
+  authController.resetupTotp(req, res)
 );
 
 export default router;
