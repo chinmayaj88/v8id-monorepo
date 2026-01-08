@@ -6,6 +6,7 @@
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface';
+import { IEmailService } from '../interfaces/email-service.interface';
 import { TotpService } from '../../infrastructure/services/totp.service';
 import { JwtService } from '../../infrastructure/services/jwt.service';
 
@@ -36,13 +37,24 @@ export interface VerifyTotpLoginDTO {
   deviceId: string;
 }
 
+export interface VerifyTotpLoginOptions {
+  ipAddress?: string;
+  userAgent?: string;
+}
+
 export class VerifyTotpLoginUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private deviceSessionRepository: IDeviceSessionRepository
+    private deviceSessionRepository: IDeviceSessionRepository,
+    private emailService: IEmailService
   ) {}
 
-  async execute(dto: VerifyTotpLoginDTO, ipAddress?: string): Promise<VerifyTotpLoginResult> {
+  async execute(
+    dto: VerifyTotpLoginDTO,
+    options?: VerifyTotpLoginOptions
+  ): Promise<VerifyTotpLoginResult> {
+    const ipAddress = options?.ipAddress;
+    const userAgent = options?.userAgent;
     // 1. Verify temporary token (expires in 5 minutes for security)
     let tokenPayload;
     try {
@@ -97,10 +109,14 @@ export class VerifyTotpLoginUseCase {
       });
     }
 
-    // 7. Check device limits
+    // 7. Check device limits and detect new device
     const activeSessions = await this.deviceSessionRepository.findActiveSessionsByUserId(user.id);
     const mobileCount = await this.deviceSessionRepository.countActiveSessionsByType(user.id, 'MOBILE');
     const webCount = await this.deviceSessionRepository.countActiveSessionsByType(user.id, 'WEB');
+
+    // Check if this is a new device (before creating session)
+    // A device is "new" if no active session exists with this deviceId
+    const isNewDevice = !activeSessions.some((s) => s.deviceId === dto.deviceId);
 
     // Enforce limits: 2 mobile + 1 web
     if (dto.deviceType === 'MOBILE' && mobileCount >= 2) {
@@ -139,7 +155,7 @@ export class VerifyTotpLoginUseCase {
       deviceType: dto.deviceType,
       deviceName: dto.deviceName,
       deviceId: dto.deviceId,
-      userAgent: dto.deviceName,
+      userAgent: userAgent || dto.deviceName,
       ipAddress: ipAddress,
       location: undefined,
       accessToken,
@@ -151,6 +167,23 @@ export class VerifyTotpLoginUseCase {
     await this.userRepository.update(user.id, {
       lastLoginAt: new Date(),
     });
+
+    // 12. Send new device login alert if this is a new device (non-blocking)
+    if (isNewDevice) {
+      try {
+        await this.emailService.sendNewDeviceLoginAlert(
+          user.email,
+          user.firstName,
+          dto.deviceType,
+          dto.deviceName,
+          ipAddress,
+          deviceSession.location
+        );
+      } catch (error) {
+        // Log error but don't fail login
+        console.error('Failed to send new device login alert:', error);
+      }
+    }
 
     return {
       accessToken,

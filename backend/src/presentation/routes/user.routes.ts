@@ -12,6 +12,7 @@ import { TotpBackupCodeRepository } from '../../infrastructure/repositories/totp
 import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository';
 import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
+import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 
 const router: IRouter = Router();
@@ -24,9 +25,14 @@ const auditLogRepository = new AuditLogRepository();
 
 // Initialize services
 const auditLogService = new AuditLogService(auditLogRepository);
+const emailService = EmailServiceFactory.create();
 
 // Initialize use cases
-const createUserUseCase = new CreateUserUseCase(userRepository, totpBackupCodeRepository);
+const createUserUseCase = new CreateUserUseCase(
+  userRepository,
+  totpBackupCodeRepository,
+  emailService
+);
 
 // Initialize controller
 const userController = new UserController(

@@ -13,6 +13,7 @@ import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 import { AccountLockoutService } from '../../infrastructure/services/account-lockout.service';
 import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory';
+import { IEmailService } from '../../application/interfaces/email-service.interface';
 import { authMiddleware } from '../middleware/auth.middleware';
 import {
   authRateLimiter,
@@ -30,7 +31,7 @@ const auditLogRepository = new AuditLogRepository();
 // Initialize services
 const auditLogService = new AuditLogService(auditLogRepository);
 const accountLockoutService = new AccountLockoutService(auditLogRepository);
-const emailService = EmailServiceFactory.create(); // Clean Architecture: Factory creates implementation
+const emailService: IEmailService = EmailServiceFactory.create(); // Clean Architecture: Factory creates implementation
 
 // Initialize use cases
 const verifyCredentialsUseCase = new VerifyCredentialsUseCase(
@@ -38,7 +39,11 @@ const verifyCredentialsUseCase = new VerifyCredentialsUseCase(
   auditLogService,
   accountLockoutService
 );
-const verifyTotpLoginUseCase = new VerifyTotpLoginUseCase(userRepository, deviceSessionRepository);
+const verifyTotpLoginUseCase = new VerifyTotpLoginUseCase(
+  userRepository,
+  deviceSessionRepository,
+  emailService
+);
 const refreshTokenUseCase = new RefreshTokenUseCase(
   deviceSessionRepository,
   userRepository,
@@ -51,7 +56,11 @@ const forgotPasswordUseCase = new ForgotPasswordUseCase(
   emailService
 );
 const resetPasswordUseCase = new ResetPasswordUseCase(userRepository, auditLogService);
-const changePasswordUseCase = new ChangePasswordUseCase(userRepository, auditLogService);
+const changePasswordUseCase = new ChangePasswordUseCase(
+  userRepository,
+  auditLogService,
+  emailService
+);
 
 // Initialize controller
 const authController = new AuthController(

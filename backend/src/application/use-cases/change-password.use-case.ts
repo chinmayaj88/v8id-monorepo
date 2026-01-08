@@ -7,6 +7,7 @@
  */
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
+import { IEmailService } from '../interfaces/email-service.interface';
 import { PasswordService } from '../../infrastructure/services/password.service';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 import { TotpService } from '../../infrastructure/services/totp.service';
@@ -21,7 +22,8 @@ export interface ChangePasswordDTO {
 export class ChangePasswordUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private auditLogService: AuditLogService
+    private auditLogService: AuditLogService,
+    private emailService: IEmailService
   ) {}
 
   async execute(
@@ -109,5 +111,18 @@ export class ChangePasswordUseCase {
       userAgent: options?.userAgent,
       success: true,
     });
+
+    // 10. Send password change notification email (non-blocking)
+    try {
+      await this.emailService.sendPasswordChangeNotification(
+        user.email,
+        user.firstName,
+        options?.ipAddress,
+        options?.userAgent
+      );
+    } catch (error) {
+      // Log error but don't fail password change
+      console.error('Failed to send password change notification:', error);
+    }
   }
 }

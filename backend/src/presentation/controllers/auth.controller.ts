@@ -89,7 +89,11 @@ export class AuthController {
       }
 
       const ipAddress = extractIpAddress(req);
-      const result = await this.verifyTotpLoginUseCase.execute(dto, ipAddress);
+      const userAgent = req.headers['user-agent'] || undefined;
+      const result = await this.verifyTotpLoginUseCase.execute(dto, {
+        ipAddress,
+        userAgent,
+      });
 
       res.status(200).json({
         success: true,

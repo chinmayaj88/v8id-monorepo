@@ -8,7 +8,7 @@ import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 
-const TOTP_ISSUER = process.env.TOTP_ISSUER || 'v8id-cloud';
+const TOTP_ISSUER = process.env.TOTP_ISSUER || 'void';
 
 export interface TotpSetupResult {
   secret: string;

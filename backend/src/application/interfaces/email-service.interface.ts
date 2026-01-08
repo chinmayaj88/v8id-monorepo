@@ -16,10 +16,33 @@ export interface IEmailService {
   ): Promise<void>;
 
   /**
-   * Send welcome email (for future use)
+   * Send welcome email when user account is created
    */
   sendWelcomeEmail(
     to: string,
-    firstName?: string
+    firstName?: string,
+    tempPassword?: string
+  ): Promise<void>;
+
+  /**
+   * Send password change notification
+   */
+  sendPasswordChangeNotification(
+    to: string,
+    firstName?: string,
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<void>;
+
+  /**
+   * Send new device login alert
+   */
+  sendNewDeviceLoginAlert(
+    to: string,
+    firstName: string | undefined,
+    deviceType: string,
+    deviceName: string,
+    ipAddress?: string,
+    location?: string
   ): Promise<void>;
 }

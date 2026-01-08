@@ -48,7 +48,7 @@ export async function createApp(): Promise<Express> {
   app.get('/', (_req, res) => {
     res.json({
       success: true,
-      message: 'Welcome to v8id-cloud API',
+      message: 'Welcome to void API',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
     });

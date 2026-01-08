@@ -7,6 +7,7 @@
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface';
+import { IEmailService } from '../interfaces/email-service.interface';
 import { PasswordService } from '../../infrastructure/services/password.service';
 import { TotpService } from '../../infrastructure/services/totp.service';
 import { CreateUserDTO } from '../dtos/auth.dto';
@@ -30,7 +31,8 @@ export interface CreateUserResult {
 export class CreateUserUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private totpBackupCodeRepository: ITotpBackupCodeRepository
+    private totpBackupCodeRepository: ITotpBackupCodeRepository,
+    private emailService: IEmailService
   ) {}
 
   async execute(
@@ -86,6 +88,22 @@ export class CreateUserUseCase {
 
     // 10. Store backup codes in database
     await this.totpBackupCodeRepository.createCodes(user.id, hashedBackupCodes);
+
+    // 11. Send welcome email (non-blocking - don't fail user creation if email fails)
+    try {
+      await this.emailService.sendWelcomeEmail(
+        user.email,
+        user.firstName,
+        dto.password // Include temporary password if provided
+      );
+    } catch (error) {
+      // Log error but don't fail user creation
+      console.error('Failed to send welcome email:', error);
+      // In development, still log the email info
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Welcome Email] Would send to ${user.email}`);
+      }
+    }
 
     return {
       id: user.id,
