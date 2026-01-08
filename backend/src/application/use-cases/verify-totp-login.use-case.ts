@@ -43,11 +43,16 @@ export class VerifyTotpLoginUseCase {
   ) {}
 
   async execute(dto: VerifyTotpLoginDTO, ipAddress?: string): Promise<VerifyTotpLoginResult> {
-    // 1. Verify temporary token
+    // 1. Verify temporary token (expires in 5 minutes for security)
     let tokenPayload;
     try {
       tokenPayload = JwtService.verifyToken(dto.tempToken);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid or expired token';
+      // Check if token is expired (JWT throws specific errors for expiration)
+      if (errorMessage.includes('expired') || errorMessage.includes('jwt expired')) {
+        throw new Error('Temporary token has expired. Please verify credentials again.');
+      }
       throw new Error('Invalid or expired temporary token');
     }
 

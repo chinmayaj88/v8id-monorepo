@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "v8id-cloud-api-collection",
 		"name": "v8id-cloud API",
-		"description": "Postman collection for v8id-cloud backend API - Authentication and User Management\n\n## 🔒 Security Features\n\n### Token Versioning\n- All tokens include a `tokenVersion` field that matches the user's current token version\n- When a password is changed, the user's `tokenVersion` is incremented\n- All existing tokens become invalid immediately (even if not expired)\n- Users must login again after password change\n- This prevents token reuse after password compromise\n\n### Rate Limiting\nAll endpoints are protected by rate limiting to prevent brute force attacks:\n\n- **Authentication endpoints** (`/api/auth/login`):\n  - 5 requests per 15 minutes per IP\n  - Successful requests are NOT counted (skipSuccessfulRequests: true)\n  - Rate limit headers: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`\n\n- **Token refresh** (`/api/auth/refresh`):\n  - 20 requests per 15 minutes per IP\n  - All requests are counted\n\n- **General API** (all `/api/*` routes):\n  - 100 requests per 15 minutes per IP\n  - Applied to all API endpoints\n\n**Rate Limit Headers:**\n- `RateLimit-Limit`: Maximum requests allowed\n- `RateLimit-Remaining`: Remaining requests in current window\n- `RateLimit-Reset`: Unix timestamp when the rate limit resets\n\n### Audit Logging\nAll security events are logged to the `audit_logs` table:\n\n- **Login events**: LOGIN, LOGIN_FAILED\n- **Logout events**: LOGOUT\n- **Token events**: TOKEN_REFRESH, TOKEN_REFRESH_FAILED\n- **TOTP events**: TOTP_VERIFIED, TOTP_VERIFICATION_FAILED, TOTP_SETUP\n- **Password events**: PASSWORD_CHANGE, PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE\n- **User events**: USER_CREATED, USER_UPDATED, USER_DEACTIVATED, USER_ACTIVATED\n- **Session events**: SESSION_REVOKED, SESSION_EXPIRED\n- **Security events**: RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY\n\nEach log entry includes:\n- User ID (if applicable)\n- Event type\n- IP address\n- User agent\n- Success/failure status\n- Error message (if failed)\n- Timestamp\n- Additional event data (device info, etc.)",
+		"description": "Postman collection for v8id-cloud backend API - Authentication and User Management\n\n## 🔒 Security Features\n\n### Token Versioning\n- All tokens include a `tokenVersion` field that matches the user's current token version\n- When a password is changed, the user's `tokenVersion` is incremented\n- All existing tokens become invalid immediately (even if not expired)\n- Users must login again after password change\n- This prevents token reuse after password compromise\n\n### Rate Limiting\nAll endpoints are protected by rate limiting to prevent brute force attacks:\n\n- **Authentication endpoints** (`/api/auth/verify-credentials`):\n  - 5 requests per 15 minutes per IP\n  - Successful requests are NOT counted (skipSuccessfulRequests: true)\n  - Rate limit headers: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`\n\n- **Token refresh** (`/api/auth/refresh`):\n  - 20 requests per 15 minutes per IP\n  - All requests are counted\n\n- **General API** (all `/api/*` routes):\n  - 100 requests per 15 minutes per IP\n  - Applied to all API endpoints\n\n**Rate Limit Headers:**\n- `RateLimit-Limit`: Maximum requests allowed\n- `RateLimit-Remaining`: Remaining requests in current window\n- `RateLimit-Reset`: Unix timestamp when the rate limit resets\n\n### Audit Logging\nAll security events are logged to the `audit_logs` table:\n\n- **Login events**: LOGIN, LOGIN_FAILED\n- **Logout events**: LOGOUT\n- **Token events**: TOKEN_REFRESH, TOKEN_REFRESH_FAILED\n- **TOTP events**: TOTP_VERIFIED, TOTP_VERIFICATION_FAILED, TOTP_SETUP\n- **Password events**: PASSWORD_CHANGE, PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE\n- **User events**: USER_CREATED, USER_UPDATED, USER_DEACTIVATED, USER_ACTIVATED\n- **Session events**: SESSION_REVOKED, SESSION_EXPIRED\n- **Security events**: RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY\n\nEach log entry includes:\n- User ID (if applicable)\n- Event type\n- IP address\n- User agent\n- Success/failure status\n- Error message (if failed)\n- Timestamp\n- Additional event data (device info, etc.)",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -10,7 +10,74 @@
 			"name": "Authentication",
 			"item": [
 				{
-					"name": "Login",
+					"name": "Step 1: Verify Credentials",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Log rate limit info",
+									"if (pm.response.headers.get(\"RateLimit-Limit\")) {",
+									"    console.log(\"Rate Limit Info:\");",
+									"    console.log(\"  Limit: \" + pm.response.headers.get(\"RateLimit-Limit\"));",
+									"    console.log(\"  Remaining: \" + pm.response.headers.get(\"RateLimit-Remaining\"));",
+									"    console.log(\"  Reset: \" + new Date(parseInt(pm.response.headers.get(\"RateLimit-Reset\")) * 1000));",
+									"}",
+									"",
+									"// Save temporary token if successful",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        pm.environment.set(\"tempToken\", jsonData.data.tempToken);",
+									"        pm.environment.set(\"userId\", jsonData.data.user.id);",
+									"        pm.test(\"Temporary token saved\", function () {",
+									"            pm.expect(jsonData.data.tempToken).to.exist;",
+									"        });",
+									"        console.log(\"⚠️ IMPORTANT: Temporary token expires in 5 minutes!\");",
+									"        console.log(\"You must complete Step 2 (Verify TOTP) within 5 minutes.\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"UserPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verify-credentials",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"verify-credentials"
+							]
+						},
+						"description": "**Step 1: Verify email and password**\n\nVerify email and password. Returns a temporary token (expires in 5 minutes) for TOTP verification.\n\n**⚠️ SECURITY:**\n- Temporary token expires in **5 minutes**\n- You must complete Step 2 (Verify TOTP) within 5 minutes\n- If you wait too long, the temporary token will expire and you'll need to verify credentials again\n- This prevents users from logging in, leaving, and entering TOTP hours later\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP\n- Successful requests are NOT counted\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- `requiresTotp`: Boolean indicating if TOTP is required\n- `tempToken`: Temporary token for TOTP verification (expires in 5 minutes)\n- `user`: User information (id, email, firstName, lastName, role)"
+					},
+					"response": []
+				},
+				{
+					"name": "Step 2: Verify TOTP",
 					"event": [
 						{
 							"listen": "test",
@@ -40,6 +107,9 @@
 									"        pm.environment.set(\"userId\", jsonData.data.user.id);",
 									"        pm.environment.set(\"sessionId\", jsonData.data.deviceSession.id);",
 									"        ",
+									"        // Clear temporary token",
+									"        pm.environment.unset(\"tempToken\");",
+									"        ",
 									"        // Verify token versioning",
 									"        pm.test(\"Token includes version\", function () {",
 									"            const tokenParts = jsonData.data.accessToken.split('.');",
@@ -49,6 +119,12 @@
 									"                console.log(\"Token version: \" + payload.tokenVersion);",
 									"            }",
 									"});",
+									"    }",
+									"} else if (pm.response.code === 401) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.code === 'TEMP_TOKEN_EXPIRED') {",
+									"        console.log(\"❌ Temporary token expired! You must verify credentials again.\");",
+									"        pm.environment.unset(\"tempToken\");",
 									"    }",
 									"}"
 								],
@@ -66,20 +142,20 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"UserPassword123!\",\n  \"totpCode\": \"123456\",\n  \"deviceType\": \"WEB\",\n  \"deviceName\": \"Chrome on Windows\",\n  \"deviceId\": \"web-device-001\"\n}"
+							"raw": "{\n  \"tempToken\": \"{{tempToken}}\",\n  \"totpCode\": \"123456\",\n  \"deviceType\": \"WEB\",\n  \"deviceName\": \"Chrome on Windows\",\n  \"deviceId\": \"web-device-001\"\n}"
 						},
 						"url": {
-							"raw": "{{baseUrl}}/api/auth/login",
+							"raw": "{{baseUrl}}/api/auth/verify-totp",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
 								"api",
 								"auth",
-								"login"
+								"verify-totp"
 							]
 						},
-						"description": "**Login with email, password, and TOTP code**\n\nLogin with email, password, and TOTP code in one request.\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP\n- Successful requests are NOT counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Successful login logged as `LOGIN`\n- Failed login attempts logged as `LOGIN_FAILED`\n- Includes IP address, user agent, device information, and error message\n\n**Token Versioning:**\n- Access token includes `tokenVersion` field\n- Token version matches user's current token version\n- If password is changed, token version increments and all tokens become invalid\n\n**Device Limits:**\n- Maximum 2 mobile devices + 1 web session per user\n- Oldest sessions are automatically revoked when limits are exceeded\n\n**Response:**\n- `accessToken`: JWT access token (15 minutes)\n- `refreshToken`: JWT refresh token (7 days)\n- `user`: User information\n- `deviceSession`: Device session information"
+						"description": "**Step 2: Verify TOTP code**\n\nVerify TOTP code using the temporary token from Step 1. Returns access and refresh tokens.\n\n**⚠️ SECURITY:**\n- Temporary token from Step 1 expires in **5 minutes**\n- If the token has expired, you'll get error: \"Temporary token has expired. Please verify credentials again.\"\n- You must complete this step within 5 minutes of Step 1\n\n**Rate Limiting:**\n- 10 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Token Versioning:**\n- Access token includes `tokenVersion` field\n- Token version matches user's current token version\n- If password is changed, token version increments and all tokens become invalid\n\n**Device Limits:**\n- Maximum 2 mobile devices + 1 web session per user\n- Oldest sessions are automatically revoked when limits are exceeded\n\n**Response:**\n- `accessToken`: JWT access token (15 minutes)\n- `refreshToken`: JWT refresh token (7 days)\n- `user`: User information\n- `deviceSession`: Device session information"
 					},
 					"response": []
 				},

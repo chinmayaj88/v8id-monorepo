@@ -1,57 +1,103 @@
-/**
- * Authentication Controller
- * 
- * Handles authentication-related HTTP requests.
- */
-
 import { Request, Response } from 'express';
-import { LoginUseCase } from '../../application/use-cases/login.use-case';
+import { VerifyCredentialsUseCase } from '../../application/use-cases/verify-credentials.use-case';
+import { VerifyTotpLoginUseCase } from '../../application/use-cases/verify-totp-login.use-case';
 import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
-import { LoginDTO, RefreshTokenDTO } from '../../application/dtos/auth.dto';
+import { RefreshTokenDTO, VerifyCredentialsDTO, VerifyTotpDTO } from '../../application/dtos/auth.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
 export class AuthController {
   constructor(
-    private loginUseCase: LoginUseCase,
+    private verifyCredentialsUseCase: VerifyCredentialsUseCase,
+    private verifyTotpLoginUseCase: VerifyTotpLoginUseCase,
     private refreshTokenUseCase: RefreshTokenUseCase,
     private logoutUseCase: LogoutUseCase
   ) {}
 
   /**
-   * POST /api/auth/login
+   * POST /api/auth/verify-credentials
+   * Step 1: Verify email and password, return temporary token (5 minutes) for TOTP verification
    */
-  async login(req: Request, res: Response): Promise<void> {
+  async verifyCredentials(req: Request, res: Response): Promise<void> {
     try {
-      const dto: LoginDTO = req.body;
+      const dto: VerifyCredentialsDTO = req.body;
 
-      // Validate required fields
-      if (!dto.email || !dto.password || !dto.deviceType || !dto.deviceName || !dto.deviceId) {
+      if (!dto.email || !dto.password) {
         res.status(400).json({
           success: false,
           error: {
             code: 'VALIDATION_ERROR',
-            message: 'Missing required fields',
+            message: 'Email and password are required',
           },
         });
         return;
       }
 
-      // Get IP address from request
-      const ipAddress = req.ip || req.socket.remoteAddress || undefined;
-
-      const result = await this.loginUseCase.execute(dto, ipAddress);
+      const result = await this.verifyCredentialsUseCase.execute(dto.email, dto.password);
 
       res.status(200).json({
         success: true,
         data: result,
+        message: result.requiresTotp 
+          ? 'Credentials verified. TOTP code required. Temporary token expires in 5 minutes.' 
+          : 'Credentials verified.',
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Login failed';
+      const message = error instanceof Error ? error.message : 'Credential verification failed';
       res.status(400).json({
         success: false,
         error: {
-          code: 'LOGIN_ERROR',
+          code: 'VERIFY_CREDENTIALS_ERROR',
+          message,
+        },
+      });
+    }
+  }
+
+  /**
+   * POST /api/auth/verify-totp
+   * Step 2: Verify TOTP code using temporary token, return access and refresh tokens
+   */
+  async verifyTotp(req: Request, res: Response): Promise<void> {
+    try {
+      const dto: VerifyTotpDTO = req.body;
+
+      if (!dto.tempToken || !dto.totpCode || !dto.deviceType || !dto.deviceName || !dto.deviceId) {
+        res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Temporary token, TOTP code, and device information are required',
+          },
+        });
+        return;
+      }
+
+      const ipAddress = req.ip || req.socket.remoteAddress || undefined;
+      const result = await this.verifyTotpLoginUseCase.execute(dto, ipAddress);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: 'Login successful',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'TOTP verification failed';
+      // Check if error is due to expired temporary token
+      if (message.includes('expired') || message.includes('Temporary token has expired')) {
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'TEMP_TOKEN_EXPIRED',
+            message: 'Temporary token has expired. Please verify credentials again. Temporary tokens expire in 5 minutes for security.',
+          },
+        });
+        return;
+      }
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VERIFY_TOTP_ERROR',
           message,
         },
       });
