@@ -1,22 +1,3 @@
-/**
- * Prisma Seed Script
- * 
- * Seeds the database with an admin user.
- * TOTP is mandatory - the script generates TOTP setup and outputs QR code info.
- * 
- * Usage:
- *   pnpm prisma:seed
- *   or
- *   pnpm prisma db seed
- * 
- * Environment Variables (REQUIRED):
- *   ADMIN_EMAIL - Admin email (REQUIRED - must be set in .env file)
- *   ADMIN_PASSWORD - Admin password (REQUIRED - must be set in .env file)
- *   ADMIN_FIRST_NAME - Admin first name (optional, default: Admin)
- *   ADMIN_LAST_NAME - Admin last name (optional, default: User)
- *   TOTP_ENCRYPTION_KEY - TOTP encryption key (optional, but REQUIRED in production)
- */
-
 import { PrismaClient } from '../generated/prisma';
 import { PasswordService } from '../src/infrastructure/services/password.service';
 import { TotpService } from '../src/infrastructure/services/totp.service';
