@@ -7,32 +7,27 @@
 import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
+import { ITotpService, TotpSetupResult } from '../../application/interfaces/totp-service.interface';
 
-const TOTP_ISSUER = process.env.TOTP_ISSUER || 'void';
+export class TotpService implements ITotpService {
+  constructor(private totpIssuer: string = process.env.TOTP_ISSUER || 'void') {}
 
-export interface TotpSetupResult {
-  secret: string;
-  qrCodeUrl: string;
-  backupCodes: string[];
-}
-
-export class TotpService {
   /**
    * Generate a new TOTP secret
    */
-  static generateSecret(): string {
+  generateSecret(): string {
     return authenticator.generateSecret();
   }
 
   /**
    * Generate TOTP setup (secret + QR code + backup codes)
    */
-  static async generateTotpSetup(
+  async generateTotpSetup(
     email: string,
     secret?: string
   ): Promise<TotpSetupResult> {
     const totpSecret = secret || this.generateSecret();
-    const serviceName = TOTP_ISSUER;
+    const serviceName = this.totpIssuer;
 
     // Generate QR code URL
     const otpAuthUrl = authenticator.keyuri(email, serviceName, totpSecret);
@@ -53,7 +48,7 @@ export class TotpService {
   /**
    * Verify TOTP code
    */
-  static verifyTotp(token: string, secret: string): boolean {
+  verifyTotp(token: string, secret: string): boolean {
     try {
       return authenticator.check(token, secret);
     } catch (error) {
@@ -64,7 +59,7 @@ export class TotpService {
   /**
    * Generate backup codes
    */
-  static generateBackupCodes(count: number = 10): string[] {
+  generateBackupCodes(count: number = 10): string[] {
     const codes: string[] = [];
     for (let i = 0; i < count; i++) {
       // Generate 12-character alphanumeric code
@@ -79,14 +74,14 @@ export class TotpService {
   /**
    * Derive a 32-byte key from any string using SHA-256
    */
-  private static deriveKey(keyString: string): Buffer {
+  private deriveKey(keyString: string): Buffer {
     return crypto.createHash('sha256').update(keyString).digest();
   }
 
   /**
    * Encrypt TOTP secret (AES-256-GCM)
    */
-  static encryptSecret(secret: string, encryptionKey: string): string {
+  encryptSecret(secret: string, encryptionKey: string): string {
     const algorithm = 'aes-256-gcm';
     const iv = crypto.randomBytes(16);
     const key = this.deriveKey(encryptionKey);
@@ -104,7 +99,7 @@ export class TotpService {
   /**
    * Decrypt TOTP secret
    */
-  static decryptSecret(encryptedData: string, encryptionKey: string): string {
+  decryptSecret(encryptedData: string, encryptionKey: string): string {
     const algorithm = 'aes-256-gcm';
     const parts = encryptedData.split(':');
     

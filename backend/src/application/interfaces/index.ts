@@ -16,3 +16,8 @@ export {
   type AuditLog,
 } from './audit-log-repository.interface';
 export { IEmailService } from './email-service.interface';
+export { IPasswordService } from './password-service.interface';
+export { IJwtService, type TokenPayload } from './jwt-service.interface';
+export { ITotpService, type TotpSetupResult } from './totp-service.interface';
+export { IAuditLogService, AuditEventType } from './audit-log-service.interface';
+export { IAccountLockoutService } from './account-lockout-service.interface';

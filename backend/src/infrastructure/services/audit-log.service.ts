@@ -5,41 +5,11 @@
  */
 
 import { IAuditLogRepository } from '../../application/interfaces/audit-log-repository.interface';
+import { IAuditLogService, AuditEventType } from '../../application/interfaces/audit-log-service.interface';
 
-export enum AuditEventType {
-  // Authentication events
-  LOGIN = 'LOGIN',
-  LOGIN_FAILED = 'LOGIN_FAILED',
-  LOGOUT = 'LOGOUT',
-  TOKEN_REFRESH = 'TOKEN_REFRESH',
-  TOKEN_REFRESH_FAILED = 'TOKEN_REFRESH_FAILED',
-  
-  // TOTP events
-  TOTP_VERIFIED = 'TOTP_VERIFIED',
-  TOTP_VERIFICATION_FAILED = 'TOTP_VERIFICATION_FAILED',
-  TOTP_SETUP = 'TOTP_SETUP',
-  
-  // Password events
-  PASSWORD_CHANGE = 'PASSWORD_CHANGE',
-  PASSWORD_RESET_REQUEST = 'PASSWORD_RESET_REQUEST',
-  PASSWORD_RESET_COMPLETE = 'PASSWORD_RESET_COMPLETE',
-  
-  // User management events
-  USER_CREATED = 'USER_CREATED',
-  USER_UPDATED = 'USER_UPDATED',
-  USER_DEACTIVATED = 'USER_DEACTIVATED',
-  USER_ACTIVATED = 'USER_ACTIVATED',
-  
-  // Session events
-  SESSION_REVOKED = 'SESSION_REVOKED',
-  SESSION_EXPIRED = 'SESSION_EXPIRED',
-  
-  // Security events
-  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
-  SUSPICIOUS_ACTIVITY = 'SUSPICIOUS_ACTIVITY',
-}
+export { AuditEventType };
 
-export class AuditLogService {
+export class AuditLogService implements IAuditLogService {
   constructor(private auditLogRepository: IAuditLogRepository) {}
 
   /**

@@ -7,9 +7,9 @@
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface';
-import { PasswordService } from '../../infrastructure/services/password.service';
-import { TotpService } from '../../infrastructure/services/totp.service';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service';
+import { IPasswordService } from '../interfaces/password-service.interface';
+import { ITotpService } from '../interfaces/totp-service.interface';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface';
 
 export interface RegenerateBackupCodesDTO {
   password: string;
@@ -24,7 +24,9 @@ export class RegenerateBackupCodesUseCase {
   constructor(
     private userRepository: IUserRepository,
     private totpBackupCodeRepository: ITotpBackupCodeRepository,
-    private auditLogService: AuditLogService
+    private passwordService: IPasswordService,
+    private totpService: ITotpService,
+    private auditLogService: IAuditLogService
   ) {}
 
   async execute(
@@ -52,7 +54,7 @@ export class RegenerateBackupCodesUseCase {
     }
 
     // 4. Verify password
-    const isPasswordValid = await PasswordService.verifyPassword(
+    const isPasswordValid = await this.passwordService.verifyPassword(
       dto.password,
       user.passwordHash
     );
@@ -72,12 +74,12 @@ export class RegenerateBackupCodesUseCase {
     const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
     let totpSecret: string;
     try {
-      totpSecret = TotpService.decryptSecret(user.totpSecret, encryptionKey);
+      totpSecret = this.totpService.decryptSecret(user.totpSecret, encryptionKey);
     } catch {
       throw new Error('Invalid TOTP configuration');
     }
 
-    const isTotpValid = TotpService.verifyTotp(dto.totpCode, totpSecret);
+    const isTotpValid = this.totpService.verifyTotp(dto.totpCode, totpSecret);
     if (!isTotpValid) {
       // Also check backup codes (user might be using a backup code to regenerate)
       const isBackupCodeValid = await this.totpBackupCodeRepository.verifyAndUseCode(
@@ -98,12 +100,12 @@ export class RegenerateBackupCodesUseCase {
     }
 
     // 6. Generate new backup codes
-    const newBackupCodes = TotpService.generateBackupCodes(10);
+    const newBackupCodes = this.totpService.generateBackupCodes(10);
 
     // 7. Hash backup codes for storage
     const hashedBackupCodes = await Promise.all(
       newBackupCodes.map(async (code) => {
-        return await PasswordService.hashPassword(code);
+        return await this.passwordService.hashPassword(code);
       })
     );
 

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { JwtService } from '../../infrastructure/services/jwt.service';
+import { IJwtService } from '../../application/interfaces/jwt-service.interface';
 import { IUserRepository } from '../../application/interfaces/user-repository.interface';
 import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface';
 
@@ -13,7 +13,8 @@ export interface AuthenticatedRequest extends Request {
 
 export function authMiddleware(
   userRepository: IUserRepository,
-  deviceSessionRepository: IDeviceSessionRepository
+  deviceSessionRepository: IDeviceSessionRepository,
+  jwtService: IJwtService
 ) {
   return async (
     req: AuthenticatedRequest,
@@ -37,7 +38,7 @@ export function authMiddleware(
       const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
       // Verify token
-      const payload = JwtService.verifyToken(token);
+      const payload = jwtService.verifyToken(token);
 
       // Verify user exists and is active
       const user = await userRepository.findById(payload.userId);

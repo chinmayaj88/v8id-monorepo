@@ -13,6 +13,9 @@ import { DeviceSessionRepository } from '../../infrastructure/repositories/devic
 import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory';
+import { PasswordService } from '../../infrastructure/services/password.service';
+import { TotpService } from '../../infrastructure/services/totp.service';
+import { JwtService } from '../../infrastructure/services/jwt.service';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
 
 const router: IRouter = Router();
@@ -24,6 +27,9 @@ const deviceSessionRepository = new DeviceSessionRepository();
 const auditLogRepository = new AuditLogRepository();
 
 // Initialize services
+const passwordService = new PasswordService(parseInt(process.env.BCRYPT_ROUNDS || '12', 10));
+const totpService = new TotpService();
+const jwtService = new JwtService();
 const auditLogService = new AuditLogService(auditLogRepository);
 const emailService = EmailServiceFactory.create();
 
@@ -31,7 +37,9 @@ const emailService = EmailServiceFactory.create();
 const createUserUseCase = new CreateUserUseCase(
   userRepository,
   totpBackupCodeRepository,
-  emailService
+  emailService,
+  passwordService,
+  totpService
 );
 
 // Initialize controller
@@ -44,29 +52,29 @@ const userController = new UserController(
 
 // Routes
 // Admin-only routes
-router.post('/', authMiddleware(userRepository, deviceSessionRepository), adminMiddleware(), (req, res) => 
+router.post('/', authMiddleware(userRepository, deviceSessionRepository, jwtService), adminMiddleware(), (req, res) => 
   userController.createUser(req, res)
 );
-router.get('/', authMiddleware(userRepository, deviceSessionRepository), adminMiddleware(), (req, res) => 
+router.get('/', authMiddleware(userRepository, deviceSessionRepository, jwtService), adminMiddleware(), (req, res) => 
   userController.listUsers(req, res)
 );
 
 // User routes
-router.get('/me', authMiddleware(userRepository, deviceSessionRepository), (req, res) => 
+router.get('/me', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
   userController.getCurrentUser(req, res)
 );
-router.patch('/me', authMiddleware(userRepository, deviceSessionRepository), (req, res) => 
+router.patch('/me', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
   userController.updateCurrentUser(req, res)
 );
 
 // Session management routes
-router.get('/me/sessions', authMiddleware(userRepository, deviceSessionRepository), (req, res) => 
+router.get('/me/sessions', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
   userController.listSessions(req, res)
 );
-router.delete('/me/sessions/:sessionId', authMiddleware(userRepository, deviceSessionRepository), (req, res) => 
+router.delete('/me/sessions/:sessionId', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
   userController.revokeSession(req, res)
 );
-router.post('/me/sessions/revoke-all', authMiddleware(userRepository, deviceSessionRepository), (req, res) => 
+router.post('/me/sessions/revoke-all', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
   userController.revokeAllSessions(req, res)
 );
 

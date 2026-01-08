@@ -7,13 +7,13 @@
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { IEmailService } from '../interfaces/email-service.interface';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface';
 import crypto from 'crypto';
 
 export class ForgotPasswordUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private auditLogService: AuditLogService,
+    private auditLogService: IAuditLogService,
     private emailService: IEmailService
   ) {}
 

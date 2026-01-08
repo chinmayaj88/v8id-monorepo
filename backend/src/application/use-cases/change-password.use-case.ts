@@ -8,9 +8,9 @@
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { IEmailService } from '../interfaces/email-service.interface';
-import { PasswordService } from '../../infrastructure/services/password.service';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service';
-import { TotpService } from '../../infrastructure/services/totp.service';
+import { IPasswordService } from '../interfaces/password-service.interface';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface';
+import { ITotpService } from '../interfaces/totp-service.interface';
 import { Password } from '../../domain/value-objects/password';
 
 export interface ChangePasswordDTO {
@@ -22,7 +22,9 @@ export interface ChangePasswordDTO {
 export class ChangePasswordUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private auditLogService: AuditLogService,
+    private passwordService: IPasswordService,
+    private totpService: ITotpService,
+    private auditLogService: IAuditLogService,
     private emailService: IEmailService
   ) {}
 
@@ -46,7 +48,7 @@ export class ChangePasswordUseCase {
     }
 
     // 3. Verify current password
-    const isCurrentPasswordValid = await PasswordService.verifyPassword(
+    const isCurrentPasswordValid = await this.passwordService.verifyPassword(
       dto.currentPassword,
       user.passwordHash
     );
@@ -68,12 +70,12 @@ export class ChangePasswordUseCase {
     const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
     let totpSecret: string;
     try {
-      totpSecret = TotpService.decryptSecret(user.totpSecret, encryptionKey);
+      totpSecret = this.totpService.decryptSecret(user.totpSecret, encryptionKey);
     } catch {
       throw new Error('Invalid TOTP configuration');
     }
 
-    const isTotpValid = TotpService.verifyTotp(dto.totpCode, totpSecret);
+    const isTotpValid = this.totpService.verifyTotp(dto.totpCode, totpSecret);
     if (!isTotpValid) {
       await this.auditLogService.logPasswordChange(user.id, {
         ipAddress: options?.ipAddress,
@@ -88,7 +90,7 @@ export class ChangePasswordUseCase {
     const newPassword = new Password(dto.newPassword);
 
     // 6. Check if new password is different from current
-    const isSamePassword = await PasswordService.verifyPassword(
+    const isSamePassword = await this.passwordService.verifyPassword(
       dto.newPassword,
       user.passwordHash
     );
@@ -97,7 +99,7 @@ export class ChangePasswordUseCase {
     }
 
     // 7. Hash new password
-    const passwordHash = await PasswordService.hashPassword(newPassword.getValue());
+    const passwordHash = await this.passwordService.hashPassword(newPassword.getValue());
 
     // 8. Update password and increment tokenVersion (invalidates all existing tokens)
     await this.userRepository.update(user.id, {

@@ -5,34 +5,30 @@
  */
 
 import jwt from 'jsonwebtoken';
+import { IJwtService, TokenPayload } from '../../application/interfaces/jwt-service.interface';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const ACCESS_TOKEN_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || '15m'; // 15 minutes
-const REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d'; // 7 days
+export class JwtService implements IJwtService {
+  constructor(
+    private jwtSecret: string = process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+    private accessTokenExpiresIn: string = process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+    private refreshTokenExpiresIn: string = process.env.JWT_REFRESH_EXPIRES_IN || '7d'
+  ) {}
 
-export interface TokenPayload {
-  userId: string;
-  email: string;
-  role: string;
-  tokenVersion?: number; // Token version for invalidation on password change
-}
-
-export class JwtService {
   /**
    * Generate access token (short-lived: 15 minutes)
    */
-  static generateAccessToken(payload: TokenPayload): string {
-    return jwt.sign(payload, JWT_SECRET, {
-      expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+  generateAccessToken(payload: TokenPayload): string {
+    return jwt.sign(payload, this.jwtSecret, {
+      expiresIn: this.accessTokenExpiresIn,
     } as jwt.SignOptions);
   }
 
   /**
    * Generate refresh token (long-lived: 7 days)
    */
-  static generateRefreshToken(payload: TokenPayload): string {
-    return jwt.sign(payload, JWT_SECRET, {
-      expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+  generateRefreshToken(payload: TokenPayload): string {
+    return jwt.sign(payload, this.jwtSecret, {
+      expiresIn: this.refreshTokenExpiresIn,
     } as jwt.SignOptions);
   }
 
@@ -40,8 +36,8 @@ export class JwtService {
    * Generate temporary token (short-lived: 5 minutes)
    * Used for two-step login flow
    */
-  static generateTempToken(payload: TokenPayload): string {
-    return jwt.sign(payload, JWT_SECRET, {
+  generateTempToken(payload: TokenPayload): string {
+    return jwt.sign(payload, this.jwtSecret, {
       expiresIn: '5m', // 5 minutes for temporary token
     } as jwt.SignOptions);
   }
@@ -49,10 +45,9 @@ export class JwtService {
   /**
    * Verify and decode a token
    */
-  static verifyToken(token: string): TokenPayload {
+  verifyToken(token: string): TokenPayload {
     try {
-      const secret: string = JWT_SECRET || 'your-secret-key-change-in-production';
-      return jwt.verify(token, secret) as TokenPayload;
+      return jwt.verify(token, this.jwtSecret) as TokenPayload;
     } catch (error) {
       throw new Error('Invalid or expired token');
     }
@@ -61,7 +56,7 @@ export class JwtService {
   /**
    * Decode token without verification (for debugging)
    */
-  static decodeToken(token: string): TokenPayload | null {
+  decodeToken(token: string): TokenPayload | null {
     try {
       return jwt.decode(token) as TokenPayload;
     } catch {
@@ -72,9 +67,9 @@ export class JwtService {
   /**
    * Get access token expiration time in seconds
    */
-  static getAccessTokenExpirationSeconds(): number {
+  getAccessTokenExpirationSeconds(): number {
     // Parse "15m" to seconds
-    const expiresIn: string = ACCESS_TOKEN_EXPIRES_IN || '15m';
+    const expiresIn: string = this.accessTokenExpiresIn || '15m';
     
     const match = expiresIn.match(/^(\d+)([smhd])$/);
     if (!match || !match[1] || !match[2]) return 900; // Default 15 minutes

@@ -6,10 +6,10 @@
  */
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
-import { PasswordService } from '../../infrastructure/services/password.service';
-import { JwtService } from '../../infrastructure/services/jwt.service';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service';
-import { AccountLockoutService } from '../../infrastructure/services/account-lockout.service';
+import { IPasswordService } from '../interfaces/password-service.interface';
+import { IJwtService } from '../interfaces/jwt-service.interface';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface';
+import { IAccountLockoutService } from '../interfaces/account-lockout-service.interface';
 
 export interface VerifyCredentialsResult {
   requiresTotp: boolean;
@@ -32,8 +32,10 @@ export interface VerifyCredentialsOptions {
 export class VerifyCredentialsUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private auditLogService: AuditLogService,
-    private accountLockoutService: AccountLockoutService
+    private passwordService: IPasswordService,
+    private jwtService: IJwtService,
+    private auditLogService: IAuditLogService,
+    private accountLockoutService: IAccountLockoutService
   ) {}
 
   async execute(
@@ -87,7 +89,7 @@ export class VerifyCredentialsUseCase {
     }
 
     // 3. Verify password
-    const isPasswordValid = await PasswordService.verifyPassword(
+    const isPasswordValid = await this.passwordService.verifyPassword(
       password,
       user.passwordHash
     );
@@ -107,7 +109,7 @@ export class VerifyCredentialsUseCase {
 
     // 5. Generate temporary token (short-lived, 5 minutes) for TOTP verification
     // Include tokenVersion to ensure token is valid
-    const tempToken = JwtService.generateTempToken({
+    const tempToken = this.jwtService.generateTempToken({
       userId: user.id,
       email: user.email,
       role: user.role,

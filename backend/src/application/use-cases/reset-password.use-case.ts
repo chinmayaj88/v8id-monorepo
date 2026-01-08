@@ -6,14 +6,15 @@
  */
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
-import { PasswordService } from '../../infrastructure/services/password.service';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service';
+import { IPasswordService } from '../interfaces/password-service.interface';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface';
 import { Password } from '../../domain/value-objects/password';
 
 export class ResetPasswordUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private auditLogService: AuditLogService
+    private passwordService: IPasswordService,
+    private auditLogService: IAuditLogService
   ) {}
 
   async execute(
@@ -49,7 +50,7 @@ export class ResetPasswordUseCase {
     }
 
     // 4. Hash new password
-    const passwordHash = await PasswordService.hashPassword(password.getValue());
+    const passwordHash = await this.passwordService.hashPassword(password.getValue());
 
     // 5. Update password and increment tokenVersion (invalidates all existing tokens)
     // Also clear reset token to prevent reuse

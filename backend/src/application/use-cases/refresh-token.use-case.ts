@@ -6,8 +6,8 @@
 
 import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface';
 import { IUserRepository } from '../interfaces/user-repository.interface';
-import { JwtService } from '../../infrastructure/services/jwt.service';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service';
+import { IJwtService } from '../interfaces/jwt-service.interface';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface';
 import { RefreshTokenDTO } from '../dtos/auth.dto';
 
 export interface RefreshTokenResult {
@@ -20,14 +20,15 @@ export class RefreshTokenUseCase {
   constructor(
     private deviceSessionRepository: IDeviceSessionRepository,
     private userRepository: IUserRepository,
-    private auditLogService: AuditLogService
+    private jwtService: IJwtService,
+    private auditLogService: IAuditLogService
   ) {}
 
   async execute(dto: RefreshTokenDTO): Promise<RefreshTokenResult> {
     // 1. Verify refresh token
     let payload;
     try {
-      payload = JwtService.verifyToken(dto.refreshToken);
+      payload = this.jwtService.verifyToken(dto.refreshToken);
     } catch (error) {
       throw new Error('Invalid or expired refresh token');
     }
@@ -69,9 +70,9 @@ export class RefreshTokenUseCase {
       tokenVersion: user.tokenVersion,
     };
 
-    const accessToken = JwtService.generateAccessToken(tokenPayload);
-    const refreshToken = JwtService.generateRefreshToken(tokenPayload); // New refresh token
-    const expiresIn = JwtService.getAccessTokenExpirationSeconds();
+    const accessToken = this.jwtService.generateAccessToken(tokenPayload);
+    const refreshToken = this.jwtService.generateRefreshToken(tokenPayload); // New refresh token
+    const expiresIn = this.jwtService.getAccessTokenExpirationSeconds();
 
     // 8. Update session with new tokens (token rotation)
     await this.deviceSessionRepository.updateTokens(session.id, accessToken, refreshToken);

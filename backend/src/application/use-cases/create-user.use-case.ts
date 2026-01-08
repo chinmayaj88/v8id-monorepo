@@ -8,8 +8,8 @@
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface';
 import { IEmailService } from '../interfaces/email-service.interface';
-import { PasswordService } from '../../infrastructure/services/password.service';
-import { TotpService } from '../../infrastructure/services/totp.service';
+import { IPasswordService } from '../interfaces/password-service.interface';
+import { ITotpService } from '../interfaces/totp-service.interface';
 import { CreateUserDTO } from '../dtos/auth.dto';
 import { Email } from '../../domain/value-objects/email';
 import { Password } from '../../domain/value-objects/password';
@@ -32,7 +32,9 @@ export class CreateUserUseCase {
   constructor(
     private userRepository: IUserRepository,
     private totpBackupCodeRepository: ITotpBackupCodeRepository,
-    private emailService: IEmailService
+    private emailService: IEmailService,
+    private passwordService: IPasswordService,
+    private totpService: ITotpService
   ) {}
 
   async execute(
@@ -58,19 +60,19 @@ export class CreateUserUseCase {
     const password = new Password(dto.password);
 
     // 5. Hash password
-    const passwordHash = await PasswordService.hashPassword(password.getValue());
+    const passwordHash = await this.passwordService.hashPassword(password.getValue());
 
     // 6. Generate TOTP setup (MANDATORY for all users)
-    const totpSetup = await TotpService.generateTotpSetup(email.getValue());
+    const totpSetup = await this.totpService.generateTotpSetup(email.getValue());
 
     // 7. Encrypt TOTP secret
     const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
-    const encryptedSecret = TotpService.encryptSecret(totpSetup.secret, encryptionKey);
+    const encryptedSecret = this.totpService.encryptSecret(totpSetup.secret, encryptionKey);
 
     // 8. Hash backup codes for storage
     const hashedBackupCodes = await Promise.all(
       totpSetup.backupCodes.map(async (code) => {
-        return await PasswordService.hashPassword(code);
+        return await this.passwordService.hashPassword(code);
       })
     );
 

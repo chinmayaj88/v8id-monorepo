@@ -16,6 +16,9 @@ import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 import { AccountLockoutService } from '../../infrastructure/services/account-lockout.service';
 import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory';
+import { PasswordService } from '../../infrastructure/services/password.service';
+import { JwtService } from '../../infrastructure/services/jwt.service';
+import { TotpService } from '../../infrastructure/services/totp.service';
 import { IEmailService } from '../../application/interfaces/email-service.interface';
 import { authMiddleware } from '../middleware/auth.middleware';
 import {
@@ -33,6 +36,9 @@ const auditLogRepository = new AuditLogRepository();
 const totpBackupCodeRepository = new TotpBackupCodeRepository();
 
 // Initialize services
+const passwordService = new PasswordService(parseInt(process.env.BCRYPT_ROUNDS || '12', 10));
+const jwtService = new JwtService();
+const totpService = new TotpService();
 const auditLogService = new AuditLogService(auditLogRepository);
 const accountLockoutService = new AccountLockoutService(auditLogRepository);
 const emailService: IEmailService = EmailServiceFactory.create(); // Clean Architecture: Factory creates implementation
@@ -40,17 +46,22 @@ const emailService: IEmailService = EmailServiceFactory.create(); // Clean Archi
 // Initialize use cases
 const verifyCredentialsUseCase = new VerifyCredentialsUseCase(
   userRepository,
+  passwordService,
+  jwtService,
   auditLogService,
   accountLockoutService
 );
 const verifyTotpLoginUseCase = new VerifyTotpLoginUseCase(
   userRepository,
   deviceSessionRepository,
-  emailService
+  emailService,
+  totpService,
+  jwtService
 );
 const refreshTokenUseCase = new RefreshTokenUseCase(
   deviceSessionRepository,
   userRepository,
+  jwtService,
   auditLogService
 );
 const logoutUseCase = new LogoutUseCase(deviceSessionRepository, auditLogService);
@@ -59,20 +70,30 @@ const forgotPasswordUseCase = new ForgotPasswordUseCase(
   auditLogService,
   emailService
 );
-const resetPasswordUseCase = new ResetPasswordUseCase(userRepository, auditLogService);
+const resetPasswordUseCase = new ResetPasswordUseCase(
+  userRepository,
+  passwordService,
+  auditLogService
+);
 const changePasswordUseCase = new ChangePasswordUseCase(
   userRepository,
+  passwordService,
+  totpService,
   auditLogService,
   emailService
 );
 const regenerateBackupCodesUseCase = new RegenerateBackupCodesUseCase(
   userRepository,
   totpBackupCodeRepository,
+  passwordService,
+  totpService,
   auditLogService
 );
 const resetupTotpUseCase = new ResetupTotpUseCase(
   userRepository,
   totpBackupCodeRepository,
+  passwordService,
+  totpService,
   auditLogService
 );
 
@@ -95,7 +116,7 @@ router.post('/verify-credentials', authRateLimiter, (req, res) =>
 );
 router.post('/verify-totp', totpRateLimiter, (req, res) => authController.verifyTotp(req, res));
 router.post('/refresh', refreshRateLimiter, (req, res) => authController.refresh(req, res));
-router.post('/logout', authMiddleware(userRepository, deviceSessionRepository), (req, res) =>
+router.post('/logout', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) =>
   authController.logout(req, res)
 );
 
@@ -106,15 +127,15 @@ router.post('/forgot-password', authRateLimiter, (req, res) =>
 router.post('/reset-password', authRateLimiter, (req, res) =>
   authController.resetPassword(req, res)
 );
-router.post('/change-password', authMiddleware(userRepository, deviceSessionRepository), (req, res) =>
+router.post('/change-password', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) =>
   authController.changePassword(req, res)
 );
 
 // TOTP management routes
-router.post('/regenerate-backup-codes', authMiddleware(userRepository, deviceSessionRepository), totpRateLimiter, (req, res) =>
+router.post('/regenerate-backup-codes', authMiddleware(userRepository, deviceSessionRepository, jwtService), totpRateLimiter, (req, res) =>
   authController.regenerateBackupCodes(req, res)
 );
-router.post('/resetup-totp', authMiddleware(userRepository, deviceSessionRepository), authRateLimiter, (req, res) =>
+router.post('/resetup-totp', authMiddleware(userRepository, deviceSessionRepository, jwtService), authRateLimiter, (req, res) =>
   authController.resetupTotp(req, res)
 );
 

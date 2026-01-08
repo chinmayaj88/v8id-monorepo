@@ -6,12 +6,13 @@
  */
 
 import { IAuditLogRepository } from '../../application/interfaces/audit-log-repository.interface';
+import { IAccountLockoutService } from '../../application/interfaces/account-lockout-service.interface';
 import { AuditEventType } from './audit-log.service';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
-export class AccountLockoutService {
+export class AccountLockoutService implements IAccountLockoutService {
   constructor(private auditLogRepository: IAuditLogRepository) {}
 
   /**

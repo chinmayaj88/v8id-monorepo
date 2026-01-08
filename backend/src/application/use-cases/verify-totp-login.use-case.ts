@@ -7,8 +7,8 @@
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface';
 import { IEmailService } from '../interfaces/email-service.interface';
-import { TotpService } from '../../infrastructure/services/totp.service';
-import { JwtService } from '../../infrastructure/services/jwt.service';
+import { ITotpService } from '../interfaces/totp-service.interface';
+import { IJwtService } from '../interfaces/jwt-service.interface';
 
 export interface VerifyTotpLoginResult {
   accessToken: string;
@@ -46,7 +46,9 @@ export class VerifyTotpLoginUseCase {
   constructor(
     private userRepository: IUserRepository,
     private deviceSessionRepository: IDeviceSessionRepository,
-    private emailService: IEmailService
+    private emailService: IEmailService,
+    private totpService: ITotpService,
+    private jwtService: IJwtService
   ) {}
 
   async execute(
@@ -58,7 +60,7 @@ export class VerifyTotpLoginUseCase {
     // 1. Verify temporary token (expires in 5 minutes for security)
     let tokenPayload;
     try {
-      tokenPayload = JwtService.verifyToken(dto.tempToken);
+      tokenPayload = this.jwtService.verifyToken(dto.tempToken);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Invalid or expired token';
       // Check if token is expired (JWT throws specific errors for expiration)
@@ -92,12 +94,12 @@ export class VerifyTotpLoginUseCase {
     const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
     let totpSecret: string;
     try {
-      totpSecret = TotpService.decryptSecret(user.totpSecret, encryptionKey);
+      totpSecret = this.totpService.decryptSecret(user.totpSecret, encryptionKey);
     } catch {
       throw new Error('Invalid TOTP configuration');
     }
 
-    const isTotpValid = TotpService.verifyTotp(dto.totpCode, totpSecret);
+    const isTotpValid = this.totpService.verifyTotp(dto.totpCode, totpSecret);
     if (!isTotpValid) {
       throw new Error('Invalid TOTP code');
     }
@@ -141,9 +143,9 @@ export class VerifyTotpLoginUseCase {
       tokenVersion: user.tokenVersion,
     };
 
-    const accessToken = JwtService.generateAccessToken(finalTokenPayload);
-    const refreshToken = JwtService.generateRefreshToken(finalTokenPayload);
-    const expiresIn = JwtService.getAccessTokenExpirationSeconds();
+    const accessToken = this.jwtService.generateAccessToken(finalTokenPayload);
+    const refreshToken = this.jwtService.generateRefreshToken(finalTokenPayload);
+    const expiresIn = this.jwtService.getAccessTokenExpirationSeconds();
 
     // 9. Calculate expiration date for refresh token (7 days)
     const expiresAt = new Date();
