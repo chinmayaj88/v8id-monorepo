@@ -2,18 +2,19 @@
  * Forgot Password Use Case
  * 
  * Generates a password reset token and stores it with expiration.
- * In production, this would send an email with the reset link.
+ * Sends password reset email via IEmailService (Resend in production, console in development).
  */
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
+import { IEmailService } from '../interfaces/email-service.interface';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
-import { JwtService } from '../../infrastructure/services/jwt.service';
 import crypto from 'crypto';
 
 export class ForgotPasswordUseCase {
   constructor(
     private userRepository: IUserRepository,
-    private auditLogService: AuditLogService
+    private auditLogService: AuditLogService,
+    private emailService: IEmailService
   ) {}
 
   async execute(
@@ -70,12 +71,21 @@ export class ForgotPasswordUseCase {
       email,
     });
 
-    // 7. In production, send email with reset link
-    // For now, we'll just log it (you can integrate with email service later)
-    console.log(`[Password Reset] Token for ${email}: ${resetToken}`);
-    console.log(`[Password Reset] Reset link: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`);
+    // 7. Send password reset email
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
     
-    // TODO: Integrate with email service
-    // await emailService.sendPasswordResetEmail(user.email, resetToken);
+    try {
+      await this.emailService.sendPasswordResetEmail(user.email, resetToken, resetLink);
+    } catch (error) {
+      // Log error but don't fail the request (email sending is not critical for security)
+      // The token is still generated and stored, user can request again if needed
+      console.error('Failed to send password reset email:', error);
+      // In development, still log the token for testing
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Password Reset] Token for ${email}: ${resetToken}`);
+        console.log(`[Password Reset] Reset link: ${resetLink}`);
+      }
+    }
   }
 }

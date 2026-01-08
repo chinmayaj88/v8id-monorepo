@@ -12,6 +12,7 @@ import { DeviceSessionRepository } from '../../infrastructure/repositories/devic
 import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 import { AccountLockoutService } from '../../infrastructure/services/account-lockout.service';
+import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory';
 import { authMiddleware } from '../middleware/auth.middleware';
 import {
   authRateLimiter,
@@ -29,6 +30,7 @@ const auditLogRepository = new AuditLogRepository();
 // Initialize services
 const auditLogService = new AuditLogService(auditLogRepository);
 const accountLockoutService = new AccountLockoutService(auditLogRepository);
+const emailService = EmailServiceFactory.create(); // Clean Architecture: Factory creates implementation
 
 // Initialize use cases
 const verifyCredentialsUseCase = new VerifyCredentialsUseCase(
@@ -43,7 +45,11 @@ const refreshTokenUseCase = new RefreshTokenUseCase(
   auditLogService
 );
 const logoutUseCase = new LogoutUseCase(deviceSessionRepository, auditLogService);
-const forgotPasswordUseCase = new ForgotPasswordUseCase(userRepository, auditLogService);
+const forgotPasswordUseCase = new ForgotPasswordUseCase(
+  userRepository,
+  auditLogService,
+  emailService
+);
 const resetPasswordUseCase = new ResetPasswordUseCase(userRepository, auditLogService);
 const changePasswordUseCase = new ChangePasswordUseCase(userRepository, auditLogService);
 

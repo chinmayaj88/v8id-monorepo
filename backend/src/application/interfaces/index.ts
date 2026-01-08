@@ -15,3 +15,4 @@ export {
   IAuditLogRepository,
   type AuditLog,
 } from './audit-log-repository.interface';
+export { IEmailService } from './email-service.interface';
