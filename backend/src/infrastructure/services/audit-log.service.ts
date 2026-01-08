@@ -72,24 +72,27 @@ export class AuditLogService {
 
   /**
    * Log login attempt
+   * @param userId - User ID (optional, undefined/null for unknown users)
    */
   async logLogin(
-    userId: string,
+    userId: string | undefined,
     success: boolean,
     options?: {
       ipAddress?: string;
       userAgent?: string;
       deviceType?: string;
       deviceName?: string;
+      email?: string; // Email address of the user attempting to login
       errorMessage?: string;
     }
   ): Promise<void> {
     await this.logEvent({
-      userId,
+      userId: userId || undefined, // Convert empty string to undefined
       eventType: success ? AuditEventType.LOGIN : AuditEventType.LOGIN_FAILED,
       eventData: {
         deviceType: options?.deviceType,
         deviceName: options?.deviceName,
+        email: options?.email, // Store email in eventData for tracking
       },
       ipAddress: options?.ipAddress,
       userAgent: options?.userAgent,

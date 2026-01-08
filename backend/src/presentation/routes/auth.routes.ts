@@ -26,7 +26,7 @@ const auditLogRepository = new AuditLogRepository();
 const auditLogService = new AuditLogService(auditLogRepository);
 
 // Initialize use cases
-const verifyCredentialsUseCase = new VerifyCredentialsUseCase(userRepository);
+const verifyCredentialsUseCase = new VerifyCredentialsUseCase(userRepository, auditLogService);
 const verifyTotpLoginUseCase = new VerifyTotpLoginUseCase(userRepository, deviceSessionRepository);
 const refreshTokenUseCase = new RefreshTokenUseCase(
   deviceSessionRepository,

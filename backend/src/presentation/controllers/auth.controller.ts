@@ -5,6 +5,7 @@ import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.u
 import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
 import { RefreshTokenDTO, VerifyCredentialsDTO, VerifyTotpDTO } from '../../application/dtos/auth.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { extractIpAddress } from '../utils/ip-address.util';
 
 export class AuthController {
   constructor(
@@ -33,7 +34,15 @@ export class AuthController {
         return;
       }
 
-      const result = await this.verifyCredentialsUseCase.execute(dto.email, dto.password);
+      // Get IP address and user agent for audit logging
+      const ipAddress = extractIpAddress(req);
+      const userAgent = req.headers['user-agent'] || undefined;
+
+      const result = await this.verifyCredentialsUseCase.execute(dto.email, dto.password, {
+        ipAddress,
+        userAgent,
+        email: dto.email, // Pass email for audit logging
+      });
 
       res.status(200).json({
         success: true,
@@ -73,7 +82,7 @@ export class AuthController {
         return;
       }
 
-      const ipAddress = req.ip || req.socket.remoteAddress || undefined;
+      const ipAddress = extractIpAddress(req);
       const result = await this.verifyTotpLoginUseCase.execute(dto, ipAddress);
 
       res.status(200).json({

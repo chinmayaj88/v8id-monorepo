@@ -34,9 +34,12 @@ export class AuditLogRepository implements IAuditLogRepository {
     success?: boolean;
     errorMessage?: string;
   }): Promise<AuditLog> {
+    // Convert empty string to null for userId (foreign key constraint requires null, not empty string)
+    const userId = data.userId && data.userId.trim() !== '' ? data.userId : null;
+
     const log = await prisma.auditLog.create({
       data: {
-        userId: data.userId,
+        userId: userId,
         eventType: data.eventType,
         eventData: data.eventData ? JSON.parse(JSON.stringify(data.eventData)) : null,
         ipAddress: data.ipAddress,

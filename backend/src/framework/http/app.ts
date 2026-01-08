@@ -5,6 +5,10 @@ import { generalRateLimiter } from '../../presentation/middleware/rate-limit.mid
 export async function createApp(): Promise<Express> {
   const app = express();
 
+  // Trust proxy for accurate IP address extraction (for reverse proxy/load balancer)
+  // This allows req.ip to work correctly with X-Forwarded-For header
+  app.set('trust proxy', true);
+
   // Middleware
   app.use(
     cors({

@@ -43,8 +43,8 @@ export class LoginUseCase {
     // 1. Find user by email
     const user = await this.userRepository.findByEmail(dto.email);
     if (!user) {
-      // Log failed login attempt
-      await this.auditLogService.logLogin('', false, {
+      // Log failed login attempt for unknown user (userId is undefined since user doesn't exist)
+      await this.auditLogService.logLogin(undefined, false, {
         ipAddress,
         userAgent: dto.deviceName,
         deviceType: dto.deviceType,
