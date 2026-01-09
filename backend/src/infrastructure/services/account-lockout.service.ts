@@ -33,6 +33,10 @@ export class AccountLockoutService implements IAccountLockoutService {
       const oldestAttempt = failedAttempts
         .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0];
       
+      if (!oldestAttempt) {
+        return { locked: false };
+      }
+      
       // Calculate when the lockout expires (15 minutes from oldest attempt)
       const unlockAt = new Date(oldestAttempt.createdAt.getTime() + LOCKOUT_WINDOW_MS);
       
@@ -64,7 +68,7 @@ export class AccountLockoutService implements IAccountLockoutService {
    * Reset failed attempts count (called on successful login)
    * Note: This doesn't actually delete audit logs, just provides a way to check
    */
-  async resetFailedAttempts(userId: string): Promise<void> {
+  async resetFailedAttempts(_userId: string): Promise<void> {
     // Audit logs are kept for security, but successful login means
     // we can check the lockout status again on next attempt
     // This method is here for future use if we want to track attempts differently

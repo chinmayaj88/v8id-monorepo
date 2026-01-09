@@ -23,7 +23,7 @@ export const generalRateLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  handler: (req: Request, res: Response) => {
+  handler: (_req: Request, res: Response) => {
     res.status(429).json({
       success: false,
       error: {
@@ -51,7 +51,7 @@ export const authRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
-  handler: (req: Request, res: Response) => {
+  handler: (_req: Request, res: Response) => {
     res.status(429).json({
       success: false,
       error: {
@@ -78,7 +78,7 @@ export const totpRateLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req: Request, res: Response) => {
+  handler: (_req: Request, res: Response) => {
     res.status(429).json({
       success: false,
       error: {
@@ -105,7 +105,7 @@ export const refreshRateLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req: Request, res: Response) => {
+  handler: (_req: Request, res: Response) => {
     res.status(429).json({
       success: false,
       error: {

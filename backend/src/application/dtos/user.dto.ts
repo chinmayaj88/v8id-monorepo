@@ -10,13 +10,6 @@ export interface UpdateUserDTO {
   avatarUrl?: string;
 }
 
-export interface UpdateUserByAdminDTO {
-  firstName?: string;
-  lastName?: string;
-  storageQuota?: number;
-  isActive?: boolean;
-}
-
 export interface ListUsersDTO {
   page?: number;
   limit?: number;

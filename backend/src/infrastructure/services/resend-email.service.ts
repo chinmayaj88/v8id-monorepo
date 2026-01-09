@@ -11,7 +11,6 @@ import { IEmailService } from '../../application/interfaces/email-service.interf
 export class ResendEmailService implements IEmailService {
   private resend: Resend;
   private fromEmail: string;
-  private frontendUrl: string;
 
   constructor() {
     const apiKey = process.env.RESEND_API_KEY;
@@ -25,7 +24,8 @@ export class ResendEmailService implements IEmailService {
     // Or use a verified email address from your Resend account
     // In production, use your verified domain (e.g., noreply@yourdomain.com)
     this.fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
-    this.frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // frontendUrl is not currently used in email templates
+    // Keeping for potential future use
     
     // Warn if using default test domain
     if (!process.env.EMAIL_FROM) {
@@ -36,7 +36,7 @@ export class ResendEmailService implements IEmailService {
 
   async sendPasswordResetEmail(
     to: string,
-    resetToken: string,
+    _resetToken: string,
     resetLink: string
   ): Promise<void> {
     try {

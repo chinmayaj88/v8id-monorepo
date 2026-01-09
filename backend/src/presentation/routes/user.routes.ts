@@ -29,14 +29,14 @@ import {
 
 const router: IRouter = Router();
 
-// Initialize repositories
-const userRepository = new UserRepository();
-const totpBackupCodeRepository = new TotpBackupCodeRepository();
-const deviceSessionRepository = new DeviceSessionRepository();
-const auditLogRepository = new AuditLogRepository();
-
 // Initialize services
 const passwordService = new PasswordService(parseInt(process.env.BCRYPT_ROUNDS || '12', 10));
+
+// Initialize repositories
+const userRepository = new UserRepository();
+const totpBackupCodeRepository = new TotpBackupCodeRepository(passwordService);
+const deviceSessionRepository = new DeviceSessionRepository();
+const auditLogRepository = new AuditLogRepository();
 const totpService = new TotpService();
 const jwtService = new JwtService();
 const auditLogService = new AuditLogService(auditLogRepository);

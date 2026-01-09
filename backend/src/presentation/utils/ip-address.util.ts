@@ -17,7 +17,7 @@ export function extractIpAddress(req: Request): string | undefined {
     // X-Forwarded-For can contain multiple IPs, take the first one
     const ips = Array.isArray(forwardedFor) 
       ? forwardedFor[0] 
-      : forwardedFor.split(',')[0].trim();
+      : forwardedFor.split(',')[0]?.trim();
     
     if (ips) {
       // Convert IPv6 localhost to IPv4

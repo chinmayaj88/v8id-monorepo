@@ -69,17 +69,6 @@ export const updateCurrentUserSchema = z.object({
 });
 
 /**
- * Update User by Admin Schema
- * PATCH /api/users/:id (Admin only)
- */
-export const updateUserByAdminSchema = z.object({
-  firstName: nameSchema,
-  lastName: nameSchema,
-  storageQuota: z.number().int().positive().optional(),
-  isActive: z.boolean().optional(),
-});
-
-/**
  * List Users Schema
  * GET /api/users?page=1&limit=50&search=query
  */
@@ -97,9 +86,8 @@ export const revokeSessionSchema = z.object({
   sessionId: z.string().uuid('Invalid session ID format'),
 });
 
-// Type exports for TypeScript inference
+// Type exports for TypeScript inference (available for future use)
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateCurrentUserInput = z.infer<typeof updateCurrentUserSchema>;
-export type UpdateUserByAdminInput = z.infer<typeof updateUserByAdminSchema>;
 export type ListUsersInput = z.infer<typeof listUsersSchema>;
 export type RevokeSessionInput = z.infer<typeof revokeSessionSchema>;

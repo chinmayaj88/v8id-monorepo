@@ -6,9 +6,10 @@
 
 import { prisma } from '../database';
 import { ITotpBackupCodeRepository } from '../../application/interfaces/totp-backup-code-repository.interface';
-import { PasswordService } from '../services/password.service';
+import { IPasswordService } from '../../application/interfaces/password-service.interface';
 
 export class TotpBackupCodeRepository implements ITotpBackupCodeRepository {
+  constructor(private passwordService: IPasswordService) {}
   async createCodes(userId: string, hashedCodes: string[]): Promise<void> {
     // Delete existing codes first
     await this.deleteAllForUser(userId);
@@ -34,7 +35,7 @@ export class TotpBackupCodeRepository implements ITotpBackupCodeRepository {
 
     // Check each code
     for (const backupCode of backupCodes) {
-      const isValid = await PasswordService.verifyPassword(code, backupCode.code);
+      const isValid = await this.passwordService.verifyPassword(code, backupCode.code);
       if (isValid) {
         // Mark as used
         await prisma.totpBackupCode.update({

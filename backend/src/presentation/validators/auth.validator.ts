@@ -39,7 +39,7 @@ const totpCodeSchema = z
  * Device type validation schema
  */
 const deviceTypeSchema = z.enum(['MOBILE', 'WEB'], {
-  errorMap: () => ({ message: 'Device type must be either MOBILE or WEB' }),
+  message: 'Device type must be either MOBILE or WEB',
 });
 
 /**

@@ -23,7 +23,7 @@ export function validateBody<T>(schema: z.ZodSchema<T>) {
     } catch (error) {
       if (error instanceof ZodError) {
         // Format Zod errors into a user-friendly response
-        const errors = error.errors.map((err) => ({
+        const errors = error.issues.map((err) => ({
           field: err.path.join('.'),
           message: err.message,
         }));
@@ -62,10 +62,10 @@ export function validateQuery<T>(schema: z.ZodSchema<T>) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errors = error.errors.map((err) => ({
+        const errors = error.issues.map((err) => ({
           field: err.path.join('.'),
           message: err.message,
-        });
+        }));
 
         res.status(400).json({
           success: false,
@@ -100,10 +100,10 @@ export function validateParams<T>(schema: z.ZodSchema<T>) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errors = error.errors.map((err) => ({
+        const errors = error.issues.map((err) => ({
           field: err.path.join('.'),
           message: err.message,
-        });
+        }));
 
         res.status(400).json({
           success: false,

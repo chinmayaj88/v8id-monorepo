@@ -41,14 +41,14 @@ import {
 
 const router: IRouter = Router();
 
+// Initialize services
+const passwordService = new PasswordService(parseInt(process.env.BCRYPT_ROUNDS || '12', 10));
+
 // Initialize repositories
 const userRepository = new UserRepository();
 const deviceSessionRepository = new DeviceSessionRepository();
 const auditLogRepository = new AuditLogRepository();
-const totpBackupCodeRepository = new TotpBackupCodeRepository();
-
-// Initialize services
-const passwordService = new PasswordService(parseInt(process.env.BCRYPT_ROUNDS || '12', 10));
+const totpBackupCodeRepository = new TotpBackupCodeRepository(passwordService);
 const jwtService = new JwtService();
 const totpService = new TotpService();
 const auditLogService = new AuditLogService(auditLogRepository);

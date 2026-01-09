@@ -8,10 +8,9 @@
 import { IEmailService } from '../../application/interfaces/email-service.interface';
 
 export class ConsoleEmailService implements IEmailService {
-  private frontendUrl: string;
-
   constructor() {
-    this.frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // frontendUrl is not currently used in console output
+    // Keeping constructor for potential future use
   }
 
   async sendPasswordResetEmail(
