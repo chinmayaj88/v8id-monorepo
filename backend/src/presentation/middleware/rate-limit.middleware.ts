@@ -6,6 +6,7 @@
 
 import rateLimit from 'express-rate-limit';
 import { Request, Response } from 'express';
+import { ResponseUtil } from '../utils/response.util';
 
 /**
  * General API rate limiter
@@ -14,23 +15,15 @@ import { Request, Response } from 'express';
 export const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many requests from this IP, please try again later.',
-    },
-  },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   handler: (_req: Request, res: Response) => {
-    res.status(429).json({
-      success: false,
-      error: {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many requests from this IP, please try again later.',
-      },
-    });
+    ResponseUtil.error(
+      res,
+      'RATE_LIMIT_EXCEEDED',
+      'Too many requests from this IP, please try again later.',
+      429
+    );
   },
 });
 
@@ -41,24 +34,16 @@ export const generalRateLimiter = rateLimit({
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // Limit each IP to 5 login attempts per windowMs
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many login attempts, please try again later.',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
   handler: (_req: Request, res: Response) => {
-    res.status(429).json({
-      success: false,
-      error: {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many login attempts, please try again later.',
-      },
-    });
+    ResponseUtil.error(
+      res,
+      'RATE_LIMIT_EXCEEDED',
+      'Too many login attempts, please try again later.',
+      429
+    );
   },
 });
 
@@ -69,23 +54,15 @@ export const authRateLimiter = rateLimit({
 export const totpRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // Limit each IP to 10 TOTP attempts per windowMs
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many TOTP verification attempts, please try again later.',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req: Request, res: Response) => {
-    res.status(429).json({
-      success: false,
-      error: {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many TOTP verification attempts, please try again later.',
-      },
-    });
+    ResponseUtil.error(
+      res,
+      'RATE_LIMIT_EXCEEDED',
+      'Too many TOTP verification attempts, please try again later.',
+      429
+    );
   },
 });
 
@@ -96,22 +73,14 @@ export const totpRateLimiter = rateLimit({
 export const refreshRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 20, // Limit each IP to 20 refresh attempts per windowMs
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many token refresh attempts, please try again later.',
-    },
-  },
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req: Request, res: Response) => {
-    res.status(429).json({
-      success: false,
-      error: {
-        code: 'RATE_LIMIT_EXCEEDED',
-        message: 'Too many token refresh attempts, please try again later.',
-      },
-    });
+    ResponseUtil.error(
+      res,
+      'RATE_LIMIT_EXCEEDED',
+      'Too many token refresh attempts, please try again later.',
+      429
+    );
   },
 });

@@ -13,6 +13,7 @@ import { UpdateUserDTO, ListUsersDTO } from '../../application/dtos/user.dto';
 import { CreateUserDTO } from '../../application/dtos/auth.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { extractIpAddress } from '../utils/ip-address.util';
+import { ResponseUtil } from '../utils/response.util';
 
 export class UserController {
   constructor(
@@ -28,13 +29,7 @@ export class UserController {
   async createUser(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
@@ -42,32 +37,16 @@ export class UserController {
 
       // Validate required fields
       if (!dto.email || !dto.password) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Email and password are required',
-          },
-        });
+        ResponseUtil.validationError(res, 'Email and password are required');
         return;
       }
 
       const result = await this.createUserUseCase.execute(dto, req.user.id);
 
-      res.status(201).json({
-        success: true,
-        message: 'User created successfully',
-        data: result,
-      });
+      ResponseUtil.created(res, result, 'User created successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'User creation failed';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'CREATE_USER_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'CREATE_USER_ERROR', message);
     }
   }
 
@@ -77,55 +56,34 @@ export class UserController {
   async getCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
       const user = await this.userRepository.findById(req.user.id);
       if (!user) {
-        res.status(404).json({
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: 'User not found',
-          },
-        });
+        ResponseUtil.notFound(res, 'User not found');
         return;
       }
 
-      res.status(200).json({
-        success: true,
-        data: {
-          id: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          avatarUrl: user.avatarUrl,
-          role: user.role,
-          storageQuota: user.storageQuota.toString(),
-          storageUsed: user.storageUsed.toString(),
-          emailVerified: user.emailVerified,
-          totpEnabled: !!user.totpSecret, // TOTP is enabled if secret exists
-          totpVerified: user.totpVerified,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        },
+      ResponseUtil.success(res, {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        storageQuota: user.storageQuota.toString(),
+        storageUsed: user.storageUsed.toString(),
+        emailVerified: user.emailVerified,
+        totpEnabled: !!user.totpSecret, // TOTP is enabled if secret exists
+        totpVerified: user.totpVerified,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to get user';
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.internalError(res, message);
     }
   }
 
@@ -135,13 +93,7 @@ export class UserController {
   async updateCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
@@ -149,25 +101,16 @@ export class UserController {
 
       const user = await this.userRepository.update(req.user.id, dto);
 
-      res.status(200).json({
-        success: true,
-        data: {
-          id: user.id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          avatarUrl: user.avatarUrl,
-          updatedAt: user.updatedAt,
-        },
+      ResponseUtil.success(res, {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.avatarUrl,
+        updatedAt: user.updatedAt,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update user';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'UPDATE_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'UPDATE_ERROR', message);
     }
   }
 
@@ -177,13 +120,7 @@ export class UserController {
   async listUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
@@ -195,9 +132,9 @@ export class UserController {
 
       const result = await this.userRepository.findAll(dto);
 
-      res.status(200).json({
-        success: true,
-        data: {
+      ResponseUtil.successWithPagination(
+        res,
+        {
           users: result.users.map((user) => ({
             id: user.id,
             email: user.email,
@@ -210,23 +147,17 @@ export class UserController {
             totpEnabled: !!user.totpSecret, // TOTP is enabled if secret exists
             createdAt: user.createdAt,
           })),
-          pagination: {
-            page: dto.page,
-            limit: dto.limit,
-            total: result.total,
-            totalPages: Math.ceil(result.total / (dto.limit || 50)),
-          },
         },
-      });
+        {
+          page: dto.page,
+          limit: dto.limit,
+          total: result.total,
+          totalPages: Math.ceil(result.total / (dto.limit || 50)),
+        }
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to list users';
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.internalError(res, message);
     }
   }
 
@@ -237,44 +168,29 @@ export class UserController {
   async listSessions(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
       const sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(req.user.id);
 
-      res.status(200).json({
-        success: true,
-        data: {
-          sessions: sessions.map((session) => ({
-            id: session.id,
-            deviceType: session.deviceType,
-            deviceName: session.deviceName,
-            deviceId: session.deviceId,
-            userAgent: session.userAgent,
-            ipAddress: session.ipAddress,
-            location: session.location,
-            lastActiveAt: session.lastActiveAt,
-            createdAt: session.createdAt,
-            expiresAt: session.expiresAt,
-          })),
-        },
+      ResponseUtil.success(res, {
+        sessions: sessions.map((session) => ({
+          id: session.id,
+          deviceType: session.deviceType,
+          deviceName: session.deviceName,
+          deviceId: session.deviceId,
+          userAgent: session.userAgent,
+          ipAddress: session.ipAddress,
+          location: session.location,
+          lastActiveAt: session.lastActiveAt,
+          createdAt: session.createdAt,
+          expiresAt: session.expiresAt,
+        })),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to list sessions';
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.internalError(res, message);
     }
   }
 
@@ -285,26 +201,14 @@ export class UserController {
   async revokeSession(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
       const { sessionId } = req.params;
 
       if (!sessionId) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Session ID is required',
-          },
-        });
+        ResponseUtil.validationError(res, 'Session ID is required');
         return;
       }
 
@@ -313,13 +217,7 @@ export class UserController {
       const session = sessions.find((s) => s.id === sessionId);
 
       if (!session) {
-        res.status(404).json({
-          success: false,
-          error: {
-            code: 'NOT_FOUND',
-            message: 'Session not found',
-          },
-        });
+        ResponseUtil.notFound(res, 'Session not found');
         return;
       }
 
@@ -334,19 +232,10 @@ export class UserController {
         userAgent,
       });
 
-      res.status(200).json({
-        success: true,
-        message: 'Session revoked successfully',
-      });
+      ResponseUtil.success(res, undefined, 'Session revoked successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to revoke session';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'REVOKE_SESSION_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'REVOKE_SESSION_ERROR', message);
     }
   }
 
@@ -357,13 +246,7 @@ export class UserController {
   async revokeAllSessions(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
@@ -383,19 +266,10 @@ export class UserController {
         });
       }
 
-      res.status(200).json({
-        success: true,
-        message: `All ${sessions.length} session(s) revoked successfully`,
-      });
+      ResponseUtil.success(res, undefined, `All ${sessions.length} session(s) revoked successfully`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to revoke sessions';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'REVOKE_SESSIONS_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'REVOKE_SESSIONS_ERROR', message);
     }
   }
 }

@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { generalRateLimiter } from '../../presentation/middleware/rate-limit.middleware';
+import { ResponseUtil } from '../../presentation/utils/response.util';
 
 export async function createApp(): Promise<Express> {
   const app = express();
@@ -42,13 +43,15 @@ export async function createApp(): Promise<Express> {
 
   // Health check
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    ResponseUtil.success(res, {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+    });
   });
 
   app.get('/', (_req, res) => {
-    res.json({
-      success: true,
-      message: 'Welcome to void API',
+    ResponseUtil.success(res, {
+      message: 'Welcome to v8id-cloud API',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
     });

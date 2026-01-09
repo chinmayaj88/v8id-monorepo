@@ -13,6 +13,7 @@ export * from './user.validator';
  */
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodError } from 'zod';
+import { ResponseUtil } from '../utils/response.util';
 
 export function validateBody<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -28,25 +29,12 @@ export function validateBody<T>(schema: z.ZodSchema<T>) {
           message: err.message,
         }));
 
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid request data',
-            details: errors,
-          },
-        });
+        ResponseUtil.validationError(res, 'Invalid request data', errors);
         return;
       }
 
       // Handle unexpected errors
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Validation failed',
-        },
-      });
+      ResponseUtil.internalError(res, 'Validation failed');
     }
   };
 }
@@ -67,24 +55,11 @@ export function validateQuery<T>(schema: z.ZodSchema<T>) {
           message: err.message,
         }));
 
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid query parameters',
-            details: errors,
-          },
-        });
+        ResponseUtil.validationError(res, 'Invalid query parameters', errors);
         return;
       }
 
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Validation failed',
-        },
-      });
+      ResponseUtil.internalError(res, 'Validation failed');
     }
   };
 }
@@ -105,24 +80,11 @@ export function validateParams<T>(schema: z.ZodSchema<T>) {
           message: err.message,
         }));
 
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid route parameters',
-            details: errors,
-          },
-        });
+        ResponseUtil.validationError(res, 'Invalid route parameters', errors);
         return;
       }
 
-      res.status(500).json({
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Validation failed',
-        },
-      });
+      ResponseUtil.internalError(res, 'Validation failed');
     }
   };
 }

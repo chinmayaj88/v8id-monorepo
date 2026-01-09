@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { IJwtService } from '../../application/interfaces/jwt-service.interface';
 import { IUserRepository } from '../../application/interfaces/user-repository.interface';
 import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface';
+import { ResponseUtil } from '../utils/response.util';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -25,13 +26,7 @@ export function authMiddleware(
       // Extract token from Authorization header
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Missing or invalid authorization header',
-          },
-        });
+        ResponseUtil.unauthorized(res, 'Missing or invalid authorization header');
         return;
       }
 
@@ -43,26 +38,14 @@ export function authMiddleware(
       // Verify user exists and is active
       const user = await userRepository.findById(payload.userId);
       if (!user || !user.isUserActive()) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'User not found or inactive',
-          },
-        });
+        ResponseUtil.unauthorized(res, 'User not found or inactive');
         return;
       }
 
       // TOKEN VERSIONING: Verify token version matches user's current version
       // If password was changed, tokenVersion increments and old tokens become invalid
       if (payload.tokenVersion !== undefined && payload.tokenVersion !== user.tokenVersion) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Token has been invalidated. Please login again.',
-          },
-        });
+        ResponseUtil.unauthorized(res, 'Token has been invalidated. Please login again.');
         return;
       }
 
@@ -70,25 +53,13 @@ export function authMiddleware(
       // Check if the access token belongs to an active, non-revoked session
       const session = await deviceSessionRepository.findByAccessToken(token);
       if (!session || session.isRevoked || !session.isActive || session.expiresAt < new Date()) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Session has been revoked or expired. Please login again.',
-          },
-        });
+        ResponseUtil.unauthorized(res, 'Session has been revoked or expired. Please login again.');
         return;
       }
 
       // Verify session belongs to the user from token
       if (session.userId !== payload.userId) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Session mismatch',
-          },
-        });
+        ResponseUtil.unauthorized(res, 'Session mismatch');
         return;
       }
 
@@ -101,13 +72,7 @@ export function authMiddleware(
 
       next();
     } catch (error) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Invalid or expired token',
-        },
-      });
+      ResponseUtil.unauthorized(res, 'Invalid or expired token');
     }
   };
 }
@@ -122,24 +87,12 @@ export function adminMiddleware() {
     next: NextFunction
   ): void => {
     if (!req.user) {
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Authentication required',
-        },
-      });
+      ResponseUtil.unauthorized(res);
       return;
     }
 
     if (req.user.role !== 'ADMIN') {
-      res.status(403).json({
-        success: false,
-        error: {
-          code: 'FORBIDDEN',
-          message: 'Admin access required',
-        },
-      });
+      ResponseUtil.forbidden(res, 'Admin access required');
       return;
     }
 

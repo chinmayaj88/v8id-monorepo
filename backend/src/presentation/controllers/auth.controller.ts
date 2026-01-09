@@ -11,6 +11,7 @@ import { RegenerateBackupCodesUseCase } from '../../application/use-cases/regene
 import { ResetupTotpUseCase } from '../../application/use-cases/resetup-totp.use-case';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { extractIpAddress } from '../utils/ip-address.util';
+import { ResponseUtil } from '../utils/response.util';
 
 export class AuthController {
   constructor(
@@ -43,22 +44,16 @@ export class AuthController {
         email: dto.email, // Pass email for audit logging
       });
 
-      res.status(200).json({
-        success: true,
-        data: result,
-        message: result.requiresTotp 
+      ResponseUtil.success(
+        res,
+        result,
+        result.requiresTotp 
           ? 'Credentials verified. TOTP code required. Temporary token expires in 5 minutes.' 
-          : 'Credentials verified.',
-      });
+          : 'Credentials verified.'
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Credential verification failed';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'VERIFY_CREDENTIALS_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'VERIFY_CREDENTIALS_ERROR', message);
     }
   }
 
@@ -77,31 +72,20 @@ export class AuthController {
         userAgent,
       });
 
-      res.status(200).json({
-        success: true,
-        data: result,
-        message: 'Login successful',
-      });
+      ResponseUtil.success(res, result, 'Login successful');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'TOTP verification failed';
       // Check if error is due to expired temporary token
       if (message.includes('expired') || message.includes('Temporary token has expired')) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'TEMP_TOKEN_EXPIRED',
-            message: 'Temporary token has expired. Please verify credentials again. Temporary tokens expire in 5 minutes for security.',
-          },
-        });
+        ResponseUtil.error(
+          res,
+          'TEMP_TOKEN_EXPIRED',
+          'Temporary token has expired. Please verify credentials again. Temporary tokens expire in 5 minutes for security.',
+          401
+        );
         return;
       }
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'VERIFY_TOTP_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'VERIFY_TOTP_ERROR', message);
     }
   }
 
@@ -114,19 +98,10 @@ export class AuthController {
 
       const result = await this.refreshTokenUseCase.execute(dto);
 
-      res.status(200).json({
-        success: true,
-        data: result,
-      });
+      ResponseUtil.success(res, result);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Token refresh failed';
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'REFRESH_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'REFRESH_ERROR', message, 401);
     }
   }
 
@@ -136,13 +111,7 @@ export class AuthController {
   async logout(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
@@ -150,31 +119,16 @@ export class AuthController {
       const sessionId = req.body.sessionId || req.headers['x-session-id'] as string;
 
       if (!sessionId) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Session ID is required',
-          },
-        });
+        ResponseUtil.validationError(res, 'Session ID is required');
         return;
       }
 
       await this.logoutUseCase.execute(sessionId, req.user.id);
 
-      res.status(200).json({
-        success: true,
-        message: 'Logged out successfully',
-      });
+      ResponseUtil.success(res, undefined, 'Logged out successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Logout failed';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'LOGOUT_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'LOGOUT_ERROR', message);
     }
   }
 
@@ -195,16 +149,18 @@ export class AuthController {
         userAgent,
       });
 
-      res.status(200).json({
-        success: true,
-        message: 'If an account with that email exists, a password reset link has been sent.',
-      });
+      ResponseUtil.success(
+        res,
+        undefined,
+        'If an account with that email exists, a password reset link has been sent.'
+      );
     } catch (error) {
       // Still return success to prevent email enumeration
-      res.status(200).json({
-        success: true,
-        message: 'If an account with that email exists, a password reset link has been sent.',
-      });
+      ResponseUtil.success(
+        res,
+        undefined,
+        'If an account with that email exists, a password reset link has been sent.'
+      );
     }
   }
 
@@ -224,19 +180,14 @@ export class AuthController {
         userAgent,
       });
 
-      res.status(200).json({
-        success: true,
-        message: 'Password has been reset successfully. All existing sessions have been invalidated.',
-      });
+      ResponseUtil.success(
+        res,
+        undefined,
+        'Password has been reset successfully. All existing sessions have been invalidated.'
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Password reset failed';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'RESET_PASSWORD_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'RESET_PASSWORD_ERROR', message);
     }
   }
 
@@ -247,13 +198,7 @@ export class AuthController {
   async changePassword(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
@@ -271,19 +216,14 @@ export class AuthController {
         userAgent,
       });
 
-      res.status(200).json({
-        success: true,
-        message: 'Password has been changed successfully. All existing sessions have been invalidated.',
-      });
+      ResponseUtil.success(
+        res,
+        undefined,
+        'Password has been changed successfully. All existing sessions have been invalidated.'
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Password change failed';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'CHANGE_PASSWORD_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'CHANGE_PASSWORD_ERROR', message);
     }
   }
 
@@ -294,13 +234,7 @@ export class AuthController {
   async regenerateBackupCodes(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
@@ -315,20 +249,14 @@ export class AuthController {
         { ipAddress, userAgent }
       );
 
-      res.status(200).json({
-        success: true,
-        data: result,
-        message: 'Backup codes regenerated successfully. Please save them securely.',
-      });
+      ResponseUtil.success(
+        res,
+        result,
+        'Backup codes regenerated successfully. Please save them securely.'
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to regenerate backup codes';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'REGENERATE_BACKUP_CODES_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'REGENERATE_BACKUP_CODES_ERROR', message);
     }
   }
 
@@ -339,13 +267,7 @@ export class AuthController {
   async resetupTotp(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'UNAUTHORIZED',
-            message: 'Authentication required',
-          },
-        });
+        ResponseUtil.unauthorized(res);
         return;
       }
 
@@ -360,20 +282,14 @@ export class AuthController {
         { ipAddress, userAgent }
       );
 
-      res.status(200).json({
-        success: true,
-        data: result,
-        message: 'TOTP re-setup successful. Please scan the QR code and verify with a TOTP code.',
-      });
+      ResponseUtil.success(
+        res,
+        result,
+        'TOTP re-setup successful. Please scan the QR code and verify with a TOTP code.'
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to resetup TOTP';
-      res.status(400).json({
-        success: false,
-        error: {
-          code: 'RESETUP_TOTP_ERROR',
-          message,
-        },
-      });
+      ResponseUtil.error(res, 'RESETUP_TOTP_ERROR', message);
     }
   }
 }
