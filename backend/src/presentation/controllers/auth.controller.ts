@@ -464,7 +464,4 @@ export class AuthController {
       });
     }
   }
-
-  /**
 }
-
