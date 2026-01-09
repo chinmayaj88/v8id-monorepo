@@ -87,9 +87,6 @@ export class VerifyTotpLoginUseCase {
     }
 
     // 5. Verify TOTP code
-    if (!user.totpSecret) {
-      throw new Error('TOTP secret is missing');
-    }
 
     const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
     let totpSecret: string;
