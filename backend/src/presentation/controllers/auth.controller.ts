@@ -33,17 +33,6 @@ export class AuthController {
     try {
       const dto: VerifyCredentialsDTO = req.body;
 
-      if (!dto.email || !dto.password) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Email and password are required',
-          },
-        });
-        return;
-      }
-
       // Get IP address and user agent for audit logging
       const ipAddress = extractIpAddress(req);
       const userAgent = req.headers['user-agent'] || undefined;
@@ -80,17 +69,6 @@ export class AuthController {
   async verifyTotp(req: Request, res: Response): Promise<void> {
     try {
       const dto: VerifyTotpDTO = req.body;
-
-      if (!dto.tempToken || !dto.totpCode || !dto.deviceType || !dto.deviceName || !dto.deviceId) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Temporary token, TOTP code, and device information are required',
-          },
-        });
-        return;
-      }
 
       const ipAddress = extractIpAddress(req);
       const userAgent = req.headers['user-agent'] || undefined;
@@ -133,17 +111,6 @@ export class AuthController {
   async refresh(req: Request, res: Response): Promise<void> {
     try {
       const dto: RefreshTokenDTO = req.body;
-
-      if (!dto.refreshToken) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Refresh token is required',
-          },
-        });
-        return;
-      }
 
       const result = await this.refreshTokenUseCase.execute(dto);
 
@@ -219,17 +186,6 @@ export class AuthController {
     try {
       const dto: ForgotPasswordDTO = req.body;
 
-      if (!dto.email) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Email is required',
-          },
-        });
-        return;
-      }
-
       const ipAddress = extractIpAddress(req);
       const userAgent = req.headers['user-agent'] || undefined;
 
@@ -259,17 +215,6 @@ export class AuthController {
   async resetPassword(req: Request, res: Response): Promise<void> {
     try {
       const dto: ResetPasswordDTO = req.body;
-
-      if (!dto.token || !dto.newPassword) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Token and new password are required',
-          },
-        });
-        return;
-      }
 
       const ipAddress = extractIpAddress(req);
       const userAgent = req.headers['user-agent'] || undefined;
@@ -313,17 +258,6 @@ export class AuthController {
       }
 
       const { currentPassword, newPassword, totpCode } = req.body;
-
-      if (!currentPassword || !newPassword || !totpCode) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Current password, new password, and TOTP code are required',
-          },
-        });
-        return;
-      }
 
       const ipAddress = extractIpAddress(req);
       const userAgent = req.headers['user-agent'] || undefined;
@@ -372,17 +306,6 @@ export class AuthController {
 
       const { password, totpCode } = req.body;
 
-      if (!password || !totpCode) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Password and TOTP code are required',
-          },
-        });
-        return;
-      }
-
       const ipAddress = extractIpAddress(req);
       const userAgent = req.headers['user-agent'] || undefined;
 
@@ -427,17 +350,6 @@ export class AuthController {
       }
 
       const { password } = req.body;
-
-      if (!password) {
-        res.status(400).json({
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Password is required',
-          },
-        });
-        return;
-      }
 
       const ipAddress = extractIpAddress(req);
       const userAgent = req.headers['user-agent'] || undefined;

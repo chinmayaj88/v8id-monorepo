@@ -5,7 +5,6 @@
  * Each use case handles a specific business operation.
  */
 
-export { LoginUseCase, type LoginResult } from './login.use-case';
 export { VerifyCredentialsUseCase, type VerifyCredentialsResult } from './verify-credentials.use-case';
 export { VerifyTotpLoginUseCase, type VerifyTotpLoginResult, type VerifyTotpLoginDTO } from './verify-totp-login.use-case';
 export { CreateUserUseCase, type CreateUserResult } from './create-user.use-case';

@@ -17,6 +17,15 @@ import { PasswordService } from '../../infrastructure/services/password.service'
 import { TotpService } from '../../infrastructure/services/totp.service';
 import { JwtService } from '../../infrastructure/services/jwt.service';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
+import {
+  validateBody,
+  validateQuery,
+  validateParams,
+  createUserSchema,
+  updateCurrentUserSchema,
+  listUsersSchema,
+  revokeSessionSchema,
+} from '../validators';
 
 const router: IRouter = Router();
 
@@ -52,30 +61,50 @@ const userController = new UserController(
 
 // Routes
 // Admin-only routes
-router.post('/', authMiddleware(userRepository, deviceSessionRepository, jwtService), adminMiddleware(), (req, res) => 
-  userController.createUser(req, res)
+router.post(
+  '/',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  adminMiddleware(),
+  validateBody(createUserSchema),
+  (req, res) => userController.createUser(req, res)
 );
-router.get('/', authMiddleware(userRepository, deviceSessionRepository, jwtService), adminMiddleware(), (req, res) => 
-  userController.listUsers(req, res)
+router.get(
+  '/',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  adminMiddleware(),
+  validateQuery(listUsersSchema),
+  (req, res) => userController.listUsers(req, res)
 );
 
 // User routes
-router.get('/me', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
-  userController.getCurrentUser(req, res)
+router.get(
+  '/me',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  (req, res) => userController.getCurrentUser(req, res)
 );
-router.patch('/me', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
-  userController.updateCurrentUser(req, res)
+router.patch(
+  '/me',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  validateBody(updateCurrentUserSchema),
+  (req, res) => userController.updateCurrentUser(req, res)
 );
 
 // Session management routes
-router.get('/me/sessions', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
-  userController.listSessions(req, res)
+router.get(
+  '/me/sessions',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  (req, res) => userController.listSessions(req, res)
 );
-router.delete('/me/sessions/:sessionId', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
-  userController.revokeSession(req, res)
+router.delete(
+  '/me/sessions/:sessionId',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  validateParams(revokeSessionSchema),
+  (req, res) => userController.revokeSession(req, res)
 );
-router.post('/me/sessions/revoke-all', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) => 
-  userController.revokeAllSessions(req, res)
+router.post(
+  '/me/sessions/revoke-all',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  (req, res) => userController.revokeAllSessions(req, res)
 );
 
 export default router;
