@@ -1,0 +1,297 @@
+/**
+ * File Repository Implementation
+ * 
+ * Concrete implementation of IFileRepository using Prisma.
+ */
+
+import { prisma } from '../database';
+import { IFileRepository } from '../../application/interfaces/file-repository.interface';
+import { File, FileStatus, FileType } from '../../domain/entities/file';
+
+export class FileRepository implements IFileRepository {
+  /**
+   * Map Prisma file to domain File entity
+   */
+  private toDomain(prismaFile: any): File {
+    return new File(
+      prismaFile.id,
+      prismaFile.userId,
+      prismaFile.folderId ?? null,
+      prismaFile.name,
+      prismaFile.originalName,
+      prismaFile.mimeType,
+      prismaFile.size,
+      prismaFile.type as FileType,
+      prismaFile.status as FileStatus,
+      prismaFile.ociObjectName,
+      prismaFile.hash,
+      prismaFile.description ?? undefined,
+      prismaFile.tags ? (Array.isArray(prismaFile.tags) ? prismaFile.tags : []) : undefined,
+      prismaFile.metadata ? (typeof prismaFile.metadata === 'object' ? prismaFile.metadata as Record<string, unknown> : undefined) : undefined,
+      prismaFile.createdAt,
+      prismaFile.updatedAt,
+      prismaFile.deletedAt ?? undefined
+    );
+  }
+
+  async findById(id: string): Promise<File | null> {
+    const file = await prisma.file.findUnique({
+      where: { id },
+    });
+
+    if (!file) {
+      return null;
+    }
+
+    return this.toDomain(file);
+  }
+
+  async findByOciObjectName(ociObjectName: string): Promise<File | null> {
+    const file = await prisma.file.findUnique({
+      where: { ociObjectName },
+    });
+
+    if (!file) {
+      return null;
+    }
+
+    return this.toDomain(file);
+  }
+
+  async findByHash(hash: string, userId: string): Promise<File | null> {
+    const file = await prisma.file.findFirst({
+      where: {
+        hash,
+        userId,
+        status: FileStatus.ACTIVE,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!file) {
+      return null;
+    }
+
+    return this.toDomain(file);
+  }
+
+  async create(fileData: {
+    userId: string;
+    folderId?: string | null;
+    name: string;
+    originalName: string;
+    mimeType: string;
+    size: bigint;
+    type: FileType;
+    status: FileStatus;
+    ociObjectName: string;
+    hash: string;
+    description?: string;
+    tags?: string[];
+    metadata?: Record<string, unknown>;
+  }): Promise<File> {
+    const file = await prisma.file.create({
+      data: {
+        userId: fileData.userId,
+        folderId: fileData.folderId ?? null,
+        name: fileData.name,
+        originalName: fileData.originalName,
+        mimeType: fileData.mimeType,
+        size: fileData.size,
+        type: fileData.type,
+        status: fileData.status,
+        ociObjectName: fileData.ociObjectName,
+        hash: fileData.hash,
+        description: fileData.description,
+        tags: fileData.tags ? fileData.tags : null,
+        metadata: fileData.metadata ? fileData.metadata : null,
+      },
+    });
+
+    return this.toDomain(file);
+  }
+
+  async update(id: string, data: Partial<{
+    name?: string;
+    folderId?: string | null;
+    description?: string;
+    tags?: string[];
+    metadata?: Record<string, unknown>;
+    status?: FileStatus;
+    deletedAt?: Date | null;
+  }>): Promise<File> {
+    const file = await prisma.file.update({
+      where: { id },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.folderId !== undefined && { folderId: data.folderId ?? null }),
+        ...(data.description !== undefined && { description: data.description }),
+        ...(data.tags !== undefined && { tags: data.tags ? data.tags : null }),
+        ...(data.metadata !== undefined && { metadata: data.metadata ? data.metadata : null }),
+        ...(data.status !== undefined && { status: data.status }),
+        ...(data.deletedAt !== undefined && { deletedAt: data.deletedAt ?? null }),
+      },
+    });
+
+    return this.toDomain(file);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.update(id, {
+      status: FileStatus.DELETED,
+      deletedAt: new Date(),
+    });
+  }
+
+  async hardDelete(id: string): Promise<void> {
+    await prisma.file.delete({
+      where: { id },
+    });
+  }
+
+  async restore(id: string): Promise<File> {
+    const file = await prisma.file.findUnique({ where: { id } });
+    if (!file) {
+      throw new Error('File not found');
+    }
+
+    return this.update(id, {
+      status: FileStatus.ACTIVE,
+      deletedAt: null,
+    });
+  }
+
+  async findByUserId(userId: string, options?: {
+    folderId?: string | null;
+    status?: FileStatus;
+    type?: FileType;
+    search?: string;
+    page?: number;
+    limit?: number;
+    orderBy?: 'name' | 'createdAt' | 'updatedAt' | 'size';
+    orderDirection?: 'asc' | 'desc';
+  }): Promise<{ files: File[]; total: number }> {
+    const page = options?.page || 1;
+    const limit = options?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      userId,
+      ...(options?.folderId !== undefined && { folderId: options.folderId ?? null }),
+      ...(options?.status !== undefined && { status: options.status }),
+      ...(options?.type !== undefined && { type: options.type }),
+      ...(options?.search && {
+        OR: [
+          { name: { contains: options.search, mode: 'insensitive' as const } },
+          { originalName: { contains: options.search, mode: 'insensitive' as const } },
+          { description: { contains: options.search, mode: 'insensitive' as const } },
+        ],
+      }),
+    };
+
+    const orderBy: any = {};
+    if (options?.orderBy) {
+      orderBy[options.orderBy] = options.orderDirection || 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
+
+    const [files, total] = await Promise.all([
+      prisma.file.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      prisma.file.count({ where }),
+    ]);
+
+    return {
+      files: files.map(f => this.toDomain(f)),
+      total,
+    };
+  }
+
+  async findByFolderId(folderId: string, userId: string, options?: {
+    status?: FileStatus;
+    page?: number;
+    limit?: number;
+  }): Promise<{ files: File[]; total: number }> {
+    return this.findByUserId(userId, {
+      folderId,
+      status: options?.status,
+      page: options?.page,
+      limit: options?.limit,
+    });
+  }
+
+  async findRootFiles(userId: string, options?: {
+    status?: FileStatus;
+    page?: number;
+    limit?: number;
+  }): Promise<{ files: File[]; total: number }> {
+    return this.findByUserId(userId, {
+      folderId: null,
+      status: options?.status,
+      page: options?.page,
+      limit: options?.limit,
+    });
+  }
+
+  async getStorageUsedByUser(userId: string): Promise<bigint> {
+    const result = await prisma.file.aggregate({
+      where: {
+        userId,
+        status: FileStatus.ACTIVE,
+      },
+      _sum: {
+        size: true,
+      },
+    });
+
+    return result._sum.size || BigInt(0);
+  }
+
+  async findByStatus(status: FileStatus, options?: {
+    page?: number;
+    limit?: number;
+  }): Promise<{ files: File[]; total: number }> {
+    const page = options?.page || 1;
+    const limit = options?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const [files, total] = await Promise.all([
+      prisma.file.findMany({
+        where: { status },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.file.count({ where: { status } }),
+    ]);
+
+    return {
+      files: files.map(f => this.toDomain(f)),
+      total,
+    };
+  }
+
+  async updateStatus(id: string, status: FileStatus): Promise<File> {
+    return this.update(id, { status });
+  }
+
+  async nameExistsInFolder(userId: string, folderId: string | null, name: string): Promise<boolean> {
+    const count = await prisma.file.count({
+      where: {
+        userId,
+        folderId: folderId ?? null,
+        name,
+        status: FileStatus.ACTIVE,
+      },
+    });
+
+    return count > 0;
+  }
+}
