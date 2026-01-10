@@ -21,3 +21,6 @@ export { IJwtService, type TokenPayload } from './jwt-service.interface';
 export { ITotpService, type TotpSetupResult } from './totp-service.interface';
 export { IAuditLogService, AuditEventType } from './audit-log-service.interface';
 export { IAccountLockoutService } from './account-lockout-service.interface';
+export { IFileRepository } from './file-repository.interface';
+export { IFolderRepository } from './folder-repository.interface';
+export { IStorageService } from './storage-service.interface';
