@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "v8id-cloud-api-collection",
 		"name": "v8id-cloud API",
-		"description": "Postman collection for v8id-cloud backend API - Authentication and User Management\n\n## 🔒 Security Features\n\n### Token Versioning\n- All tokens include a `tokenVersion` field that matches the user's current token version\n- When a password is changed, the user's `tokenVersion` is incremented\n- All existing tokens become invalid immediately (even if not expired)\n- Users must login again after password change\n- This prevents token reuse after password compromise\n\n### Rate Limiting\nAll endpoints are protected by rate limiting to prevent brute force attacks:\n\n- **Authentication endpoints** (`/api/auth/verify-credentials`):\n  - 5 requests per 15 minutes per IP\n  - Successful requests are NOT counted (skipSuccessfulRequests: true)\n  - Rate limit headers: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`\n\n- **Token refresh** (`/api/auth/refresh`):\n  - 20 requests per 15 minutes per IP\n  - All requests are counted\n\n- **General API** (all `/api/*` routes):\n  - 100 requests per 15 minutes per IP\n  - Applied to all API endpoints\n\n**Rate Limit Headers:**\n- `RateLimit-Limit`: Maximum requests allowed\n- `RateLimit-Remaining`: Remaining requests in current window\n- `RateLimit-Reset`: Unix timestamp when the rate limit resets\n\n### Account Lockout\n- Account is locked after **5 failed login attempts** within **15 minutes**\n- Lockout expires automatically after 15 minutes from the first failed attempt\n- User receives clear error message with unlock time\n- Prevents brute force attacks\n- Failed attempts are tracked via audit logs\n\n### Security Headers (Helmet.js)\n- XSS Protection enabled\n- Content Security Policy (CSP) configured\n- HSTS (HTTP Strict Transport Security)\n- Request size limits (10MB)\n- Additional security headers for production\n\n### Audit Logging\nAll security events are logged to the `audit_logs` table:\n\n- **Login events**: LOGIN, LOGIN_FAILED\n- **Logout events**: LOGOUT\n- **Token events**: TOKEN_REFRESH, TOKEN_REFRESH_FAILED\n- **TOTP events**: TOTP_VERIFIED, TOTP_VERIFICATION_FAILED, TOTP_SETUP\n- **Password events**: PASSWORD_CHANGE, PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE\n- **User events**: USER_CREATED, USER_UPDATED, USER_DEACTIVATED, USER_ACTIVATED\n- **Session events**: SESSION_REVOKED, SESSION_EXPIRED\n- **Security events**: RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY\n\nEach log entry includes:\n- User ID (if applicable) - NULL for unknown users\n- Email address (for login attempts)\n- Event type\n- IP address (normalized - IPv6 localhost converted to IPv4)\n- User agent\n- Success/failure status\n- Error message (if failed)\n- Timestamp\n- Additional event data (device info, etc.)\n\n### Password Management\n- **Password Reset**: Forgot password flow with secure token (1 hour expiration)\n- **Password Change**: Requires current password + TOTP, invalidates all sessions\n- **Email Enumeration Prevention**: Password reset always returns success\n\n### Session Management\n- **List Sessions**: View all active device sessions\n- **Revoke Specific Session**: Logout from a specific device\n- **Revoke All Sessions**: Logout from all devices\n- All session operations are audit logged\n\n### Input Validation\n- Input sanitization middleware\n- Email normalization (lowercase, trim)\n- Control character removal\n- Required field validation",
+		"description": "Postman collection for v8id-cloud backend API - Authentication, User Management, and File Management\n\n## 🔒 Security Features\n\n### Token Versioning\n- All tokens include a `tokenVersion` field that matches the user's current token version\n- When a password is changed, the user's `tokenVersion` is incremented\n- All existing tokens become invalid immediately (even if not expired)\n- Users must login again after password change\n- This prevents token reuse after password compromise\n\n### Rate Limiting\nAll endpoints are protected by rate limiting to prevent brute force attacks:\n\n- **Authentication endpoints** (`/api/auth/verify-credentials`):\n  - 5 requests per 15 minutes per IP\n  - Successful requests are NOT counted (skipSuccessfulRequests: true)\n  - Rate limit headers: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`\n\n- **Token refresh** (`/api/auth/refresh`):\n  - 20 requests per 15 minutes per IP\n  - All requests are counted\n\n- **General API** (all `/api/*` routes):\n  - 100 requests per 15 minutes per IP\n  - Applied to all API endpoints\n\n**Rate Limit Headers:**\n- `RateLimit-Limit`: Maximum requests allowed\n- `RateLimit-Remaining`: Remaining requests in current window\n- `RateLimit-Reset`: Unix timestamp when the rate limit resets\n\n### Account Lockout\n- Account is locked after **5 failed login attempts** within **15 minutes**\n- Lockout expires automatically after 15 minutes from the first failed attempt\n- User receives clear error message with unlock time\n- Prevents brute force attacks\n- Failed attempts are tracked via audit logs\n\n### Security Headers (Helmet.js)\n- XSS Protection enabled\n- Content Security Policy (CSP) configured\n- HSTS (HTTP Strict Transport Security)\n- Request size limits (10MB)\n- Additional security headers for production\n\n### Audit Logging\nAll security events are logged to the `audit_logs` table:\n\n- **Login events**: LOGIN, LOGIN_FAILED\n- **Logout events**: LOGOUT\n- **Token events**: TOKEN_REFRESH, TOKEN_REFRESH_FAILED\n- **TOTP events**: TOTP_VERIFIED, TOTP_VERIFICATION_FAILED, TOTP_SETUP\n- **Password events**: PASSWORD_CHANGE, PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE\n- **User events**: USER_CREATED, USER_UPDATED, USER_DEACTIVATED, USER_ACTIVATED\n- **Session events**: SESSION_REVOKED, SESSION_EXPIRED\n- **Security events**: RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY\n\nEach log entry includes:\n- User ID (if applicable) - NULL for unknown users\n- Email address (for login attempts)\n- Event type\n- IP address (normalized - IPv6 localhost converted to IPv4)\n- User agent\n- Success/failure status\n- Error message (if failed)\n- Timestamp\n- Additional event data (device info, etc.)\n\n### Password Management\n- **Password Reset**: Forgot password flow with secure token (1 hour expiration)\n- **Password Change**: Requires current password + TOTP, invalidates all sessions\n- **Email Enumeration Prevention**: Password reset always returns success\n\n### Session Management\n- **List Sessions**: View all active device sessions\n- **Revoke Specific Session**: Logout from a specific device\n- **Revoke All Sessions**: Logout from all devices\n- All session operations are audit logged\n\n### Input Validation\n- Input sanitization middleware\n- Email normalization (lowercase, trim)\n- Control character removal\n- Required field validation",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -1023,6 +1023,694 @@
 				}
 			],
 			"description": "User management endpoints including profile management and session management.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of user events\n- **Token versioning** validation\n- **Session management** (list, revoke specific, revoke all)"
+		},
+		{
+			"name": "Files",
+			"item": [
+				{
+					"name": "Upload File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file upload",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File uploaded successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.ociObjectName).to.exist;",
+									"    });",
+									"    ",
+									"    // Save file ID for subsequent requests",
+									"    if (jsonData.data.id) {",
+									"        pm.environment.set(\"fileId\", jsonData.data.id);",
+									"        console.log(\"✅ File uploaded successfully\");",
+									"        console.log(\"📁 File ID: \" + jsonData.data.id);",
+									"        console.log(\"📦 OCI Object Name: \" + jsonData.data.ociObjectName);",
+									"        console.log(\"📊 Size: \" + jsonData.data.size + \" bytes\");",
+									"    }",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Upload failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"quota\")) {",
+									"            console.log(\"💡 Storage quota exceeded\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "File to upload (max 100MB)"
+								},
+								{
+									"key": "folderId",
+									"value": "",
+									"type": "text",
+									"description": "Optional: Folder ID to upload file into (null for root)",
+									"disabled": true
+								},
+								{
+									"key": "name",
+									"value": "",
+									"type": "text",
+									"description": "Optional: Display name (defaults to original filename)",
+									"disabled": true
+								},
+								{
+									"key": "description",
+									"value": "",
+									"type": "text",
+									"description": "Optional: File description",
+									"disabled": true
+								},
+								{
+									"key": "tags",
+									"value": "[]",
+									"type": "text",
+									"description": "Optional: JSON array of tags, e.g. [\"work\", \"important\"]",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload"
+							]
+						},
+						"description": "**Upload a file**\n\nUpload a file to the user's storage. Files are stored in OCI Object Storage.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Storage quota is checked before upload\n- File size is validated (max 100MB default)\n- File is hashed (SHA-256) for deduplication\n\n**File Size Limits:**\n- Default: 100MB per file\n- Check server configuration for limits\n- Total storage cannot exceed user's quota\n\n**Storage Quota:**\n- Default quota: 10GB per user\n- Checked before upload\n- User's `storageUsed` is updated after successful upload\n\n**File Deduplication:**\n- Files are hashed using SHA-256\n- Duplicate files (same hash) can be detected\n- Currently creates new file record even if hash exists\n\n**Request Body (multipart/form-data):**\n- `file` (required): File to upload\n- `folderId` (optional): Folder ID (null for root)\n- `name` (optional): Display name\n- `description` (optional): File description\n- `tags` (optional): JSON array of tags\n\n**Response:**\n- `id`: File ID\n- `name`: Display name\n- `size`: File size in bytes\n- `mimeType`: MIME type\n- `ociObjectName`: OCI Object Storage key\n- `status`: File status (ACTIVE)"
+					},
+					"response": []
+				},
+				{
+					"name": "Download File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file download",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"File downloaded successfully\", function () {",
+									"        pm.expect(pm.response.headers.get(\"Content-Type\")).to.exist;",
+									"        pm.expect(pm.response.headers.get(\"Content-Length\")).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File downloaded successfully\");",
+									"    console.log(\"📦 Content-Type: \" + pm.response.headers.get(\"Content-Type\"));",
+									"    console.log(\"📊 Size: \" + pm.response.headers.get(\"Content-Length\") + \" bytes\");",
+									"    ",
+									"    // Note: File content is in response body",
+									"    // In Postman, use 'Send and Download' to save file",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied - file belongs to another user\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId/download",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId",
+								"download"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to download"
+								}
+							]
+						},
+						"description": "**Download a file**\n\nDownload a file from the user's storage.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can download\n- File must be active (not deleted)\n- File must exist in OCI Object Storage\n\n**Response Headers:**\n- `Content-Type`: File MIME type\n- `Content-Length`: File size in bytes\n- `Content-Disposition`: Attachment filename\n- `X-Meta-*`: Custom metadata headers (if any)\n\n**Response Body:**\n- Binary file content\n- In Postman, use 'Send and Download' button to save file\n\n**Path Parameter:**\n- `fileId`: ID of the file to download\n\n**Error Responses:**\n- `404`: File not found\n- `403`: Access denied (file belongs to another user)\n- `400`: File is not available (deleted or archived)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Files",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify files list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Files retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data).to.be.an('array');",
+									"        pm.expect(jsonData.meta.pagination).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Files retrieved successfully\");",
+									"    console.log(\"📁 Total files: \" + jsonData.meta.pagination.total);",
+									"    console.log(\"📄 Files in this page: \" + jsonData.data.length);",
+									"    console.log(\"📊 Page: \" + jsonData.meta.pagination.page + \" / \" + jsonData.meta.pagination.totalPages);",
+									"    ",
+									"    if (jsonData.data.length > 0) {",
+									"        // Save first file ID for testing",
+									"        pm.environment.set(\"fileId\", jsonData.data[0].id);",
+									"        console.log(\"\\nFirst file: \" + jsonData.data[0].name);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files?folderId=&status=&type=&search=&page=1&limit=20&orderBy=createdAt&orderDirection=desc",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files"
+							],
+							"query": [
+								{
+									"key": "folderId",
+									"value": "",
+									"description": "Filter by folder ID (null for root, omit for all)",
+									"disabled": true
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Filter by status: ACTIVE, DELETED, UPLOADING, ARCHIVED",
+									"disabled": true
+								},
+								{
+									"key": "type",
+									"value": "",
+									"description": "Filter by type: DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search in name, originalName, or description",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Items per page (default: 20, max: 100)"
+								},
+								{
+									"key": "orderBy",
+									"value": "createdAt",
+									"description": "Sort by: name, createdAt, updatedAt, size (default: createdAt)"
+								},
+								{
+									"key": "orderDirection",
+									"value": "desc",
+									"description": "Sort direction: asc, desc (default: desc)"
+								}
+							]
+						},
+						"description": "**List files with filtering and pagination**\n\nGet a list of files for the authenticated user with optional filtering and pagination.\n\n**Query Parameters:**\n- `folderId`: Filter by folder ID (null for root files, omit for all files)\n- `status`: Filter by status (ACTIVE, DELETED, UPLOADING, ARCHIVED)\n- `type`: Filter by file type (DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER)\n- `search`: Search in name, originalName, or description\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n- `orderBy`: Sort by field (name, createdAt, updatedAt, size)\n- `orderDirection`: Sort direction (asc, desc)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of file objects with metadata\n- Pagination information in `meta.pagination`"
+					},
+					"response": []
+				},
+				{
+					"name": "Update File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file update",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File updated successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File updated successfully\");",
+									"    console.log(\"📁 File: \" + jsonData.data.name);",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Update failed: \" + jsonData.error.message);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated File Name\",\n  \"folderId\": null,\n  \"description\": \"Updated description\",\n  \"tags\": [\"tag1\", \"tag2\"],\n  \"metadata\": {\n    \"customField\": \"customValue\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to update"
+								}
+							]
+						},
+						"description": "**Update file metadata**\n\nUpdate file metadata (name, folder, description, tags, metadata). File content cannot be updated - use upload with same name for versioning.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can update\n- File must be active (not deleted)\n\n**Allowed Fields:**\n- `name`: Display name (must be unique in folder)\n- `folderId`: Move to folder (null for root)\n- `description`: File description\n- `tags`: Array of tag strings\n- `metadata`: Object with custom metadata\n\n**Validation:**\n- Name must be unique in target folder\n- Folder must exist and belong to user (if moving)\n- File cannot be moved if new name already exists in target folder\n\n**Path Parameter:**\n- `fileId`: ID of the file to update\n\n**Response:**\n- Updated file object with all metadata"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file deletion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File deleted successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File deleted successfully (soft delete)\");",
+									"    console.log(\"📊 User storage will be updated\");",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId?hardDelete=false",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId"
+							],
+							"query": [
+								{
+									"key": "hardDelete",
+									"value": "false",
+									"description": "Set to true for permanent deletion (default: false = soft delete)"
+								}
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to delete"
+								}
+							]
+						},
+						"description": "**Delete a file**\n\nDelete a file (soft delete by default, hard delete with query parameter).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can delete\n\n**Delete Types:**\n- **Soft Delete** (default): File is marked as deleted but remains in storage\n  - Status changed to DELETED\n  - Storage is freed (storageUsed updated)\n  - File can potentially be restored later\n\n- **Hard Delete** (`?hardDelete=true`): Permanent deletion\n  - File removed from OCI Object Storage\n  - File record removed from database\n  - **Cannot be undone**\n\n**Storage Quota:**\n- User's `storageUsed` is updated after deletion\n- Storage is freed for soft and hard deletes\n\n**Query Parameter:**\n- `hardDelete`: Set to `true` for permanent deletion (default: `false`)\n\n**Path Parameter:**\n- `fileId`: ID of the file to delete\n\n**Response:**\n- Success message confirming deletion"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder creation",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder created successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.name).to.exist;",
+									"    });",
+									"    ",
+									"    // Save folder ID for subsequent requests",
+									"    if (jsonData.data.id) {",
+									"        pm.environment.set(\"folderId\", jsonData.data.id);",
+									"        console.log(\"✅ Folder created successfully\");",
+									"        console.log(\"📁 Folder ID: \" + jsonData.data.id);",
+									"        console.log(\"📂 Name: \" + jsonData.data.name);",
+									"    }",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Folder creation failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"already exists\")) {",
+									"            console.log(\"💡 A folder with this name already exists in the parent\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"parentId\": null,\n  \"name\": \"My New Folder\",\n  \"description\": \"Folder description\",\n  \"color\": \"#FF5733\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders"
+							]
+						},
+						"description": "**Create a new folder**\n\nCreate a new folder in the user's storage. Folders can be nested (hierarchical structure).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Folder name must be unique in parent folder\n- Parent folder must exist and belong to user (if specified)\n\n**Request Body:**\n- `parentId` (optional): Parent folder ID (null for root folder)\n- `name` (required): Folder name (max 255 characters)\n- `description` (optional): Folder description\n- `color` (optional): Hex color code for UI (e.g., #FF5733)\n\n**Validation:**\n- Name is required and cannot be empty\n- Name must be unique within the parent folder\n- Name length must be <= 255 characters\n- Parent folder must exist if provided\n\n**Response:**\n- Created folder object with all metadata"
+					},
+					"response": []
+				},
+				{
+					"name": "List Folders",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folders list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folders retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data).to.be.an('array');",
+									"        pm.expect(jsonData.meta.pagination).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folders retrieved successfully\");",
+									"    console.log(\"📁 Total folders: \" + jsonData.meta.pagination.total);",
+									"    console.log(\"📂 Folders in this page: \" + jsonData.data.length);",
+									"    ",
+									"    if (jsonData.data.length > 0) {",
+									"        pm.environment.set(\"folderId\", jsonData.data[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders?parentId=&includeDeleted=false&page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders"
+							],
+							"query": [
+								{
+									"key": "parentId",
+									"value": "",
+									"description": "Filter by parent folder ID (null for root folders, omit for all)",
+									"disabled": true
+								},
+								{
+									"key": "includeDeleted",
+									"value": "false",
+									"description": "Include deleted folders (default: false)"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Items per page (default: 20, max: 100)"
+								}
+							]
+						},
+						"description": "**List folders with filtering and pagination**\n\nGet a list of folders for the authenticated user with optional filtering.\n\n**Query Parameters:**\n- `parentId`: Filter by parent folder ID (null for root folders, omit for all folders)\n- `includeDeleted`: Include deleted folders (default: false)\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of folder objects\n- Pagination information in `meta.pagination`"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder update",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder updated successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder updated successfully\");",
+									"    console.log(\"📂 Folder: \" + jsonData.data.name);",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Update failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"circular\")) {",
+									"            console.log(\"💡 Cannot move folder into itself or its subfolders\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Folder Name\",\n  \"parentId\": null,\n  \"description\": \"Updated description\",\n  \"color\": \"#33FF57\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to update"
+								}
+							]
+						},
+						"description": "**Update folder metadata**\n\nUpdate folder metadata (name, parent, description, color). Can also move folder to different parent.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can update\n- Folder must be active (not deleted)\n- Cannot create circular references (cannot move folder into itself or its subfolders)\n\n**Allowed Fields:**\n- `name`: Folder name (must be unique in new parent if moving)\n- `parentId`: Move to different parent (null for root)\n- `description`: Folder description\n- `color`: Hex color code\n\n**Validation:**\n- Name must be unique in target parent folder\n- Cannot move folder into itself\n- Cannot move folder into any of its subfolders (circular reference prevention)\n- New parent must exist and belong to user (if moving)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to update\n\n**Response:**\n- Updated folder object with all metadata"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder deletion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder deleted successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder deleted successfully\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"subfolders\")) {",
+									"            console.log(\"💡 Folder contains subfolders. Delete them first or use force delete.\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"files\")) {",
+									"            console.log(\"💡 Folder contains files. Delete them first or use force delete.\");",
+									"        }",
+									"    }",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder not found\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId?hardDelete=false&forceDelete=false",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId"
+							],
+							"query": [
+								{
+									"key": "hardDelete",
+									"value": "false",
+									"description": "Set to true for permanent deletion (default: false = soft delete)"
+								},
+								{
+									"key": "forceDelete",
+									"value": "false",
+									"description": "Set to true to delete folder even if it contains files/subfolders"
+								}
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to delete"
+								}
+							]
+						},
+						"description": "**Delete a folder**\n\nDelete a folder (soft delete by default). Folder must be empty unless forceDelete is used.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can delete\n- Folder must be empty (no files or subfolders) unless `forceDelete=true`\n\n**Delete Types:**\n- **Soft Delete** (default): Folder is marked as deleted\n  - `isDeleted` set to true\n  - `deletedAt` timestamp set\n  - Can potentially be restored later\n\n- **Hard Delete** (`?hardDelete=true`): Permanent deletion\n  - Folder record removed from database\n  - **Cannot be undone**\n\n**Validation:**\n- By default, folder must be empty (no files, no subfolders)\n- Use `forceDelete=true` to delete folder with contents\n  - ⚠️ This will delete the folder even if it contains files/subfolders\n  - Files and subfolders will remain but will be orphaned\n\n**Query Parameters:**\n- `hardDelete`: Set to `true` for permanent deletion (default: `false`)\n- `forceDelete`: Set to `true` to delete even if folder contains files/subfolders (default: `false`)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to delete\n\n**Response:**\n- Success message confirming deletion"
+					},
+					"response": []
+				}
+			],
+			"description": "File and folder management endpoints for uploading, downloading, organizing, and managing files.\n\nAll endpoints include:\n- **Authentication required** (Bearer token)\n- **Rate limiting** protection\n- **Storage quota** validation\n- **File deduplication** (SHA-256 hash)\n- **OCI Object Storage** integration for actual file storage\n\n### Storage Features:\n- **Hierarchical folders**: Create nested folder structures\n- **File metadata**: Name, description, tags, custom metadata\n- **File types**: Automatic detection (DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER)\n- **Soft delete**: Files can be marked as deleted and potentially restored\n- **Storage quota**: Default 10GB per user, checked before upload\n- **Storage tracking**: User's `storageUsed` is automatically updated"
 		},
 		{
 			"name": "Testing & Utilities",
