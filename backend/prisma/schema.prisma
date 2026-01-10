@@ -18,6 +18,22 @@ enum DeviceType {
   WEB
 }
 
+enum FileType {
+  DOCUMENT
+  IMAGE
+  VIDEO
+  AUDIO
+  ARCHIVE
+  OTHER
+}
+
+enum FileStatus {
+  UPLOADING
+  ACTIVE
+  DELETED
+  ARCHIVED
+}
+
 // User Model
 model User {
   id                   String    @id @default(cuid())
@@ -49,6 +65,8 @@ model User {
   deviceSessions  DeviceSession[]
   totpBackupCodes TotpBackupCode[]
   auditLogs       AuditLog[]
+  files           File[]
+  folders         Folder[]
 
   @@index([email])
   @@index([isActive])
@@ -124,4 +142,64 @@ model AuditLog {
   @@index([createdAt])
   @@index([success])
   @@map("audit_logs")
+}
+
+// Folder Model - Hierarchical folder structure
+model Folder {
+  id          String    @id @default(cuid())
+  userId      String
+  parentId    String?   // Null for root folders
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  color       String?   @db.VarChar(7) // Hex color code for UI
+  isDeleted   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Folder[]  @relation("FolderHierarchy")
+  files    File[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@index([isDeleted])
+  @@index([userId, parentId, name]) // For unique folder names per parent
+  @@map("folders")
+}
+
+// File Model - File metadata and storage info
+model File {
+  id            String     @id @default(cuid())
+  userId        String
+  folderId      String?    // Null for files in root
+  name          String     @db.VarChar(255) // Display name
+  originalName  String     @db.VarChar(500) // Original uploaded filename
+  mimeType      String     @db.VarChar(100)
+  size          BigInt     // File size in bytes
+  type          FileType
+  status        FileStatus @default(UPLOADING)
+  ociObjectName String     @unique @db.VarChar(500) // OCI Object Storage key
+  hash          String     @db.VarChar(64) // SHA-256 hash for deduplication
+  description   String?    @db.Text
+  tags          Json?      // Array of tags as JSON
+  metadata      Json?      // Additional metadata as JSON
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([folderId])
+  @@index([status])
+  @@index([type])
+  @@index([hash]) // For deduplication lookup
+  @@index([userId, folderId, name]) // For unique file names per folder
+  @@index([createdAt])
+  @@map("files")
 }

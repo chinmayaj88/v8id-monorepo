@@ -7,3 +7,5 @@
 
 export { User } from './user';
 export { UserRole } from './user-role';
+export { File, FileType, FileStatus } from './file';
+export { Folder } from './folder';
