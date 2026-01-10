@@ -7,9 +7,20 @@ import { ResponseUtil } from '../../presentation/utils/response.util';
 export async function createApp(): Promise<Express> {
   const app = express();
 
-  // Trust proxy for accurate IP address extraction (for reverse proxy/load balancer)
-  // This allows req.ip to work correctly with X-Forwarded-For header
-  app.set('trust proxy', true);
+  const trustProxy = process.env.TRUST_PROXY;
+  if (trustProxy === 'true') {
+    console.warn(
+      '⚠️  WARNING: TRUST_PROXY=true is insecure and allows IP spoofing. Only use in trusted networks.'
+    );
+    app.set('trust proxy', true);
+  } else if (trustProxy === 'false' || !trustProxy) {
+    app.set('trust proxy', false);
+  } else if (!isNaN(Number(trustProxy))) {
+    app.set('trust proxy', Number(trustProxy));
+  } else {
+    console.warn(`⚠️  Invalid TRUST_PROXY value: ${trustProxy}. Defaulting to false for security.`);
+    app.set('trust proxy', false);
+  }
 
   // Security headers (Helmet.js)
   app.use(
