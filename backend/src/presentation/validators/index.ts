@@ -6,6 +6,7 @@
 
 export * from './auth.validator';
 export * from './user.validator';
+export * from './file.validator';
 
 /**
  * Validation middleware factory
