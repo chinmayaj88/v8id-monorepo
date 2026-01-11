@@ -364,4 +364,156 @@ export class ResendEmailService implements IEmailService {
 </html>
     `.trim();
   }
+
+  async sendSuspiciousActivityAlert(
+    to: string,
+    firstName: string | undefined,
+    activityType: string,
+    details: Record<string, any>,
+    timestamp: Date,
+    ipAddress?: string
+  ): Promise<void> {
+    try {
+      const result = await this.resend.emails.send({
+        from: this.fromEmail,
+        to: [to],
+        subject: `⚠️ Suspicious Activity Detected - void`,
+        html: this.getSuspiciousActivityAlertTemplate(
+          firstName,
+          activityType,
+          details,
+          timestamp,
+          ipAddress
+        ),
+      });
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Failed to send suspicious activity alert email:', errorMessage);
+      throw new Error(`Failed to send suspicious activity alert email: ${errorMessage}`);
+    }
+  }
+
+  private getSuspiciousActivityAlertTemplate(
+    firstName: string | undefined,
+    activityType: string,
+    details: Record<string, any>,
+    timestamp: Date,
+    ipAddress?: string
+  ): string {
+    const greeting = firstName ? `Hello ${firstName},` : 'Hello,';
+    const formattedTime = timestamp.toLocaleString();
+    
+    let activityDescription = '';
+    let recommendedActions = '';
+    
+    switch (activityType) {
+      case 'MULTIPLE_FAILED_LOGINS':
+        activityDescription = `
+          <p><strong>Multiple Failed Login Attempts Detected</strong></p>
+          <p>We detected ${details.count || 'multiple'} failed login attempts on your account within the last ${details.timeWindow || '15 minutes'}.</p>
+          ${ipAddress ? `<p><strong>IP Address:</strong> ${ipAddress}</p>` : ''}
+        `;
+        recommendedActions = `
+          <ul style="margin: 10px 0 0 20px; padding: 0;">
+            <li>If this was you: Make sure you're using the correct password and TOTP code</li>
+            <li>If this wasn't you: Change your password immediately</li>
+            <li>Review your active sessions and revoke any suspicious ones</li>
+            <li>Enable additional security measures if available</li>
+          </ul>
+        `;
+        break;
+      case 'MULTIPLE_FAILED_TOTP':
+        activityDescription = `
+          <p><strong>Multiple Failed TOTP Verification Attempts</strong></p>
+          <p>We detected ${details.count || 'multiple'} failed TOTP code verification attempts on your account within the last ${details.timeWindow || '15 minutes'}.</p>
+          ${ipAddress ? `<p><strong>IP Address:</strong> ${ipAddress}</p>` : ''}
+        `;
+        recommendedActions = `
+          <ul style="margin: 10px 0 0 20px; padding: 0;">
+            <li>If this was you: Make sure you're entering the correct TOTP code from your authenticator app</li>
+            <li>Check if your device time is synchronized correctly</li>
+            <li>If this wasn't you: Change your password and regenerate TOTP backup codes</li>
+            <li>Review your active sessions immediately</li>
+          </ul>
+        `;
+        break;
+      case 'UNUSUAL_LOCATION':
+        activityDescription = `
+          <p><strong>Login from Unusual Location</strong></p>
+          <p>We detected a login to your account from an IP address that differs from your recent login locations.</p>
+          ${ipAddress ? `<p><strong>Current IP Address:</strong> ${ipAddress}</p>` : ''}
+          ${details.currentLocation ? `<p><strong>Location:</strong> ${details.currentLocation}</p>` : ''}
+        `;
+        recommendedActions = `
+          <ul style="margin: 10px 0 0 20px; padding: 0;">
+            <li>If this was you: No action needed. We're just keeping you informed.</li>
+            <li>If this wasn't you: Change your password immediately</li>
+            <li>Revoke all sessions and re-login from trusted devices</li>
+            <li>Contact support if you suspect unauthorized access</li>
+          </ul>
+        `;
+        break;
+      default:
+        activityDescription = `
+          <p><strong>Suspicious Activity Detected</strong></p>
+          <p>We detected unusual activity on your account that may require your attention.</p>
+        `;
+        recommendedActions = `
+          <ul style="margin: 10px 0 0 20px; padding: 0;">
+            <li>Review your account activity</li>
+            <li>Change your password if you notice anything unusual</li>
+            <li>Revoke any suspicious sessions</li>
+            <li>Contact support if needed</li>
+          </ul>
+        `;
+    }
+    
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suspicious Activity Alert</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px;">
+    <h1 style="color: #dc3545; margin-top: 0;">⚠️ Suspicious Activity Alert</h1>
+    
+    <p>${greeting}</p>
+    
+    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+      ${activityDescription}
+      <p><strong>Time:</strong> ${formattedTime}</p>
+    </div>
+    
+    <div style="background-color: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0; font-weight: bold;">📋 Recommended Actions:</p>
+      ${recommendedActions}
+    </div>
+    
+    <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0;">
+      <p style="margin: 0; font-weight: bold;">🔒 If you suspect unauthorized access:</p>
+      <ul style="margin: 10px 0 0 20px; padding: 0;">
+        <li>Change your password immediately</li>
+        <li>Revoke all sessions from your account settings</li>
+        <li>Regenerate your TOTP backup codes</li>
+        <li>Contact support for additional assistance</li>
+      </ul>
+    </div>
+    
+    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
+    
+    <p style="font-size: 12px; color: #999; text-align: center;">
+      This is an automated security notification from void. Please do not reply to this email.
+    </p>
+  </div>
+</body>
+</html>
+    `.trim();
+  }
 }
