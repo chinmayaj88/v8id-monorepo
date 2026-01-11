@@ -104,9 +104,9 @@ export class FileRepository implements IFileRepository {
         status: fileData.status,
         ociObjectName: fileData.ociObjectName,
         hash: fileData.hash,
-        description: fileData.description,
-        tags: fileData.tags ? fileData.tags : null,
-        metadata: fileData.metadata ? fileData.metadata : null,
+        description: fileData.description ?? null,
+        ...(fileData.tags !== undefined && { tags: fileData.tags as any }),
+        ...(fileData.metadata !== undefined && { metadata: fileData.metadata as any }),
       },
     });
 
@@ -122,17 +122,26 @@ export class FileRepository implements IFileRepository {
     status?: FileStatus;
     deletedAt?: Date | null;
   }>): Promise<File> {
+    const updateData: any = {};
+    
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.folderId !== undefined) updateData.folderId = data.folderId ?? null;
+    if (data.description !== undefined) {
+      updateData.description = data.description ?? null;
+    }
+    if (data.tags !== undefined) {
+      // For JSON fields, cast to any to handle Prisma's InputJsonValue type
+      updateData.tags = (data.tags ?? null) as any;
+    }
+    if (data.metadata !== undefined) {
+      updateData.metadata = (data.metadata ?? null) as any;
+    }
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.deletedAt !== undefined) updateData.deletedAt = data.deletedAt ?? null;
+    
     const file = await prisma.file.update({
       where: { id },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.folderId !== undefined && { folderId: data.folderId ?? null }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.tags !== undefined && { tags: data.tags ? data.tags : null }),
-        ...(data.metadata !== undefined && { metadata: data.metadata ? data.metadata : null }),
-        ...(data.status !== undefined && { status: data.status }),
-        ...(data.deletedAt !== undefined && { deletedAt: data.deletedAt ?? null }),
-      },
+      data: updateData,
     });
 
     return this.toDomain(file);
