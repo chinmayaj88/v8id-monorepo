@@ -6,6 +6,7 @@
 
 import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
 import { CreateFileVersionUseCase } from './create-file-version.use-case';
 import { prisma } from '../../infrastructure/database';
 
@@ -34,15 +35,28 @@ export class RestoreFileVersionUseCase {
       throw new Error('Version not found');
     }
 
-    const currentFileData = await this.storageService.downloadFile(file.ociObjectName);
+    // Use tier-aware storage service - versions are in same tier as file
+    const isTierAware = this.storageService instanceof TierAwareStorageService;
+    const storageTier = file.storageTier || 'STANDARD' as any;
+
+    // Download current file from tier-specific bucket
+    const currentFileData = isTierAware
+      ? await (this.storageService as TierAwareStorageService).downloadFile(file.ociObjectName, storageTier)
+      : await this.storageService.downloadFile(file.ociObjectName);
+    
     await this.createFileVersionUseCase.execute(userId, fileId, currentFileData.file, file.mimeType);
 
-    const versionFileData = await this.storageService.downloadFile(version.ociObjectName);
+    // Download version file (versions are stored in same tier as original file)
+    const versionFileData = isTierAware
+      ? await (this.storageService as TierAwareStorageService).downloadFile(version.ociObjectName, storageTier)
+      : await this.storageService.downloadFile(version.ociObjectName);
 
+    // Upload restored version to same tier bucket
     await this.storageService.uploadFile({
       objectName: file.ociObjectName,
       file: versionFileData.file,
       contentType: versionFileData.contentType,
+      tier: isTierAware ? storageTier : undefined,
     });
 
     await this.fileRepository.update(fileId, {

@@ -6,6 +6,7 @@
 
 import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
 import { prisma } from '../../infrastructure/database';
 import { createHash } from 'crypto';
 
@@ -42,16 +43,25 @@ export class CreateFileVersionUseCase {
     const randomString = Math.random().toString(36).substring(2, 15);
     const versionOciObjectName = `users/${userId}/files/versions/${fileId}/v${nextVersionNumber}-${timestamp}-${randomString}`;
 
+    // Use tier-aware storage service - versions should be in same tier as original file
+    const isTierAware = this.storageService instanceof TierAwareStorageService;
+    const storageTier = currentFile.storageTier || 'STANDARD' as any;
+
     try {
-      const currentFileData = await this.storageService.downloadFile(currentFile.ociObjectName);
+      // Download from tier-specific bucket
+      const currentFileData = isTierAware
+        ? await (this.storageService as TierAwareStorageService).downloadFile(currentFile.ociObjectName, storageTier)
+        : await this.storageService.downloadFile(currentFile.ociObjectName);
       
+      // Upload version to same tier bucket
       await this.storageService.uploadFile({
         objectName: versionOciObjectName,
         file: currentFileData.file,
         contentType: currentFile.mimeType,
+        tier: isTierAware ? storageTier : undefined,
       });
     } catch (error) {
-      throw new Error(`Failed to create file version: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to create file version in ${storageTier} tier: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     await prisma.fileVersion.create({
