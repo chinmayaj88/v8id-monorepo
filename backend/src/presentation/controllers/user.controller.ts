@@ -215,9 +215,8 @@ export class UserController {
         return;
       }
 
-      // Verify session belongs to user
-      const sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(req.user.id);
-      const session = sessions.find((s) => s.id === sessionId);
+      // Verify session belongs to user - optimized query (single query instead of fetching all sessions)
+      const session = await this.deviceSessionRepository.findByIdAndUserId(sessionId, req.user.id);
 
       if (!session) {
         ResponseUtil.notFound(res, 'Session not found');
