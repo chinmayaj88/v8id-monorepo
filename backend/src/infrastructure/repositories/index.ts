@@ -11,3 +11,5 @@ export { TotpBackupCodeRepository } from './totp-backup-code.repository';
 export { AuditLogRepository } from './audit-log.repository';
 export { FileRepository } from './file.repository';
 export { FolderRepository } from './folder.repository';
+export { UploadSessionRepository } from './upload-session.repository';
+export { FileShareRepository } from './file-share.repository';

@@ -17,3 +17,5 @@ export { IAccountLockoutService } from './account-lockout-service.interface';
 export { IFileRepository } from './file-repository.interface';
 export { IFolderRepository } from './folder-repository.interface';
 export { IStorageService } from './storage-service.interface';
+export { IUploadSessionRepository } from './upload-session-repository.interface';
+export { IFileShareRepository } from './file-share-repository.interface';
