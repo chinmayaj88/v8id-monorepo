@@ -10,6 +10,10 @@ import { IUserRepository } from '../interfaces/user-repository.interface';
 import { IFolderRepository } from '../interfaces/folder-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
 import { UploadMethod } from '../../domain/entities/upload-session';
+import { StorageTier } from '../../domain/entities/file';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
+
+import { StorageTier } from '../../domain/entities/file';
 
 export interface InitiateUploadDTO {
   fileName: string;
@@ -17,6 +21,7 @@ export interface InitiateUploadDTO {
   mimeType: string;
   folderId?: string | null;
   chunkSize?: number;
+  storageTier?: StorageTier; // Storage tier selection: STANDARD (default) or ARCHIVE
 }
 
 export interface InitiateUploadResult {
@@ -64,6 +69,9 @@ export class InitiateUploadUseCase {
       }
     }
 
+    // Determine storage tier (default to STANDARD)
+    const storageTier = dto.storageTier || StorageTier.STANDARD;
+
     const useDirectUpload = fileSize >= this.DIRECT_UPLOAD_THRESHOLD;
     const uploadMethod = useDirectUpload ? UploadMethod.DIRECT : UploadMethod.BACKEND;
     
@@ -74,20 +82,34 @@ export class InitiateUploadUseCase {
     const randomString = Math.random().toString(36).substring(2, 15);
     const ociObjectName = `users/${userId}/files/${timestamp}-${randomString}-${dto.fileName}`;
 
+    // Use tier-aware storage service for PAR generation
+    const isTierAware = this.storageService instanceof TierAwareStorageService;
+
     let parUrl: string | undefined;
     let parId: string | undefined;
     
     if (useDirectUpload) {
       try {
-        const parResult = await this.storageService.createPreAuthenticatedRequest({
-          objectName: ociObjectName,
-          expiresInHours: this.SESSION_EXPIRATION_HOURS,
-          accessType: 'ObjectWrite',
-        });
-        parUrl = parResult.parUrl;
-        parId = parResult.parId;
+        if (isTierAware) {
+          const parResult = await (this.storageService as TierAwareStorageService).createPreAuthenticatedRequest({
+            objectName: ociObjectName,
+            expiresInHours: this.SESSION_EXPIRATION_HOURS,
+            accessType: 'ObjectWrite',
+            tier: storageTier,
+          });
+          parUrl = parResult.parUrl;
+          parId = parResult.parId;
+        } else {
+          const parResult = await this.storageService.createPreAuthenticatedRequest({
+            objectName: ociObjectName,
+            expiresInHours: this.SESSION_EXPIRATION_HOURS,
+            accessType: 'ObjectWrite',
+          });
+          parUrl = parResult.parUrl;
+          parId = parResult.parId;
+        }
       } catch (error) {
-        throw new Error(`Failed to create direct upload URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(`Failed to create direct upload URL for ${storageTier} tier: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -106,6 +128,7 @@ export class InitiateUploadUseCase {
       parUrl: parUrl || null,
       parId: parId || null,
       ociObjectName,
+      storageTier, // Store tier in session
       expiresAt,
     });
 
