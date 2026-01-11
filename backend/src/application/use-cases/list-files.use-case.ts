@@ -5,8 +5,12 @@
  */
 
 import { IFileRepository } from '../interfaces/file-repository.interface';
+import { IStorageService } from '../interfaces/storage-service.interface';
 import { ListFilesDTO, FileResponseDTO } from '../dtos/file.dto';
 import { File } from '../../domain/entities/file';
+import { UrlCacheService } from '../../infrastructure/services/url-cache.service';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
+import { StorageTier } from '../../domain/entities/file';
 
 export interface ListFilesResult {
   files: FileResponseDTO[];
@@ -18,7 +22,9 @@ export interface ListFilesResult {
 
 export class ListFilesUseCase {
   constructor(
-    private fileRepository: IFileRepository
+    private fileRepository: IFileRepository,
+    private storageService: IStorageService,
+    private urlCache?: UrlCacheService
   ) {}
 
   async execute(userId: string, dto: ListFilesDTO): Promise<ListFilesResult> {
@@ -45,17 +51,22 @@ export class ListFilesUseCase {
         page,
         limit,
       });
-      return this.formatResult(result.files, result.total, page, limit);
+      return await this.formatResult(result.files, result.total, page, limit);
     }
 
     // Otherwise, get files by folder or all files
     const result = await this.fileRepository.findByUserId(userId, options);
-    return this.formatResult(result.files, result.total, page, limit);
+    return await this.formatResult(result.files, result.total, page, limit);
   }
 
-  private formatResult(files: File[], total: number, page: number, limit: number): ListFilesResult {
+  private async formatResult(files: File[], total: number, page: number, limit: number): Promise<ListFilesResult> {
+    // Generate thumbnail URLs in parallel for better performance
+    const fileDtos = await Promise.all(
+      files.map(file => this.fileToDto(file))
+    );
+
     return {
-      files: files.map(this.fileToDto),
+      files: fileDtos,
       total,
       page,
       limit,
@@ -63,7 +74,45 @@ export class ListFilesUseCase {
     };
   }
 
-  private fileToDto(file: File): FileResponseDTO {
+  private async fileToDto(file: File): Promise<FileResponseDTO> {
+    let thumbnailUrl: string | undefined;
+    
+    // Generate presigned URL for thumbnail if it exists
+    if (file.hasThumbnail() && file.thumbnailObjectName) {
+      try {
+        // Check cache first (reduces OCI API calls)
+        const cacheKey = `thumbnail:${file.thumbnailObjectName}`;
+        const cachedUrl = this.urlCache?.get(cacheKey);
+        
+        if (cachedUrl) {
+          thumbnailUrl = cachedUrl;
+        } else {
+          // Use tier-aware storage service - thumbnails are always in STANDARD tier
+          const isTierAware = this.storageService instanceof TierAwareStorageService;
+          
+          if (isTierAware) {
+            // Thumbnails are always in STANDARD tier for fast access
+            thumbnailUrl = await (this.storageService as TierAwareStorageService).generatePresignedUrl(
+              file.thumbnailObjectName,
+              86400, // 24 hours expiration
+              StorageTier.STANDARD
+            );
+          } else {
+            thumbnailUrl = await this.storageService.generatePresignedUrl(
+              file.thumbnailObjectName,
+              86400 // 24 hours expiration
+            );
+          }
+          
+          // Cache the URL (cache for 20 hours to ensure it's valid)
+          this.urlCache?.set(cacheKey, thumbnailUrl, 72000);
+        }
+      } catch (error) {
+        console.warn(`Failed to generate thumbnail URL for file ${file.id}:`, error);
+        // Continue without thumbnail URL
+      }
+    }
+
     return {
       id: file.id,
       userId: file.userId,
@@ -74,6 +123,9 @@ export class ListFilesUseCase {
       size: Number(file.size),
       type: file.type,
       status: file.status,
+      storageTier: file.storageTier,
+      thumbnailUrl,
+      thumbnailGenerated: file.thumbnailGenerated,
       description: file.description,
       tags: file.tags,
       metadata: file.metadata,
