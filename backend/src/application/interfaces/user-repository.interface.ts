@@ -40,6 +40,7 @@ export interface IUserRepository {
     avatarUrl?: string;
     passwordHash?: string;
     storageQuota?: bigint;
+    storageUsed?: bigint;
     isActive?: boolean;
     totpSecret?: string;
     totpVerified?: boolean;

@@ -78,7 +78,8 @@ export class File {
     if (parts.length <= 1) {
       return '';
     }
-    return parts[parts.length - 1].toLowerCase();
+    const extension = parts[parts.length - 1];
+    return extension ? extension.toLowerCase() : '';
   }
 
   /**

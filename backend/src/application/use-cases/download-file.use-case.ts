@@ -6,7 +6,7 @@
 
 import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
-import { File, FileStatus } from '../../domain/entities/file';
+import { FileStatus } from '../../domain/entities/file';
 
 export interface DownloadFileResult {
   file: Buffer;

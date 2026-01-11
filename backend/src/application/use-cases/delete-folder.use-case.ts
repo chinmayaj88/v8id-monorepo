@@ -5,12 +5,10 @@
  */
 
 import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IFileRepository } from '../interfaces/file-repository.interface';
 
 export class DeleteFolderUseCase {
   constructor(
-    private folderRepository: IFolderRepository,
-    private fileRepository: IFileRepository
+    private folderRepository: IFolderRepository
   ) {}
 
   async execute(userId: string, folderId: string, hardDelete: boolean = false, forceDelete: boolean = false): Promise<void> {

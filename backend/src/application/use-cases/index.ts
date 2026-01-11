@@ -16,9 +16,11 @@ export { ChangePasswordUseCase, type ChangePasswordDTO } from './change-password
 export { UploadFileUseCase, type UploadFileResult } from './upload-file.use-case';
 export { DownloadFileUseCase, type DownloadFileResult } from './download-file.use-case';
 export { DeleteFileUseCase } from './delete-file.use-case';
+export { RestoreFileUseCase } from './restore-file.use-case';
 export { ListFilesUseCase, type ListFilesResult } from './list-files.use-case';
 export { UpdateFileUseCase } from './update-file.use-case';
 export { CreateFolderUseCase } from './create-folder.use-case';
 export { UpdateFolderUseCase } from './update-folder.use-case';
 export { DeleteFolderUseCase } from './delete-folder.use-case';
+export { RestoreFolderUseCase } from './restore-folder.use-case';
 export { ListFoldersUseCase, type ListFoldersResult } from './list-folders.use-case';
