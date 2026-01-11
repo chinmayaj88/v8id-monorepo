@@ -55,7 +55,7 @@ export class PreviewFileUseCase {
         // Generate presigned URL for preview (read-only, expires in 1 hour)
         previewUrl = await this.storageService.generatePresignedUrl(file.ociObjectName, 3600);
         canPreview = true;
-      } catch (error) {
+      } catch (_error) {
         message = 'Failed to generate preview URL';
       }
     } else if (previewType === 'video' || previewType === 'audio') {
@@ -64,7 +64,7 @@ export class PreviewFileUseCase {
         previewUrl = await this.storageService.generatePresignedUrl(file.ociObjectName, 3600);
         canPreview = true;
         message = 'Video/audio preview available via browser player';
-      } catch (error) {
+      } catch (_error) {
         message = 'Failed to generate preview URL';
       }
     } else {

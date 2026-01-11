@@ -15,7 +15,7 @@ export class CreateFileVersionUseCase {
     private storageService: IStorageService
   ) {}
 
-  async execute(userId: string, fileId: string, newFileBuffer: Buffer, newMimeType: string): Promise<void> {
+  async execute(userId: string, fileId: string, newFileBuffer: Buffer, _newMimeType: string): Promise<void> {
     // 1. Find current file
     const currentFile = await this.fileRepository.findById(fileId);
     if (!currentFile) {

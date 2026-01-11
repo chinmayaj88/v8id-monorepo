@@ -23,9 +23,25 @@ export default [
       '@typescript-eslint': ts,
     },
     rules: {
-      'no-unused-vars': 'warn',
+      'no-unused-vars': 'off', // Use TypeScript version instead
       'no-console': 'off',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+          args: 'after-used',
+        },
+      ],
+    },
+  },
+  {
+    // Disable unused vars for interface files (parameters are part of the contract)
+    files: ['**/*.interface.ts', '**/interfaces/**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
 ];

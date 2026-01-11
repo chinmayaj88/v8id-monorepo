@@ -161,7 +161,7 @@ export class OciStorageService implements IStorageService {
           }
         } else {
           // Handle Node.js Readable stream
-          for await (const chunk of stream as NodeJS.ReadableStream) {
+          for await (const chunk of stream as any) {
             chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
           }
         }
@@ -222,7 +222,7 @@ export class OciStorageService implements IStorageService {
         }
       } else {
         // Handle Node.js Readable stream
-        for await (const chunk of stream as NodeJS.ReadableStream) {
+        for await (const chunk of stream as any) {
           chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         }
       }

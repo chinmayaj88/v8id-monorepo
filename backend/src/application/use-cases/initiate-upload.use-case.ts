@@ -9,7 +9,7 @@ import { IUploadSessionRepository } from '../interfaces/upload-session-repositor
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { IFolderRepository } from '../interfaces/folder-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
-import { UploadSession, UploadMethod } from '../../domain/entities/upload-session';
+import { UploadMethod } from '../../domain/entities/upload-session';
 
 export interface InitiateUploadDTO {
   fileName: string;

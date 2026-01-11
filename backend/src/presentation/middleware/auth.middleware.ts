@@ -71,7 +71,7 @@ export function authMiddleware(
       };
 
       next();
-    } catch (error) {
+    } catch (_error) {
       ResponseUtil.unauthorized(res, 'Invalid or expired token');
     }
   };

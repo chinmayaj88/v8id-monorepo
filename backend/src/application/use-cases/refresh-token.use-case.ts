@@ -29,7 +29,7 @@ export class RefreshTokenUseCase {
     let payload;
     try {
       payload = this.jwtService.verifyToken(dto.refreshToken);
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Invalid or expired refresh token');
     }
 

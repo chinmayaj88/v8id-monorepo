@@ -9,7 +9,6 @@ import { IFolderRepository } from '../interfaces/folder-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { FileResponseDTO } from '../dtos/file.dto';
-import { createHash } from 'crypto';
 
 export interface CopyFileDTO {
   targetFolderId?: string | null;

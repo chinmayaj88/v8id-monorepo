@@ -48,7 +48,7 @@ export class JwtService implements IJwtService {
   verifyToken(token: string): TokenPayload {
     try {
       return jwt.verify(token, this.jwtSecret) as TokenPayload;
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Invalid or expired token');
     }
   }

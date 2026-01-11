@@ -154,7 +154,7 @@ export class AuthController {
         undefined,
         'If an account with that email exists, a password reset link has been sent.'
       );
-    } catch (error) {
+    } catch (_error) {
       // Still return success to prevent email enumeration
       ResponseUtil.success(
         res,

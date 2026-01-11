@@ -51,7 +51,7 @@ export class TotpService implements ITotpService {
   verifyTotp(token: string, secret: string): boolean {
     try {
       return authenticator.check(token, secret);
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }

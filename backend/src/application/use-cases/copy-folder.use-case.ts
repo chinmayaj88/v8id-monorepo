@@ -6,7 +6,6 @@
 
 import { IFolderRepository } from '../interfaces/folder-repository.interface';
 import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { FolderResponseDTO } from '../dtos/file.dto';
 import { CreateFolderUseCase } from './create-folder.use-case';

@@ -7,7 +7,6 @@
 
 import { IUploadSessionRepository } from '../interfaces/upload-session-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
-import { createHash } from 'crypto';
 
 export interface ChunkUploadDTO {
   sessionId: string;
