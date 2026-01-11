@@ -1123,7 +1123,321 @@
 								"upload"
 							]
 						},
-						"description": "**Upload a file**\n\nUpload a file to the user's storage. Files are stored in OCI Object Storage.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Storage quota is checked before upload\n- File size is validated (max 100MB default)\n- File is hashed (SHA-256) for deduplication\n\n**File Size Limits:**\n- Default: 100MB per file\n- Check server configuration for limits\n- Total storage cannot exceed user's quota\n\n**Storage Quota:**\n- Default quota: 10GB per user\n- Checked before upload\n- User's `storageUsed` is updated after successful upload\n\n**File Deduplication:**\n- Files are hashed using SHA-256\n- Duplicate files (same hash) can be detected\n- Currently creates new file record even if hash exists\n\n**Request Body (multipart/form-data):**\n- `file` (required): File to upload\n- `folderId` (optional): Folder ID (null for root)\n- `name` (optional): Display name\n- `description` (optional): File description\n- `tags` (optional): JSON array of tags\n\n**Response:**\n- `id`: File ID\n- `name`: Display name\n- `size`: File size in bytes\n- `mimeType`: MIME type\n- `ociObjectName`: OCI Object Storage key\n- `status`: File status (ACTIVE)"
+						"description": "**Upload a file (small files only)**\n\nUpload a small file to the user's storage through the backend server. Files are stored in OCI Object Storage.\n\n**⚠️ For large files (>= 10MB):**\n- Use \"Initiate Upload\" endpoint instead\n- Large files use direct upload via Pre-Authenticated Request (PAR)\n- Supports chunked uploads with resume capability\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Storage quota is checked before upload\n- File size is validated (max 100MB default)\n- File is hashed (SHA-256) for deduplication\n- Files uploaded through backend are scanned (if antivirus enabled)\n\n**File Size Limits:**\n- Default: 100MB per file (backend upload)\n- Recommended: Use chunked upload for files > 10MB\n- Check server configuration for limits\n- Total storage cannot exceed user's quota\n\n**Storage Quota:**\n- Default quota: 10GB per user\n- Checked before upload\n- User's `storageUsed` is updated after successful upload\n\n**File Deduplication:**\n- Files are hashed using SHA-256\n- Duplicate files (same hash) can be detected\n- Currently creates new file record even if hash exists\n\n**Request Body (multipart/form-data):**\n- `file` (required): File to upload\n- `folderId` (optional): Folder ID (null for root)\n- `name` (optional): Display name\n- `description` (optional): File description\n- `tags` (optional): JSON array of tags\n\n**Response:**\n- `id`: File ID\n- `name`: Display name\n- `size`: File size in bytes\n- `mimeType`: MIME type\n- `ociObjectName`: OCI Object Storage key\n- `status`: File status (ACTIVE)"
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate Upload (Large Files)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify upload session creation",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Upload session created successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.sessionId).to.exist;",
+									"        pm.expect(jsonData.data.uploadMethod).to.exist;",
+									"        pm.expect(jsonData.data.totalChunks).to.exist;",
+									"    });",
+									"    ",
+									"    // Save session ID for subsequent requests",
+									"    if (jsonData.data.sessionId) {",
+									"        pm.environment.set(\"uploadSessionId\", jsonData.data.sessionId);",
+									"        console.log(\"✅ Upload session created successfully\");",
+									"        console.log(\"📦 Session ID: \" + jsonData.data.sessionId);",
+									"        console.log(\"📊 Upload Method: \" + jsonData.data.uploadMethod);",
+									"        console.log(\"📦 Total Chunks: \" + jsonData.data.totalChunks);",
+									"        console.log(\"📏 Chunk Size: \" + jsonData.data.chunkSize + \" bytes\");",
+									"        ",
+									"        if (jsonData.data.parUrl) {",
+									"            console.log(\"🔗 Direct Upload URL (PAR): \" + jsonData.data.parUrl);",
+									"            console.log(\"⚠️ \" + (jsonData.data.message || \"Large files are uploaded directly to storage and cannot be scanned for viruses.\"));",
+									"        }",
+									"    }",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Session creation failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"quota\")) {",
+									"            console.log(\"💡 Storage quota exceeded\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fileName\": \"large-file.pdf\",\n  \"fileSize\": 50000000,\n  \"mimeType\": \"application/pdf\",\n  \"folderId\": null,\n  \"chunkSize\": 5242880\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload/initiate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload",
+								"initiate"
+							]
+						},
+						"description": "**Initiate chunked upload session (for large files)**\n\nStart a chunked upload session for large files. Determines upload method based on file size:\n- **Small files (< 10MB)**: Use \"Upload File\" endpoint instead (backend upload)\n- **Large files (>= 10MB)**: Direct upload via Pre-Authenticated Request (PAR)\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Storage quota is checked before session creation\n- Large files uploaded directly to OCI cannot be scanned for viruses\n- Virus scan warning is shown in response for large files\n\n**Upload Methods:**\n- **DIRECT**: Files >= 10MB (default threshold)\n  - Client uploads directly to OCI via PAR URL\n  - Chunks are uploaded directly to OCI\n  - Backend tracks progress only\n  - Files cannot be scanned for viruses\n\n- **BACKEND**: Files < 10MB\n  - Use \"Upload File\" endpoint instead\n  - Files go through backend server\n  - Can be scanned for viruses\n\n**Request Body:**\n- `fileName` (required): Original filename\n- `fileSize` (required): File size in bytes\n- `mimeType` (required): MIME type\n- `folderId` (optional): Folder ID (null for root)\n- `chunkSize` (optional): Chunk size in bytes (default: 5MB)\n\n**Response:**\n- `sessionId`: Upload session ID\n- `uploadMethod`: 'DIRECT' or 'BACKEND'\n- `chunkSize`: Chunk size in bytes\n- `totalChunks`: Total number of chunks\n- `parUrl` (for DIRECT): Pre-Authenticated Request URL for direct upload\n- `virusScanWarning` (for DIRECT): true if file cannot be scanned\n- `message` (for DIRECT): Warning message about virus scanning\n\n**Next Steps:**\n1. For DIRECT uploads: Upload chunks directly to `parUrl` using PUT requests\n2. For BACKEND uploads: Use \"Upload Chunk\" endpoint\n3. After all chunks: Use \"Complete Upload\" endpoint\n4. To resume: Use \"Resume Upload\" endpoint"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Chunk",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify chunk upload",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Chunk uploaded successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.sessionId).to.exist;",
+									"        pm.expect(jsonData.data.uploadedChunks).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Chunk uploaded successfully\");",
+									"    console.log(\"📊 Progress: \" + jsonData.data.uploadedChunks + \"/\" + jsonData.data.totalChunks + \" chunks (\" + jsonData.data.progress.toFixed(1) + \"%)\");",
+									"    console.log(\"📦 Uploaded: \" + jsonData.data.uploadedBytes + \" bytes\");",
+									"    ",
+									"    if (jsonData.data.isComplete) {",
+									"        console.log(\"✅ All chunks uploaded! Use 'Complete Upload' endpoint to finalize.\");",
+									"    }",
+									"} else if (pm.response.code === 400 || pm.response.code === 404) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Chunk upload failed: \" + jsonData.error.message);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "sessionId",
+									"value": "{{uploadSessionId}}",
+									"type": "text",
+									"description": "Upload session ID from 'Initiate Upload'"
+								},
+								{
+									"key": "chunkNumber",
+									"value": "0",
+									"type": "text",
+									"description": "Chunk number (0-indexed, start from 0)"
+								},
+								{
+									"key": "isLastChunk",
+									"value": "false",
+									"type": "text",
+									"description": "Set to 'true' for the last chunk"
+								},
+								{
+									"key": "chunk",
+									"type": "file",
+									"src": [],
+									"description": "Chunk data (binary)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload/chunk",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload",
+								"chunk"
+							]
+						},
+						"description": "**Upload a chunk (for backend uploads only)**\n\nUpload a single chunk of a file. This endpoint is for BACKEND uploads only.\n\n**⚠️ For DIRECT uploads:**\n- Upload chunks directly to the PAR URL using PUT requests\n- Do NOT use this endpoint for DIRECT uploads\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Chunk number must match expected sequence\n- Session must be active and not expired\n\n**Chunk Validation:**\n- Chunk number must match expected next chunk\n- Chunk size must match session chunk size (except last chunk)\n- Session must not be completed or expired\n\n**Request Body (multipart/form-data):**\n- `sessionId` (required): Upload session ID\n- `chunkNumber` (required): Chunk number (0-indexed)\n- `isLastChunk` (required): 'true' for last chunk, 'false' otherwise\n- `chunk` (required): Chunk data (binary file)\n\n**Response:**\n- `sessionId`: Upload session ID\n- `uploadedChunks`: Number of chunks uploaded\n- `totalChunks`: Total number of chunks\n- `uploadedBytes`: Total bytes uploaded\n- `progress`: Upload progress percentage\n- `isComplete`: true if all chunks uploaded\n\n**Note:**\n- For DIRECT uploads, upload chunks directly to PAR URL\n- This endpoint tracks progress for backend uploads"
+					},
+					"response": []
+				},
+				{
+					"name": "Resume Upload",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify resume upload",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Upload session retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.sessionId).to.exist;",
+									"        pm.expect(jsonData.data.nextChunkNumber).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Upload session retrieved\");",
+									"    console.log(\"📊 Progress: \" + jsonData.data.uploadedChunks + \"/\" + jsonData.data.totalChunks + \" chunks (\" + jsonData.data.progress.toFixed(1) + \"%)\");",
+									"    console.log(\"📦 Next Chunk: \" + jsonData.data.nextChunkNumber);",
+									"    console.log(\"📏 Chunk Size: \" + jsonData.data.chunkSize + \" bytes\");",
+									"    ",
+									"    if (jsonData.data.parUrl) {",
+									"        console.log(\"🔗 PAR URL: \" + jsonData.data.parUrl);",
+									"        console.log(\"💡 Continue uploading chunks directly to PAR URL\");",
+									"    }",
+									"} else if (pm.response.code === 404 || pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Resume failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"expired\")) {",
+									"            console.log(\"💡 Session expired. Start a new upload.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload/:sessionId/resume",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload",
+								":sessionId",
+								"resume"
+							],
+							"variable": [
+								{
+									"key": "sessionId",
+									"value": "{{uploadSessionId}}",
+									"description": "Upload session ID"
+								}
+							]
+						},
+						"description": "**Resume interrupted upload**\n\nResume an interrupted upload session. Returns current progress and next chunk number.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Session must not be expired\n- Session must not be completed\n\n**Use Cases:**\n- Network interruption during upload\n- Browser/application crash\n- User cancellation and restart\n\n**Session Validation:**\n- Session must exist and belong to user\n- Session must not be expired\n- Session must not be completed\n\n**Response:**\n- `sessionId`: Upload session ID\n- `uploadMethod`: 'DIRECT' or 'BACKEND'\n- `uploadedChunks`: Number of chunks uploaded\n- `totalChunks`: Total number of chunks\n- `uploadedBytes`: Total bytes uploaded\n- `progress`: Upload progress percentage\n- `nextChunkNumber`: Next chunk number to upload\n- `parUrl` (for DIRECT): PAR URL for direct upload\n- `chunkSize`: Chunk size in bytes\n- `isExpired`: false if session is valid\n\n**Next Steps:**\n1. Use `nextChunkNumber` to continue uploading\n2. For DIRECT uploads: Upload chunks directly to `parUrl`\n3. For BACKEND uploads: Use \"Upload Chunk\" endpoint\n4. After all chunks: Use \"Complete Upload\" endpoint"
+					},
+					"response": []
+				},
+				{
+					"name": "Complete Upload",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify upload completion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Upload completed successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.status).to.equal(\"ACTIVE\");",
+									"    });",
+									"    ",
+									"    // Save file ID for subsequent requests",
+									"    if (jsonData.data.id) {",
+									"        pm.environment.set(\"fileId\", jsonData.data.id);",
+									"        console.log(\"✅ Upload completed successfully\");",
+									"        console.log(\"📁 File ID: \" + jsonData.data.id);",
+									"        console.log(\"📦 OCI Object Name: \" + jsonData.data.ociObjectName);",
+									"        console.log(\"📊 Size: \" + jsonData.data.size + \" bytes\");",
+									"        console.log(\"📊 Status: \" + jsonData.data.status);",
+									"    }",
+									"} else if (pm.response.code === 400 || pm.response.code === 404) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Upload completion failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"incomplete\")) {",
+									"            console.log(\"💡 Not all chunks have been uploaded. Use 'Resume Upload' to check progress.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"My File\",\n  \"description\": \"Optional file description\",\n  \"tags\": [\"important\", \"work\"],\n  \"metadata\": {\n    \"customField\": \"value\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload/:sessionId/complete",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload",
+								":sessionId",
+								"complete"
+							],
+							"variable": [
+								{
+									"key": "sessionId",
+									"value": "{{uploadSessionId}}",
+									"description": "Upload session ID"
+								}
+							]
+						},
+						"description": "**Complete upload and create file record**\n\nFinalize upload after all chunks are uploaded. Creates file record, calculates hash, and updates user storage.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- All chunks must be uploaded\n- Session must not be expired\n- File must exist in storage (for DIRECT uploads)\n\n**Validation:**\n- All chunks must be uploaded (verified by chunk count)\n- File must exist in OCI storage\n- File hash is calculated (SHA-256)\n- Duplicate detection (same hash and user)\n\n**File Creation:**\n- Creates file record in database\n- Sets status to ACTIVE\n- Updates user storage usage\n- Cleans up PAR (for DIRECT uploads)\n- Links file to upload session\n\n**Request Body (JSON):**\n- `name` (optional): Display name (defaults to original filename)\n- `description` (optional): File description\n- `tags` (optional): Array of tag strings\n- `metadata` (optional): Object with custom metadata\n\n**Path Parameter:**\n- `sessionId`: Upload session ID\n\n**Response:**\n- Complete file object with status = ACTIVE\n- Includes all file metadata\n- Storage usage updated\n\n**Error Responses:**\n- `400`: Upload incomplete or validation failed\n- `404`: Session not found\n- `403`: Access denied\n- `500`: Storage or database error"
 					},
 					"response": []
 				},
@@ -1543,6 +1857,75 @@
 							]
 						},
 						"description": "**Restore a file from trash**\n\nRestore a soft-deleted file back to active status.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can restore\n- File must be in trash (soft-deleted)\n\n**Restoration:**\n- File status changed to ACTIVE\n- `deletedAt` field cleared\n- File becomes visible in regular file list\n- Storage quota is checked before restoration\n\n**Validation:**\n- File must be in trash (status = DELETED)\n- If file is not deleted, you'll get error: \"File cannot be restored. Only deleted files can be restored.\"\n- Storage quota is checked - restoration will fail if quota would be exceeded\n\n**Path Parameter:**\n- `fileId`: ID of the file to restore\n\n**Related Endpoints:**\n- `DELETE /api/files/:id` - Move file to trash\n- `GET /api/files/trash` - List files in trash\n- `DELETE /api/files/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Restored file object with status = ACTIVE"
+					},
+					"response": []
+				},
+				{
+					"name": "Archive File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file archiving",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File archived successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.status).to.equal(\"ARCHIVED\");",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File archived successfully\");",
+									"    console.log(\"📁 File: \" + jsonData.data.name);",
+									"    console.log(\"📊 Status: \" + jsonData.data.status);",
+									"    console.log(\"📦 Archived files are kept for long-term storage\");",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Archive failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"cannot be archived\")) {",
+									"            console.log(\"💡 Only active files can be archived.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId/archive",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId",
+								"archive"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to archive"
+								}
+							]
+						},
+						"description": "**Archive a file**\n\nArchive an active file. Archived files are kept for long-term storage but marked as archived.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can archive\n- File must be active (not deleted or already archived)\n\n**Archiving:**\n- File status changed to ARCHIVED\n- File remains in storage\n- File can be filtered by status\n- Storage is NOT freed (file still counts toward quota)\n\n**Validation:**\n- File must be active (status = ACTIVE)\n- If file is not active, you'll get error: \"File cannot be archived. Only active files can be archived.\"\n- Only file owner can archive\n\n**Use Cases:**\n- Long-term document retention\n- Compliance requirements\n- Historical record keeping\n- Marking files as inactive without deleting\n\n**Path Parameter:**\n- `fileId`: ID of the file to archive\n\n**Response:**\n- Archived file object with status = ARCHIVED\n\n**Note:**\n- Archived files are kept but marked differently\n- Storage quota still counts archived files\n- To permanently remove, delete file first, then permanently delete from trash"
 					},
 					"response": []
 				},
