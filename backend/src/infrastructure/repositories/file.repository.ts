@@ -6,7 +6,7 @@
 
 import { prisma } from '../database';
 import { IFileRepository } from '../../application/interfaces/file-repository.interface';
-import { File, FileStatus, FileType } from '../../domain/entities/file';
+import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file';
 
 export class FileRepository implements IFileRepository {
   /**
@@ -23,8 +23,11 @@ export class FileRepository implements IFileRepository {
       prismaFile.size,
       prismaFile.type as FileType,
       prismaFile.status as FileStatus,
+      (prismaFile.storageTier as StorageTier) || StorageTier.STANDARD, // Default to STANDARD for backward compatibility
       prismaFile.ociObjectName,
       prismaFile.hash,
+      prismaFile.thumbnailObjectName ?? undefined,
+      prismaFile.thumbnailGenerated ?? false,
       prismaFile.description ?? undefined,
       prismaFile.tags ? (Array.isArray(prismaFile.tags) ? prismaFile.tags : []) : undefined,
       prismaFile.metadata ? (typeof prismaFile.metadata === 'object' ? prismaFile.metadata as Record<string, unknown> : undefined) : undefined,
@@ -87,8 +90,11 @@ export class FileRepository implements IFileRepository {
     size: bigint;
     type: FileType;
     status: FileStatus;
+    storageTier?: StorageTier;
     ociObjectName: string;
     hash: string;
+    thumbnailObjectName?: string;
+    thumbnailGenerated?: boolean;
     description?: string;
     tags?: string[];
     metadata?: Record<string, unknown>;
@@ -103,8 +109,11 @@ export class FileRepository implements IFileRepository {
         size: fileData.size,
         type: fileData.type,
         status: fileData.status,
+        storageTier: fileData.storageTier || StorageTier.STANDARD, // Default to STANDARD
         ociObjectName: fileData.ociObjectName,
         hash: fileData.hash,
+        thumbnailObjectName: fileData.thumbnailObjectName ?? null,
+        thumbnailGenerated: fileData.thumbnailGenerated ?? false,
         description: fileData.description ?? null,
         ...(fileData.tags !== undefined && { tags: fileData.tags as any }),
         ...(fileData.metadata !== undefined && { metadata: fileData.metadata as any }),
@@ -123,6 +132,8 @@ export class FileRepository implements IFileRepository {
     status?: FileStatus;
     deletedAt?: Date | null;
     expiresAt?: Date | null;
+    thumbnailObjectName?: string | null;
+    thumbnailGenerated?: boolean;
   }>): Promise<File> {
     const updateData: any = {};
     
@@ -141,6 +152,12 @@ export class FileRepository implements IFileRepository {
     if (data.status !== undefined) updateData.status = data.status;
     if (data.deletedAt !== undefined) updateData.deletedAt = data.deletedAt ?? null;
     if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt ?? null;
+    if (data.thumbnailObjectName !== undefined) {
+      updateData.thumbnailObjectName = data.thumbnailObjectName ?? null;
+    }
+    if (data.thumbnailGenerated !== undefined) {
+      updateData.thumbnailGenerated = data.thumbnailGenerated;
+    }
     
     const file = await prisma.file.update({
       where: { id },
@@ -161,6 +178,23 @@ export class FileRepository implements IFileRepository {
     await prisma.file.delete({
       where: { id },
     });
+  }
+
+  /**
+   * Batch hard delete files (optimized for bulk operations)
+   */
+  async batchHardDelete(fileIds: string[]): Promise<number> {
+    if (fileIds.length === 0) {
+      return 0;
+    }
+
+    const result = await prisma.file.deleteMany({
+      where: {
+        id: { in: fileIds },
+      },
+    });
+
+    return result.count;
   }
 
   async restore(id: string): Promise<File> {
@@ -253,6 +287,8 @@ export class FileRepository implements IFileRepository {
   }
 
   async getStorageUsedByUser(userId: string): Promise<bigint> {
+    // Optimized: Use aggregate query (already efficient)
+    // Consider caching this result for frequently accessed users
     const result = await prisma.file.aggregate({
       where: {
         userId,
@@ -264,6 +300,40 @@ export class FileRepository implements IFileRepository {
     });
 
     return result._sum.size || BigInt(0);
+  }
+
+  /**
+   * Batch update file status (optimized for bulk operations)
+   */
+  async batchUpdateStatus(fileIds: string[], status: FileStatus): Promise<number> {
+    const result = await prisma.file.updateMany({
+      where: {
+        id: { in: fileIds },
+      },
+      data: {
+        status,
+        ...(status === FileStatus.DELETED && { deletedAt: new Date() }),
+      },
+    });
+
+    return result.count;
+  }
+
+  /**
+   * Batch update folder ID (optimized for bulk move)
+   */
+  async batchUpdateFolder(userId: string, fileIds: string[], folderId: string | null): Promise<number> {
+    const result = await prisma.file.updateMany({
+      where: {
+        id: { in: fileIds },
+        userId, // Security: only update user's own files
+      },
+      data: {
+        folderId: folderId ?? null,
+      },
+    });
+
+    return result.count;
   }
 
   async findByStatus(status: FileStatus, options?: {
@@ -307,30 +377,60 @@ export class FileRepository implements IFileRepository {
     return count > 0;
   }
 
+  /**
+   * Find all files recursively in folder hierarchy - OPTIMIZED
+   * Uses batch queries instead of recursive loops
+   */
   async findByFolderIdRecursive(folderId: string): Promise<File[]> {
-    // Get all files directly in this folder
-    const directFiles = await prisma.file.findMany({
-      where: {
-        folderId,
-      },
-    });
+    // Collect all folder IDs in the hierarchy
+    const folderIds = new Set<string>([folderId]);
+    let currentLevel = [folderId];
+    let hasMore = true;
 
-    // Get all subfolders of this folder
-    const subfolders = await prisma.folder.findMany({
-      where: {
-        parentId: folderId,
-      },
-    });
+    // Collect all descendant folder IDs (batch approach)
+    while (hasMore) {
+      const children = await prisma.folder.findMany({
+        where: {
+          parentId: { in: currentLevel },
+        },
+        select: { id: true },
+      });
 
-    // Recursively get files from subfolders
-    const subfolderFiles: File[] = [];
-    for (const subfolder of subfolders) {
-      const files = await this.findByFolderIdRecursive(subfolder.id);
-      subfolderFiles.push(...files);
+      if (children.length === 0) {
+        hasMore = false;
+      } else {
+        const newIds = children.map(f => f.id);
+        newIds.forEach(id => folderIds.add(id));
+        currentLevel = newIds;
+      }
     }
 
-    // Combine direct files and subfolder files
-    const allFiles = [...directFiles, ...subfolderFiles];
+    // Get all files from all folders in one query (much more efficient!)
+    const allFiles = await prisma.file.findMany({
+      where: {
+        folderId: { in: Array.from(folderIds) },
+      },
+    });
+
     return allFiles.map(f => this.toDomain(f));
+  }
+
+  /**
+   * Find all expired files (expiresAt <= now AND status = ACTIVE)
+   * Optimized for auto-delete scheduled jobs - uses database query instead of fetching all files
+   */
+  async findExpiredFiles(): Promise<File[]> {
+    const now = new Date();
+    const files = await prisma.file.findMany({
+      where: {
+        status: FileStatus.ACTIVE,
+        expiresAt: {
+          lte: now,
+          not: null,
+        },
+      },
+    });
+
+    return files.map(f => this.toDomain(f));
   }
 }
