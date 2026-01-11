@@ -2,11 +2,11 @@
  * Bulk Move Files Use Case
  * 
  * Move multiple files to a different folder at once.
+ * OPTIMIZED: Uses batch database operations instead of loops.
  */
 
 import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { UpdateFileUseCase } from './update-file.use-case';
 
 export interface BulkMoveFilesDTO {
   fileIds: string[];
@@ -16,8 +16,7 @@ export interface BulkMoveFilesDTO {
 export class BulkMoveFilesUseCase {
   constructor(
     private fileRepository: IFileRepository,
-    private folderRepository: IFolderRepository,
-    private updateFileUseCase: UpdateFileUseCase
+    private folderRepository: IFolderRepository
   ) {}
 
   async execute(userId: string, dto: BulkMoveFilesDTO): Promise<{ moved: number; failed: number; errors: string[] }> {
@@ -25,7 +24,7 @@ export class BulkMoveFilesUseCase {
       throw new Error('No file IDs provided');
     }
 
-    // Validate target folder if provided
+    // Validate target folder if provided (single query)
     if (dto.folderId) {
       const folder = await this.folderRepository.findById(dto.folderId);
       if (!folder || folder.userId !== userId || !folder.isActive()) {
@@ -33,23 +32,46 @@ export class BulkMoveFilesUseCase {
       }
     }
 
-    let moved = 0;
-    let failed = 0;
+    // Validate all files belong to user (batch query)
+    const files = await Promise.all(
+      dto.fileIds.map(id => this.fileRepository.findById(id))
+    );
+
+    const validFileIds: string[] = [];
     const errors: string[] = [];
 
-    // Move files one by one
-    for (const fileId of dto.fileIds) {
-      try {
-        await this.updateFileUseCase.execute(userId, fileId, {
-          folderId: dto.folderId,
-        });
-        moved++;
-      } catch (error) {
-        failed++;
-        errors.push(`${fileId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileId = dto.fileIds[i];
+
+      if (!file) {
+        errors.push(`${fileId}: File not found`);
+        continue;
       }
+
+      if (file.userId !== userId) {
+        errors.push(`${fileId}: Access denied`);
+        continue;
+      }
+
+      if (!file.isActive()) {
+        errors.push(`${fileId}: File is not active`);
+        continue;
+      }
+
+      validFileIds.push(fileId);
     }
 
-    return { moved, failed, errors };
+    // Batch update all valid files in one query (much more efficient!)
+    let moved = 0;
+    if (validFileIds.length > 0) {
+      moved = await this.fileRepository.batchUpdateFolder(userId, validFileIds, dto.folderId);
+    }
+
+    return {
+      moved,
+      failed: errors.length,
+      errors,
+    };
   }
 }
