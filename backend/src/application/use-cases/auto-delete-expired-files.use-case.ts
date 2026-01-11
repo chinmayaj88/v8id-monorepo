@@ -24,17 +24,12 @@ export class AutoDeleteExpiredFilesUseCase {
   ) {}
 
   async execute(): Promise<AutoDeleteResult> {
-    const now = new Date();
     let deleted = 0;
     const errors: string[] = [];
 
-    const allFilesResult = await this.fileRepository.findByUserId('', {
-      status: undefined,
-    });
-
-    const expiredFiles = allFilesResult.files.filter(file => {
-      return file.expiresAt && file.expiresAt <= now && file.isActive();
-    });
+    // Use optimized query that filters expired files at database level
+    // This is much more efficient than fetching all files and filtering in memory
+    const expiredFiles = await this.fileRepository.findExpiredFiles();
 
     for (const file of expiredFiles) {
       try {

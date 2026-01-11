@@ -14,17 +14,14 @@ export class LogoutUseCase {
   ) {}
 
   async execute(sessionId: string, userId: string): Promise<void> {
-    const sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(userId);
-    const session = sessions.find((s) => s.id === sessionId);
+    // Optimized query - single query instead of fetching all sessions
+    const session = await this.deviceSessionRepository.findByIdAndUserId(sessionId, userId);
 
     if (!session) {
       throw new Error('Session not found');
     }
 
-    if (session.userId !== userId) {
-      throw new Error('Unauthorized');
-    }
-
+    // Session ownership is already verified by findByIdAndUserId
     await this.deviceSessionRepository.revoke(sessionId);
 
     await this.auditLogService.logLogout(userId, {
