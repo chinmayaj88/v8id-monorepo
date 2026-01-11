@@ -9,6 +9,7 @@ export interface VerifyTotpDTO {
   deviceType: 'MOBILE' | 'WEB';
   deviceName: string;
   deviceId: string;
+  rememberMe?: boolean;
 }
 
 export interface CreateUserDTO {
