@@ -59,3 +59,5 @@ export { RestoreFolderUseCase } from './restore-folder.use-case';
 export { ListFoldersUseCase, type ListFoldersResult } from './list-folders.use-case';
 export { GenerateThumbnailUseCase, type GenerateThumbnailResult } from './generate-thumbnail.use-case';
 export { RegenerateThumbnailUseCase, type RegenerateThumbnailResult } from './regenerate-thumbnail.use-case';
+export { GetBackupCodesUseCase, type GetBackupCodesResult } from './get-backup-codes.use-case';
+export { GetLoginHistoryUseCase, type GetLoginHistoryResult, type GetLoginHistoryDTO } from './get-login-history.use-case';
