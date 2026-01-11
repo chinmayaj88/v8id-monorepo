@@ -124,9 +124,12 @@ export class UserController {
         return;
       }
 
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+
       const dto: ListUsersDTO = {
-        page: req.query.page ? parseInt(req.query.page as string, 10) : 1,
-        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 50,
+        page,
+        limit,
         search: req.query.search as string | undefined,
       };
 
@@ -149,10 +152,10 @@ export class UserController {
           })),
         },
         {
-          page: dto.page,
-          limit: dto.limit,
+          page,
+          limit,
           total: result.total,
-          totalPages: Math.ceil(result.total / (dto.limit || 50)),
+          totalPages: Math.ceil(result.total / limit),
         }
       );
     } catch (error) {

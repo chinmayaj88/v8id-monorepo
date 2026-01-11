@@ -10,11 +10,13 @@ import { FileController } from '../controllers/file.controller';
 import { UploadFileUseCase } from '../../application/use-cases/upload-file.use-case';
 import { DownloadFileUseCase } from '../../application/use-cases/download-file.use-case';
 import { DeleteFileUseCase } from '../../application/use-cases/delete-file.use-case';
+import { RestoreFileUseCase } from '../../application/use-cases/restore-file.use-case';
 import { ListFilesUseCase } from '../../application/use-cases/list-files.use-case';
 import { UpdateFileUseCase } from '../../application/use-cases/update-file.use-case';
 import { CreateFolderUseCase } from '../../application/use-cases/create-folder.use-case';
 import { UpdateFolderUseCase } from '../../application/use-cases/update-folder.use-case';
 import { DeleteFolderUseCase } from '../../application/use-cases/delete-folder.use-case';
+import { RestoreFolderUseCase } from '../../application/use-cases/restore-folder.use-case';
 import { ListFoldersUseCase } from '../../application/use-cases/list-folders.use-case';
 import { FileRepository, FolderRepository } from '../../infrastructure/repositories';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
@@ -50,6 +52,10 @@ const deleteFileUseCase = new DeleteFileUseCase(
   userRepository,
   storageService
 );
+const restoreFileUseCase = new RestoreFileUseCase(
+  fileRepository,
+  userRepository
+);
 const listFilesUseCase = new ListFilesUseCase(fileRepository);
 const updateFileUseCase = new UpdateFileUseCase(
   fileRepository,
@@ -57,10 +63,8 @@ const updateFileUseCase = new UpdateFileUseCase(
 );
 const createFolderUseCase = new CreateFolderUseCase(folderRepository);
 const updateFolderUseCase = new UpdateFolderUseCase(folderRepository);
-const deleteFolderUseCase = new DeleteFolderUseCase(
-  folderRepository,
-  fileRepository
-);
+const deleteFolderUseCase = new DeleteFolderUseCase(folderRepository);
+const restoreFolderUseCase = new RestoreFolderUseCase(folderRepository);
 const listFoldersUseCase = new ListFoldersUseCase(folderRepository);
 
 // Initialize controller
@@ -68,11 +72,13 @@ const fileController = new FileController(
   uploadFileUseCase,
   downloadFileUseCase,
   deleteFileUseCase,
+  restoreFileUseCase,
   listFilesUseCase,
   updateFileUseCase,
   createFolderUseCase,
   updateFolderUseCase,
   deleteFolderUseCase,
+  restoreFolderUseCase,
   listFoldersUseCase
 );
 
@@ -83,7 +89,7 @@ const upload = multer({
   limits: {
     fileSize: 100 * 1024 * 1024, // 100MB limit (can be configured via env)
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, _file, cb) => {
     // Allow all file types for now (can be restricted if needed)
     cb(null, true);
   },
@@ -100,10 +106,17 @@ router.post(
   (req, res) => fileController.upload(req as any, res)
 );
 
+// Specific routes before generic :id routes (order matters in Express)
 router.get(
   '/:id/download',
   authenticate,
   (req, res) => fileController.download(req as any, res)
+);
+
+router.post(
+  '/:id/restore',
+  authenticate,
+  (req, res) => fileController.restore(req as any, res)
 );
 
 router.get(
@@ -139,6 +152,13 @@ router.get(
   authenticate,
   validateQuery(listFoldersQuerySchema),
   (req, res) => fileController.listFolders(req as any, res)
+);
+
+// Specific routes before generic :id routes (order matters in Express)
+router.post(
+  '/folders/:id/restore',
+  authenticate,
+  (req, res) => fileController.restoreFolder(req as any, res)
 );
 
 router.patch(

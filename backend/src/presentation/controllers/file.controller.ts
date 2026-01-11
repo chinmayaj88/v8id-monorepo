@@ -4,15 +4,17 @@
  * Handles HTTP requests related to file operations.
  */
 
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { UploadFileUseCase } from '../../application/use-cases/upload-file.use-case';
 import { DownloadFileUseCase } from '../../application/use-cases/download-file.use-case';
 import { DeleteFileUseCase } from '../../application/use-cases/delete-file.use-case';
+import { RestoreFileUseCase } from '../../application/use-cases/restore-file.use-case';
 import { ListFilesUseCase } from '../../application/use-cases/list-files.use-case';
 import { UpdateFileUseCase } from '../../application/use-cases/update-file.use-case';
 import { CreateFolderUseCase } from '../../application/use-cases/create-folder.use-case';
 import { UpdateFolderUseCase } from '../../application/use-cases/update-folder.use-case';
 import { DeleteFolderUseCase } from '../../application/use-cases/delete-folder.use-case';
+import { RestoreFolderUseCase } from '../../application/use-cases/restore-folder.use-case';
 import { ListFoldersUseCase } from '../../application/use-cases/list-folders.use-case';
 import { UploadFileDTO, UpdateFileDTO, ListFilesDTO, CreateFolderDTO, UpdateFolderDTO, ListFoldersDTO } from '../../application/dtos/file.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
@@ -23,11 +25,13 @@ export class FileController {
     private uploadFileUseCase: UploadFileUseCase,
     private downloadFileUseCase: DownloadFileUseCase,
     private deleteFileUseCase: DeleteFileUseCase,
+    private restoreFileUseCase: RestoreFileUseCase,
     private listFilesUseCase: ListFilesUseCase,
     private updateFileUseCase: UpdateFileUseCase,
     private createFolderUseCase: CreateFolderUseCase,
     private updateFolderUseCase: UpdateFolderUseCase,
     private deleteFolderUseCase: DeleteFolderUseCase,
+    private restoreFolderUseCase: RestoreFolderUseCase,
     private listFoldersUseCase: ListFoldersUseCase
   ) {}
 
@@ -75,7 +79,12 @@ export class FileController {
   async download(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const fileId = req.params.id;
+      const fileId = req.params.id as string;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
 
       const result = await this.downloadFileUseCase.execute(userId, fileId);
 
@@ -106,7 +115,7 @@ export class FileController {
    * GET /api/files/:id
    * Get file metadata
    */
-  async getById(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async getById(_req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       // This would require a GetFileUseCase which we can add later
       // For now, we can use ListFilesUseCase or create a separate use case
@@ -161,7 +170,12 @@ export class FileController {
   async update(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const fileId = req.params.id;
+      const fileId = req.params.id as string;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
       const dto: UpdateFileDTO = {
         name: req.body.name,
         folderId: req.body.folderId !== undefined ? (req.body.folderId === 'null' ? null : req.body.folderId) : undefined,
@@ -192,7 +206,12 @@ export class FileController {
   async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const fileId = req.params.id;
+      const fileId = req.params.id as string;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
       const hardDelete = req.query.hardDelete === 'true';
 
       await this.deleteFileUseCase.execute(userId, fileId, hardDelete);
@@ -206,6 +225,37 @@ export class FileController {
         ResponseUtil.forbidden(res, message);
       } else {
         ResponseUtil.error(res, 'DELETE_FILE_ERROR', message, 500);
+      }
+    }
+  }
+
+  /**
+   * POST /api/files/:id/restore
+   * Restore a soft-deleted file
+   */
+  async restore(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const fileId = req.params.id as string;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
+
+      const result = await this.restoreFileUseCase.execute(userId, fileId);
+
+      ResponseUtil.success(res, result, 'File restored successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to restore file';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else if (message.includes('cannot be restored')) {
+        ResponseUtil.validationError(res, message);
+      } else {
+        ResponseUtil.error(res, 'RESTORE_FILE_ERROR', message, 500);
       }
     }
   }
@@ -273,7 +323,12 @@ export class FileController {
   async updateFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const folderId = req.params.id;
+      const folderId = req.params.id as string;
+
+      if (!folderId) {
+        ResponseUtil.validationError(res, 'Folder ID is required');
+        return;
+      }
       const dto: UpdateFolderDTO = {
         name: req.body.name,
         parentId: req.body.parentId !== undefined ? (req.body.parentId === 'null' ? null : req.body.parentId) : undefined,
@@ -303,7 +358,12 @@ export class FileController {
   async deleteFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const folderId = req.params.id;
+      const folderId = req.params.id as string;
+
+      if (!folderId) {
+        ResponseUtil.validationError(res, 'Folder ID is required');
+        return;
+      }
       const hardDelete = req.query.hardDelete === 'true';
       const forceDelete = req.query.forceDelete === 'true';
 
@@ -318,6 +378,37 @@ export class FileController {
         ResponseUtil.forbidden(res, message);
       } else {
         ResponseUtil.error(res, 'DELETE_FOLDER_ERROR', message, 500);
+      }
+    }
+  }
+
+  /**
+   * POST /api/files/folders/:id/restore
+   * Restore a soft-deleted folder
+   */
+  async restoreFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const folderId = req.params.id as string;
+
+      if (!folderId) {
+        ResponseUtil.validationError(res, 'Folder ID is required');
+        return;
+      }
+
+      const result = await this.restoreFolderUseCase.execute(userId, folderId);
+
+      ResponseUtil.success(res, result, 'Folder restored successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to restore folder';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else if (message.includes('cannot be restored')) {
+        ResponseUtil.validationError(res, message);
+      } else {
+        ResponseUtil.error(res, 'RESTORE_FOLDER_ERROR', message, 500);
       }
     }
   }

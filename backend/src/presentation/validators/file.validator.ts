@@ -35,7 +35,7 @@ export const updateFileSchema = z.object({
   folderId: z.string().nullable().optional(),
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
