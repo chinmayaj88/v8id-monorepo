@@ -44,6 +44,11 @@ import { ResumeUploadUseCase } from '../../application/use-cases/resume-upload.u
 import { CompleteUploadUseCase } from '../../application/use-cases/complete-upload.use-case';
 import { ListFilesUseCase } from '../../application/use-cases/list-files.use-case';
 import { UpdateFileUseCase } from '../../application/use-cases/update-file.use-case';
+import { GenerateThumbnailUseCase } from '../../application/use-cases/generate-thumbnail.use-case';
+import { RegenerateThumbnailUseCase } from '../../application/use-cases/regenerate-thumbnail.use-case';
+import { ThumbnailService } from '../../infrastructure/services/thumbnail.service';
+import { UrlCacheService } from '../../infrastructure/services/url-cache.service';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
 import { CreateFolderUseCase } from '../../application/use-cases/create-folder.use-case';
 import { UpdateFolderUseCase } from '../../application/use-cases/update-folder.use-case';
 import { DeleteFolderUseCase } from '../../application/use-cases/delete-folder.use-case';
@@ -52,7 +57,7 @@ import { RestoreFolderUseCase } from '../../application/use-cases/restore-folder
 import { ListFoldersUseCase } from '../../application/use-cases/list-folders.use-case';
 import { FileRepository, FolderRepository, UploadSessionRepository, FileShareRepository } from '../../infrastructure/repositories';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
-import { OciStorageService } from '../../infrastructure/oci';
+import { TierAwareStorageService } from '../../infrastructure/oci';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository';
 import { JwtService } from '../../infrastructure/services/jwt.service';
@@ -67,13 +72,40 @@ const fileShareRepository = new FileShareRepository();
 const userRepository = new UserRepository();
 const deviceSessionRepository = new DeviceSessionRepository();
 const jwtService = new JwtService();
-const storageService = new OciStorageService();
+// Use TierAwareStorageService for multi-bucket support (STANDARD and ARCHIVE tiers)
+// Single client instance with connection pooling for optimal performance
+const storageService = new TierAwareStorageService();
+const thumbnailService = new ThumbnailService();
+// URL cache for presigned URLs (reduces OCI API calls)
+// Cache thumbnails for 20 hours (they're safe to cache longer)
+const urlCache = new UrlCacheService(72000); // 20 hours
+// Start cleanup every 5 minutes
+urlCache.startCleanup(300);
+
+// Storage cache (reduces expensive aggregate queries)
+// Cache for 60 seconds (storage changes are infrequent)
+const storageCache = new StorageCacheService(60);
+// Start cleanup every 5 minutes
+storageCache.startCleanup(300);
+
+const generateThumbnailUseCase = new GenerateThumbnailUseCase(
+  fileRepository,
+  storageService,
+  thumbnailService
+);
+const regenerateThumbnailUseCase = new RegenerateThumbnailUseCase(
+  fileRepository,
+  storageService,
+  thumbnailService
+);
 
 const uploadFileUseCase = new UploadFileUseCase(
   fileRepository,
   folderRepository,
   userRepository,
-  storageService
+  storageService,
+  thumbnailService,
+  storageCache
 );
 const downloadFileUseCase = new DownloadFileUseCase(
   fileRepository,
@@ -85,14 +117,16 @@ const deleteFileUseCase = new DeleteFileUseCase(
 const permanentDeleteFileUseCase = new PermanentDeleteFileUseCase(
   fileRepository,
   userRepository,
-  storageService
+  storageService,
+  storageCache
 );
 const restoreFileUseCase = new RestoreFileUseCase(
   fileRepository,
-  userRepository
+  userRepository,
+  storageCache
 );
 const archiveFileUseCase = new ArchiveFileUseCase(fileRepository);
-const getFileUseCase = new GetFileUseCase(fileRepository);
+const getFileUseCase = new GetFileUseCase(fileRepository, storageService, urlCache);
 const getFolderUseCase = new GetFolderUseCase(folderRepository);
 const shareFileUseCase = new ShareFileUseCase(
   fileShareRepository,
@@ -106,9 +140,9 @@ const listSharedFilesUseCase = new ListSharedFilesUseCase(
   folderRepository
 );
 const unshareFileUseCase = new UnshareFileUseCase(fileShareRepository);
-const bulkDeleteFilesUseCase = new BulkDeleteFilesUseCase(fileRepository, deleteFileUseCase);
-const bulkRestoreFilesUseCase = new BulkRestoreFilesUseCase(fileRepository, restoreFileUseCase);
-const listFilesUseCase = new ListFilesUseCase(fileRepository);
+const bulkDeleteFilesUseCase = new BulkDeleteFilesUseCase(fileRepository, userRepository, storageCache);
+const bulkRestoreFilesUseCase = new BulkRestoreFilesUseCase(fileRepository, userRepository, storageCache);
+const listFilesUseCase = new ListFilesUseCase(fileRepository, storageService, urlCache);
 const updateFileUseCase = new UpdateFileUseCase(
   fileRepository,
   folderRepository
@@ -116,14 +150,14 @@ const updateFileUseCase = new UpdateFileUseCase(
 const createFolderUseCase = new CreateFolderUseCase(folderRepository);
 const bulkMoveFilesUseCase = new BulkMoveFilesUseCase(
   fileRepository,
-  folderRepository,
-  updateFileUseCase
+  folderRepository
 );
 const copyFileUseCase = new CopyFileUseCase(
   fileRepository,
   folderRepository,
   storageService,
-  userRepository
+  userRepository,
+  storageCache
 );
 const copyFolderUseCase = new CopyFolderUseCase(
   folderRepository,
@@ -188,7 +222,9 @@ const completeUploadUseCase = new CompleteUploadUseCase(
   fileRepository,
   folderRepository,
   userRepository,
-  storageService
+  storageService,
+  thumbnailService,
+  storageCache
 );
 const updateFolderUseCase = new UpdateFolderUseCase(folderRepository);
 const deleteFolderUseCase = new DeleteFolderUseCase(folderRepository);
@@ -196,7 +232,8 @@ const permanentDeleteFolderUseCase = new PermanentDeleteFolderUseCase(
   folderRepository,
   fileRepository,
   storageService,
-  userRepository
+  userRepository,
+  storageCache
 );
 const restoreFolderUseCase = new RestoreFolderUseCase(folderRepository);
 const listFoldersUseCase = new ListFoldersUseCase(folderRepository);
@@ -244,7 +281,9 @@ const fileController = new FileController(
   permanentDeleteFolderUseCase,
   restoreFolderUseCase,
   listFoldersUseCase,
-  createFileVersionUseCase
+  createFileVersionUseCase,
+  generateThumbnailUseCase,
+  regenerateThumbnailUseCase
 );
 
 const upload = multer({
@@ -366,6 +405,18 @@ router.get(
   '/:id/preview',
   authenticate,
   (req, res) => fileController.preview(req as any, res)
+);
+
+router.get(
+  '/:id/thumbnail',
+  authenticate,
+  (req, res) => fileController.getThumbnail(req as any, res)
+);
+
+router.post(
+  '/:id/thumbnail/regenerate',
+  authenticate,
+  (req, res) => fileController.regenerateThumbnail(req as any, res)
 );
 
 router.post(
