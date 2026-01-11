@@ -8,9 +8,11 @@ import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IFolderRepository } from '../interfaces/folder-repository.interface';
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
+import { IThumbnailService } from '../interfaces/thumbnail-service.interface';
 import { UploadFileDTO } from '../dtos/file.dto';
-import { File, FileStatus, FileType } from '../../domain/entities/file';
+import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file';
 import { createHash } from 'crypto';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
 
 export interface UploadFileResult {
   id: string;
@@ -26,7 +28,9 @@ export class UploadFileUseCase {
     private fileRepository: IFileRepository,
     private folderRepository: IFolderRepository,
     private userRepository: IUserRepository,
-    private storageService: IStorageService
+    private storageService: IStorageService,
+    private thumbnailService: IThumbnailService,
+    private storageCache?: StorageCacheService
   ) {}
 
   async execute(
@@ -90,6 +94,9 @@ export class UploadFileUseCase {
     }
 
     const fileType = this.determineFileType(mimeType);
+    
+    // Determine storage tier (default to STANDARD for backward compatibility)
+    const storageTier = dto.storageTier || StorageTier.STANDARD;
 
     const displayName = dto.name || originalFilename;
 
@@ -104,19 +111,22 @@ export class UploadFileUseCase {
 
     if (shouldUploadToStorage) {
       try {
+        // Upload to tier-specific bucket
         await this.storageService.uploadFile({
           objectName: ociObjectName,
           file: fileBuffer,
           contentType: mimeType,
+          tier: storageTier, // Pass tier to storage service
           metadata: {
             userId,
             originalFilename,
             uploadDate: new Date().toISOString(),
             hash,
+            storageTier, // Store tier in metadata for reference
           },
         });
       } catch (error) {
-        throw new Error(`Failed to upload file to storage: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(`Failed to upload file to ${storageTier} tier: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
 
@@ -131,6 +141,7 @@ export class UploadFileUseCase {
         size: fileSize,
         type: fileType,
         status: FileStatus.ACTIVE,
+        storageTier, // Store tier in database
         ociObjectName,
         hash,
         description: dto.description,
@@ -148,10 +159,62 @@ export class UploadFileUseCase {
       throw new Error(`Failed to create file record: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    const currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
+    // Update storage - use cache if available
+    let currentStorageUsed: bigint;
+    const cachedStorage = this.storageCache?.get(userId);
+    if (cachedStorage !== null && cachedStorage !== undefined) {
+      // Use cached value and add new file size
+      currentStorageUsed = cachedStorage + fileSize;
+    } else {
+      // Calculate from database
+      currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
+    }
+    
     await this.userRepository.update(userId, {
       storageUsed: currentStorageUsed,
     });
+    
+    // Update cache
+    this.storageCache?.set(userId, currentStorageUsed);
+
+    // Generate thumbnail with enterprise-grade optimizations:
+    // 1. Skip for ARCHIVE tier (lazy generation - generate on-demand when browsing)
+    // 2. Skip for very small files (< 10KB) - not worth it
+    // 3. Skip for very large files (> 50MB) - generate async to not block upload
+    // 4. Generate synchronously for medium files (10KB - 50MB) in STANDARD tier only
+    // 
+    // Cost optimization: Archive tier files skip thumbnail generation during upload
+    // to reduce server load, bandwidth, and storage costs. Thumbnails can be generated
+    // on-demand when users browse archive files.
+    if (storageTier === StorageTier.STANDARD && this.thumbnailService.supportsThumbnail(mimeType)) {
+      const fileSizeMB = Number(fileSize) / (1024 * 1024);
+      const fileSizeKB = Number(fileSize) / 1024;
+
+      // Skip thumbnail for very small files (< 10KB) - not worth the processing
+      if (fileSizeKB >= 10) {
+        // For large files (> 50MB), generate thumbnail asynchronously to not block upload
+        // This prevents server blocking and improves user experience
+        if (fileSizeMB > 50) {
+          // Fire and forget for large files - non-blocking async operation
+          this.generateThumbnailAsync(file.id, fileBuffer, ociObjectName, storageTier).catch((error) => {
+            console.error(`Failed to generate thumbnail for large file ${file.id}:`, error);
+          });
+        } else {
+          // Generate synchronously for medium files (10KB - 50MB)
+          // These are small enough to process quickly without blocking
+          try {
+            await this.generateThumbnailSync(file.id, fileBuffer, ociObjectName, storageTier);
+          } catch (error) {
+            // Log error but don't fail the upload - thumbnail is non-critical
+            console.error(`Failed to generate thumbnail for file ${file.id}:`, error);
+          }
+        }
+      }
+    } else if (storageTier === StorageTier.ARCHIVE) {
+      // Archive tier: Skip thumbnail generation during upload (cost optimization)
+      // Thumbnails will be generated on-demand when users browse archive files
+      console.log(`Skipping thumbnail generation for archive tier file ${file.id} (lazy generation)`);
+    }
 
     return {
       id: file.id,
@@ -205,5 +268,87 @@ export class UploadFileUseCase {
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  /**
+   * Generate thumbnail synchronously (for medium files)
+   * Optimized for STANDARD tier files
+   */
+  private async generateThumbnailSync(
+    fileId: string,
+    fileBuffer: Buffer,
+    ociObjectName: string,
+    storageTier: StorageTier
+  ): Promise<void> {
+    const optimalDimensions = this.thumbnailService.getOptimalDimensions('image/jpeg');
+    const thumbnailResult = await this.thumbnailService.generateImageThumbnail(fileBuffer, {
+      width: optimalDimensions.width,
+      height: optimalDimensions.height,
+      quality: 85,
+      format: 'jpeg',
+    });
+
+    // Generate thumbnail object name
+    const thumbnailObjectName = this.generateThumbnailObjectName(ociObjectName);
+
+    // Upload thumbnail to storage (always in STANDARD tier for fast access)
+    // Thumbnails are small and frequently accessed, so they should always be in STANDARD tier
+    await this.storageService.uploadFile({
+      objectName: thumbnailObjectName,
+      file: thumbnailResult.thumbnailBuffer,
+      contentType: 'image/jpeg',
+      tier: StorageTier.STANDARD, // Thumbnails always in STANDARD tier for performance
+      metadata: {
+        originalFileId: fileId,
+        originalObjectName: ociObjectName,
+        width: thumbnailResult.width.toString(),
+        height: thumbnailResult.height.toString(),
+        generatedAt: new Date().toISOString(),
+        originalStorageTier: storageTier, // Track original file tier
+      },
+    });
+
+    // Update file record with thumbnail info
+    await this.fileRepository.update(fileId, {
+      thumbnailObjectName,
+      thumbnailGenerated: true,
+    });
+
+    // Free memory immediately
+    (thumbnailResult.thumbnailBuffer as any) = null;
+  }
+
+  /**
+   * Generate thumbnail asynchronously (for large files)
+   * Non-blocking operation to prevent server blocking
+   */
+  private async generateThumbnailAsync(
+    fileId: string,
+    fileBuffer: Buffer,
+    ociObjectName: string,
+    storageTier: StorageTier
+  ): Promise<void> {
+    // Use setImmediate to defer execution and not block upload response
+    // This ensures the upload API responds quickly while thumbnail generates in background
+    setImmediate(async () => {
+      try {
+        await this.generateThumbnailSync(fileId, fileBuffer, ociObjectName, storageTier);
+      } catch (error) {
+        console.error(`Async thumbnail generation failed for file ${fileId}:`, error);
+      }
+    });
+  }
+
+  /**
+   * Generate thumbnail object name based on original file path
+   * Example: users/123/files/image.jpg -> users/123/thumbnails/image.jpg
+   */
+  private generateThumbnailObjectName(originalObjectName: string): string {
+    const parts = originalObjectName.split('/');
+    const filename = parts[parts.length - 1];
+    const pathParts = parts.slice(0, -1);
+    
+    // Insert 'thumbnails' directory before filename
+    return [...pathParts, 'thumbnails', filename].join('/');
   }
 }
