@@ -123,4 +123,9 @@ export interface IFileRepository {
    * Check if file name exists in folder
    */
   nameExistsInFolder(userId: string, folderId: string | null, name: string): Promise<boolean>;
+
+  /**
+   * Find all files in a folder recursively (including subfolders)
+   */
+  findByFolderIdRecursive(folderId: string): Promise<File[]>;
 }

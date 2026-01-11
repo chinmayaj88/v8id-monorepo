@@ -106,4 +106,19 @@ export interface IFolderRepository {
    * Check if moving folder would create circular reference
    */
   wouldCreateCircularReference(folderId: string, newParentId: string | null): Promise<boolean>;
+
+  /**
+   * Hard delete folder and all its subfolders recursively
+   */
+  hardDeleteRecursive(folderId: string): Promise<void>;
+
+  /**
+   * Check if folder has active children (not deleted)
+   */
+  hasActiveChildren(folderId: string): Promise<boolean>;
+
+  /**
+   * Check if folder has active files (not deleted)
+   */
+  hasActiveFiles(folderId: string): Promise<boolean>;
 }
