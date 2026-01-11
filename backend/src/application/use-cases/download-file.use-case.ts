@@ -7,6 +7,7 @@
 import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
 import { FileStatus } from '../../domain/entities/file';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
 
 export interface DownloadFileResult {
   file: Buffer;
@@ -36,7 +37,15 @@ export class DownloadFileUseCase {
       throw new Error('File is not available for download');
     }
 
-    const exists = await this.storageService.fileExists(file.ociObjectName);
+    // Use tier-aware storage service if available, otherwise fallback to standard
+    const isTierAware = this.storageService instanceof TierAwareStorageService;
+    const storageTier = file.storageTier || 'STANDARD' as any;
+
+    // Check file existence in tier-specific bucket
+    const exists = isTierAware
+      ? await (this.storageService as TierAwareStorageService).fileExists(file.ociObjectName, storageTier)
+      : await this.storageService.fileExists(file.ociObjectName);
+
     if (!exists) {
       await this.fileRepository.update(fileId, {
         status: FileStatus.DELETED,
@@ -46,7 +55,10 @@ export class DownloadFileUseCase {
     }
 
     try {
-      const storageResult = await this.storageService.downloadFile(file.ociObjectName);
+      // Download from tier-specific bucket
+      const storageResult = isTierAware
+        ? await (this.storageService as TierAwareStorageService).downloadFile(file.ociObjectName, storageTier)
+        : await this.storageService.downloadFile(file.ociObjectName);
 
       return {
         file: storageResult.file,
@@ -56,7 +68,7 @@ export class DownloadFileUseCase {
         metadata: storageResult.metadata,
       };
     } catch (error) {
-      throw new Error(`Failed to download file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to download file from ${storageTier} tier: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
