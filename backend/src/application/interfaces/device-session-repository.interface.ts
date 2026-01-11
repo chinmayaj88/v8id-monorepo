@@ -10,6 +10,7 @@ export interface DeviceSession {
   accessToken: string;
   refreshToken: string;
   expiresAt: Date;
+  rememberMe: boolean;
   lastActiveAt: Date;
   isActive: boolean;
   isRevoked: boolean;
@@ -30,6 +31,7 @@ export interface IDeviceSessionRepository {
     accessToken: string;
     refreshToken: string;
     expiresAt: Date;
+    rememberMe?: boolean;
   }): Promise<DeviceSession>;
 
 
@@ -38,6 +40,8 @@ export interface IDeviceSessionRepository {
   findByAccessToken(accessToken: string): Promise<DeviceSession | null>;
 
   findActiveSessionsByUserId(userId: string): Promise<DeviceSession[]>;
+
+  findRememberedMobileSession(userId: string): Promise<DeviceSession | null>;
 
   countActiveSessionsByType(
     userId: string,
