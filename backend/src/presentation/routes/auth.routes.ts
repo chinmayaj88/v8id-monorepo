@@ -9,6 +9,7 @@ import { ResetPasswordUseCase } from '../../application/use-cases/reset-password
 import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case';
 import { RegenerateBackupCodesUseCase } from '../../application/use-cases/regenerate-backup-codes.use-case';
 import { ResetupTotpUseCase } from '../../application/use-cases/resetup-totp.use-case';
+import { GetBackupCodesUseCase } from '../../application/use-cases/get-backup-codes.use-case';
 import { TotpBackupCodeRepository } from '../../infrastructure/repositories';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
 import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository';
@@ -19,6 +20,7 @@ import { EmailServiceFactory } from '../../infrastructure/services/email.service
 import { PasswordService } from '../../infrastructure/services/password.service';
 import { JwtService } from '../../infrastructure/services/jwt.service';
 import { TotpService } from '../../infrastructure/services/totp.service';
+import { SuspiciousActivityService } from '../../infrastructure/services/suspicious-activity.service';
 import { IEmailService } from '../../application/interfaces/email-service.interface';
 import { authMiddleware } from '../middleware/auth.middleware';
 import {
@@ -51,6 +53,7 @@ const jwtService = new JwtService();
 const totpService = new TotpService();
 const auditLogService = new AuditLogService(auditLogRepository);
 const accountLockoutService = new AccountLockoutService(auditLogRepository);
+const suspiciousActivityService = new SuspiciousActivityService(auditLogRepository);
 const emailService: IEmailService = EmailServiceFactory.create();
 
 const verifyCredentialsUseCase = new VerifyCredentialsUseCase(
@@ -58,14 +61,18 @@ const verifyCredentialsUseCase = new VerifyCredentialsUseCase(
   passwordService,
   jwtService,
   auditLogService,
-  accountLockoutService
+  accountLockoutService,
+  suspiciousActivityService,
+  emailService
 );
 const verifyTotpLoginUseCase = new VerifyTotpLoginUseCase(
   userRepository,
   deviceSessionRepository,
   emailService,
   totpService,
-  jwtService
+  jwtService,
+  suspiciousActivityService,
+  auditLogService
 );
 const refreshTokenUseCase = new RefreshTokenUseCase(
   deviceSessionRepository,
@@ -105,6 +112,7 @@ const resetupTotpUseCase = new ResetupTotpUseCase(
   totpService,
   auditLogService
 );
+const getBackupCodesUseCase = new GetBackupCodesUseCase(totpBackupCodeRepository);
 
 const authController = new AuthController(
   verifyCredentialsUseCase,
@@ -115,7 +123,8 @@ const authController = new AuthController(
   resetPasswordUseCase,
   changePasswordUseCase,
   regenerateBackupCodesUseCase,
-  resetupTotpUseCase
+  resetupTotpUseCase,
+  getBackupCodesUseCase
 );
 
 router.post(
@@ -177,6 +186,11 @@ router.post(
   authRateLimiter,
   validateBody(resetupTotpSchema),
   (req, res) => authController.resetupTotp(req, res)
+);
+router.get(
+  '/backup-codes',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  (req, res) => authController.getBackupCodes(req, res)
 );
 
 export default router;

@@ -9,6 +9,7 @@ import { ChangePasswordUseCase } from '../../application/use-cases/change-passwo
 import { RefreshTokenDTO, VerifyCredentialsDTO, VerifyTotpDTO, ForgotPasswordDTO, ResetPasswordDTO } from '../../application/dtos/auth.dto';
 import { RegenerateBackupCodesUseCase } from '../../application/use-cases/regenerate-backup-codes.use-case';
 import { ResetupTotpUseCase } from '../../application/use-cases/resetup-totp.use-case';
+import { GetBackupCodesUseCase } from '../../application/use-cases/get-backup-codes.use-case';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { extractIpAddress } from '../utils/ip-address.util';
 import { ResponseUtil } from '../utils/response.util';
@@ -23,7 +24,8 @@ export class AuthController {
     private resetPasswordUseCase: ResetPasswordUseCase,
     private changePasswordUseCase: ChangePasswordUseCase,
     private regenerateBackupCodesUseCase: RegenerateBackupCodesUseCase,
-    private resetupTotpUseCase: ResetupTotpUseCase
+    private resetupTotpUseCase: ResetupTotpUseCase,
+    private getBackupCodesUseCase: GetBackupCodesUseCase
   ) {}
 
   /**
@@ -290,6 +292,26 @@ export class AuthController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to resetup TOTP';
       ResponseUtil.error(res, 'RESETUP_TOTP_ERROR', message);
+    }
+  }
+
+  /**
+   * GET /api/auth/backup-codes
+   * View current backup codes status
+   */
+  async getBackupCodes(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const result = await this.getBackupCodesUseCase.execute(req.user.id);
+
+      ResponseUtil.success(res, result, 'Backup codes status retrieved successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get backup codes';
+      ResponseUtil.error(res, 'GET_BACKUP_CODES_ERROR', message);
     }
   }
 }

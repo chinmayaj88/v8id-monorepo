@@ -7,7 +7,9 @@
 import { Router, type IRouter } from 'express';
 import { UserController } from '../controllers/user.controller';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
+import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case';
 import { UserRepository } from '../../infrastructure/repositories/user.repository';
+import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
 import { TotpBackupCodeRepository } from '../../infrastructure/repositories/totp-backup-code.repository';
 import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository';
 import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
@@ -47,9 +49,11 @@ const createUserUseCase = new CreateUserUseCase(
   passwordService,
   totpService
 );
+const getLoginHistoryUseCase = new GetLoginHistoryUseCase(auditLogRepository);
 
 const userController = new UserController(
   createUserUseCase,
+  getLoginHistoryUseCase,
   userRepository,
   deviceSessionRepository,
   auditLogService
@@ -99,6 +103,12 @@ router.post(
   '/me/sessions/revoke-all',
   authMiddleware(userRepository, deviceSessionRepository, jwtService),
   (req, res) => userController.revokeAllSessions(req, res)
+);
+
+router.get(
+  '/me/login-history',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  (req, res) => userController.getLoginHistory(req, res)
 );
 
 export default router;

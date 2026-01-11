@@ -6,6 +6,7 @@
 
 import { Response } from 'express';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
+import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case';
 import { IUserRepository } from '../../application/interfaces/user-repository.interface';
 import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
@@ -18,6 +19,7 @@ import { ResponseUtil } from '../utils/response.util';
 export class UserController {
   constructor(
     private createUserUseCase: CreateUserUseCase,
+    private getLoginHistoryUseCase: GetLoginHistoryUseCase,
     private userRepository: IUserRepository,
     private deviceSessionRepository: IDeviceSessionRepository,
     private auditLogService: AuditLogService
@@ -272,6 +274,34 @@ export class UserController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to revoke sessions';
       ResponseUtil.error(res, 'REVOKE_SESSIONS_ERROR', message);
+    }
+  }
+
+  /**
+   * GET /api/users/me/login-history
+   * Get user's login history
+   */
+  async getLoginHistory(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+      const eventType = req.query.eventType as string | undefined;
+
+      const result = await this.getLoginHistoryUseCase.execute(req.user.id, {
+        page,
+        limit,
+        eventType,
+      });
+
+      ResponseUtil.success(res, result, 'Login history retrieved successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get login history';
+      ResponseUtil.error(res, 'GET_LOGIN_HISTORY_ERROR', message);
     }
   }
 }
