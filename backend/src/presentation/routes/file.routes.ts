@@ -10,12 +10,14 @@ import { FileController } from '../controllers/file.controller';
 import { UploadFileUseCase } from '../../application/use-cases/upload-file.use-case';
 import { DownloadFileUseCase } from '../../application/use-cases/download-file.use-case';
 import { DeleteFileUseCase } from '../../application/use-cases/delete-file.use-case';
+import { PermanentDeleteFileUseCase } from '../../application/use-cases/permanent-delete-file.use-case';
 import { RestoreFileUseCase } from '../../application/use-cases/restore-file.use-case';
 import { ListFilesUseCase } from '../../application/use-cases/list-files.use-case';
 import { UpdateFileUseCase } from '../../application/use-cases/update-file.use-case';
 import { CreateFolderUseCase } from '../../application/use-cases/create-folder.use-case';
 import { UpdateFolderUseCase } from '../../application/use-cases/update-folder.use-case';
 import { DeleteFolderUseCase } from '../../application/use-cases/delete-folder.use-case';
+import { PermanentDeleteFolderUseCase } from '../../application/use-cases/permanent-delete-folder.use-case';
 import { RestoreFolderUseCase } from '../../application/use-cases/restore-folder.use-case';
 import { ListFoldersUseCase } from '../../application/use-cases/list-folders.use-case';
 import { FileRepository, FolderRepository } from '../../infrastructure/repositories';
@@ -48,6 +50,9 @@ const downloadFileUseCase = new DownloadFileUseCase(
   storageService
 );
 const deleteFileUseCase = new DeleteFileUseCase(
+  fileRepository
+);
+const permanentDeleteFileUseCase = new PermanentDeleteFileUseCase(
   fileRepository,
   userRepository,
   storageService
@@ -64,6 +69,12 @@ const updateFileUseCase = new UpdateFileUseCase(
 const createFolderUseCase = new CreateFolderUseCase(folderRepository);
 const updateFolderUseCase = new UpdateFolderUseCase(folderRepository);
 const deleteFolderUseCase = new DeleteFolderUseCase(folderRepository);
+const permanentDeleteFolderUseCase = new PermanentDeleteFolderUseCase(
+  folderRepository,
+  fileRepository,
+  storageService,
+  userRepository
+);
 const restoreFolderUseCase = new RestoreFolderUseCase(folderRepository);
 const listFoldersUseCase = new ListFoldersUseCase(folderRepository);
 
@@ -72,12 +83,14 @@ const fileController = new FileController(
   uploadFileUseCase,
   downloadFileUseCase,
   deleteFileUseCase,
+  permanentDeleteFileUseCase,
   restoreFileUseCase,
   listFilesUseCase,
   updateFileUseCase,
   createFolderUseCase,
   updateFolderUseCase,
   deleteFolderUseCase,
+  permanentDeleteFolderUseCase,
   restoreFolderUseCase,
   listFoldersUseCase
 );
@@ -119,6 +132,19 @@ router.post(
   (req, res) => fileController.restore(req as any, res)
 );
 
+router.delete(
+  '/:id/permanent',
+  authenticate,
+  (req, res) => fileController.permanentDelete(req as any, res)
+);
+
+router.get(
+  '/trash',
+  authenticate,
+  validateQuery(listFilesQuerySchema),
+  (req, res) => fileController.listTrash(req as any, res)
+);
+
 router.get(
   '/',
   authenticate,
@@ -148,6 +174,13 @@ router.post(
 );
 
 router.get(
+  '/folders/trash',
+  authenticate,
+  validateQuery(listFoldersQuerySchema),
+  (req, res) => fileController.listTrashFolders(req as any, res)
+);
+
+router.get(
   '/folders',
   authenticate,
   validateQuery(listFoldersQuerySchema),
@@ -159,6 +192,12 @@ router.post(
   '/folders/:id/restore',
   authenticate,
   (req, res) => fileController.restoreFolder(req as any, res)
+);
+
+router.delete(
+  '/folders/:id/permanent',
+  authenticate,
+  (req, res) => fileController.permanentDeleteFolder(req as any, res)
 );
 
 router.patch(

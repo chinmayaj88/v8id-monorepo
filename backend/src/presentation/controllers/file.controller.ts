@@ -8,12 +8,14 @@ import { Response } from 'express';
 import { UploadFileUseCase } from '../../application/use-cases/upload-file.use-case';
 import { DownloadFileUseCase } from '../../application/use-cases/download-file.use-case';
 import { DeleteFileUseCase } from '../../application/use-cases/delete-file.use-case';
+import { PermanentDeleteFileUseCase } from '../../application/use-cases/permanent-delete-file.use-case';
 import { RestoreFileUseCase } from '../../application/use-cases/restore-file.use-case';
 import { ListFilesUseCase } from '../../application/use-cases/list-files.use-case';
 import { UpdateFileUseCase } from '../../application/use-cases/update-file.use-case';
 import { CreateFolderUseCase } from '../../application/use-cases/create-folder.use-case';
 import { UpdateFolderUseCase } from '../../application/use-cases/update-folder.use-case';
 import { DeleteFolderUseCase } from '../../application/use-cases/delete-folder.use-case';
+import { PermanentDeleteFolderUseCase } from '../../application/use-cases/permanent-delete-folder.use-case';
 import { RestoreFolderUseCase } from '../../application/use-cases/restore-folder.use-case';
 import { ListFoldersUseCase } from '../../application/use-cases/list-folders.use-case';
 import { UploadFileDTO, UpdateFileDTO, ListFilesDTO, CreateFolderDTO, UpdateFolderDTO, ListFoldersDTO } from '../../application/dtos/file.dto';
@@ -25,12 +27,14 @@ export class FileController {
     private uploadFileUseCase: UploadFileUseCase,
     private downloadFileUseCase: DownloadFileUseCase,
     private deleteFileUseCase: DeleteFileUseCase,
+    private permanentDeleteFileUseCase: PermanentDeleteFileUseCase,
     private restoreFileUseCase: RestoreFileUseCase,
     private listFilesUseCase: ListFilesUseCase,
     private updateFileUseCase: UpdateFileUseCase,
     private createFolderUseCase: CreateFolderUseCase,
     private updateFolderUseCase: UpdateFolderUseCase,
     private deleteFolderUseCase: DeleteFolderUseCase,
+    private permanentDeleteFolderUseCase: PermanentDeleteFolderUseCase,
     private restoreFolderUseCase: RestoreFolderUseCase,
     private listFoldersUseCase: ListFoldersUseCase
   ) {}
@@ -164,6 +168,42 @@ export class FileController {
   }
 
   /**
+   * GET /api/files/trash
+   * List deleted files (trash)
+   */
+  async listTrash(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const dto: ListFilesDTO = {
+        status: 'DELETED' as any, // Only show deleted files
+        type: req.query.type as any,
+        search: req.query.search as string | undefined,
+        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+        orderBy: req.query.orderBy as any,
+        orderDirection: req.query.orderDirection as 'asc' | 'desc' | undefined,
+      };
+
+      const result = await this.listFilesUseCase.execute(userId, dto);
+
+      ResponseUtil.successWithPagination(
+        res,
+        result.files,
+        {
+          page: result.page,
+          limit: result.limit,
+          total: result.total,
+          totalPages: result.totalPages,
+        },
+        'Trash files retrieved successfully'
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to list trash files';
+      ResponseUtil.error(res, 'LIST_TRASH_FILES_ERROR', message, 500);
+    }
+  }
+
+  /**
    * PATCH /api/files/:id
    * Update file metadata
    */
@@ -201,7 +241,7 @@ export class FileController {
 
   /**
    * DELETE /api/files/:id
-   * Delete a file (soft delete)
+   * Delete a file (soft delete - moves to trash)
    */
   async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -212,11 +252,10 @@ export class FileController {
         ResponseUtil.validationError(res, 'File ID is required');
         return;
       }
-      const hardDelete = req.query.hardDelete === 'true';
 
-      await this.deleteFileUseCase.execute(userId, fileId, hardDelete);
+      await this.deleteFileUseCase.execute(userId, fileId);
 
-      ResponseUtil.success(res, undefined, 'File deleted successfully');
+      ResponseUtil.success(res, undefined, 'File moved to trash successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete file';
       if (message.includes('not found')) {
@@ -225,6 +264,37 @@ export class FileController {
         ResponseUtil.forbidden(res, message);
       } else {
         ResponseUtil.error(res, 'DELETE_FILE_ERROR', message, 500);
+      }
+    }
+  }
+
+  /**
+   * DELETE /api/files/:id/permanent
+   * Permanently delete a file from trash
+   */
+  async permanentDelete(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const fileId = req.params.id as string;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
+
+      await this.permanentDeleteFileUseCase.execute(userId, fileId);
+
+      ResponseUtil.success(res, undefined, 'File permanently deleted successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to permanently delete file';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else if (message.includes('must be in trash')) {
+        ResponseUtil.validationError(res, message);
+      } else {
+        ResponseUtil.error(res, 'PERMANENT_DELETE_FILE_ERROR', message, 500);
       }
     }
   }
@@ -317,6 +387,41 @@ export class FileController {
   }
 
   /**
+   * GET /api/files/folders/trash
+   * List deleted folders (trash)
+   */
+  async listTrashFolders(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const dto: ListFoldersDTO = {
+        includeDeleted: true, // Only show deleted folders
+        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+      };
+
+      const result = await this.listFoldersUseCase.execute(userId, dto);
+
+      // Filter to only show deleted folders
+      const deletedFolders = result.folders.filter(folder => folder.isDeleted);
+
+      ResponseUtil.successWithPagination(
+        res,
+        deletedFolders,
+        {
+          page: result.page,
+          limit: result.limit,
+          total: deletedFolders.length,
+          totalPages: Math.ceil(deletedFolders.length / (result.limit || 20)),
+        },
+        'Trash folders retrieved successfully'
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to list trash folders';
+      ResponseUtil.error(res, 'LIST_TRASH_FOLDERS_ERROR', message, 500);
+    }
+  }
+
+  /**
    * PATCH /api/files/folders/:id
    * Update folder metadata
    */
@@ -353,7 +458,7 @@ export class FileController {
 
   /**
    * DELETE /api/files/folders/:id
-   * Delete a folder (soft delete)
+   * Delete a folder (soft delete - moves to trash)
    */
   async deleteFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -364,12 +469,11 @@ export class FileController {
         ResponseUtil.validationError(res, 'Folder ID is required');
         return;
       }
-      const hardDelete = req.query.hardDelete === 'true';
       const forceDelete = req.query.forceDelete === 'true';
 
-      await this.deleteFolderUseCase.execute(userId, folderId, hardDelete, forceDelete);
+      await this.deleteFolderUseCase.execute(userId, folderId, forceDelete);
 
-      ResponseUtil.success(res, undefined, 'Folder deleted successfully');
+      ResponseUtil.success(res, undefined, 'Folder moved to trash successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete folder';
       if (message.includes('not found')) {
@@ -378,6 +482,37 @@ export class FileController {
         ResponseUtil.forbidden(res, message);
       } else {
         ResponseUtil.error(res, 'DELETE_FOLDER_ERROR', message, 500);
+      }
+    }
+  }
+
+  /**
+   * DELETE /api/files/folders/:id/permanent
+   * Permanently delete a folder from trash
+   */
+  async permanentDeleteFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const folderId = req.params.id as string;
+
+      if (!folderId) {
+        ResponseUtil.validationError(res, 'Folder ID is required');
+        return;
+      }
+
+      await this.permanentDeleteFolderUseCase.execute(userId, folderId);
+
+      ResponseUtil.success(res, undefined, 'Folder permanently deleted successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to permanently delete folder';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else if (message.includes('must be in trash')) {
+        ResponseUtil.validationError(res, message);
+      } else {
+        ResponseUtil.error(res, 'PERMANENT_DELETE_FOLDER_ERROR', message, 500);
       }
     }
   }
