@@ -10,6 +10,8 @@ import { IPasswordService } from '../interfaces/password-service.interface';
 import { IJwtService } from '../interfaces/jwt-service.interface';
 import { IAuditLogService } from '../interfaces/audit-log-service.interface';
 import { IAccountLockoutService } from '../interfaces/account-lockout-service.interface';
+import { ISuspiciousActivityService } from '../interfaces/suspicious-activity-service.interface';
+import { IEmailService } from '../interfaces/email-service.interface';
 
 export interface VerifyCredentialsResult {
   requiresTotp: boolean;
@@ -35,7 +37,9 @@ export class VerifyCredentialsUseCase {
     private passwordService: IPasswordService,
     private jwtService: IJwtService,
     private auditLogService: IAuditLogService,
-    private accountLockoutService: IAccountLockoutService
+    private accountLockoutService: IAccountLockoutService,
+    private suspiciousActivityService: ISuspiciousActivityService,
+    private emailService: IEmailService
   ) {}
 
   async execute(
@@ -94,6 +98,27 @@ export class VerifyCredentialsUseCase {
         email: options?.email || email,
         errorMessage: 'Invalid password',
       });
+
+      const suspiciousActivity = await this.suspiciousActivityService.detectFailedLoginPattern(
+        user.id,
+        options?.ipAddress
+      );
+
+      if (suspiciousActivity.isSuspicious && suspiciousActivity.activityType === 'MULTIPLE_FAILED_LOGINS') {
+        try {
+          await this.emailService.sendSuspiciousActivityAlert(
+            user.email,
+            user.firstName,
+            suspiciousActivity.activityType,
+            suspiciousActivity.details || {},
+            new Date(),
+            options?.ipAddress
+          );
+        } catch (error) {
+          console.error('Failed to send suspicious activity alert:', error);
+        }
+      }
+
       throw new Error('Invalid credentials');
     }
 
