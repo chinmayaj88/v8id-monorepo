@@ -1,4 +1,4 @@
-import { FileStatus, FileType } from '../../domain/entities/file';
+import { FileStatus, FileType, StorageTier } from '../../domain/entities/file';
 
 export interface UploadFileDTO {
   folderId?: string | null;
@@ -6,6 +6,7 @@ export interface UploadFileDTO {
   description?: string;
   tags?: string[];
   metadata?: Record<string, unknown>;
+  storageTier?: StorageTier; // Storage tier selection: STANDARD (default) or ARCHIVE
 }
 
 export interface UpdateFileDTO {
@@ -66,6 +67,9 @@ export interface FileResponseDTO {
   size: number; 
   type: FileType;
   status: FileStatus;
+  storageTier?: StorageTier; // Storage tier: STANDARD or ARCHIVE
+  thumbnailUrl?: string; // Presigned URL for thumbnail
+  thumbnailGenerated: boolean; // Whether thumbnail exists
   description?: string;
   tags?: string[];
   metadata?: Record<string, unknown>;
