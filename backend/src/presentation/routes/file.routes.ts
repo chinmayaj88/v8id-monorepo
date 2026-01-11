@@ -60,7 +60,6 @@ import { validateBody, validateQuery, createFolderSchema, updateFolderSchema, up
 
 const router: IRouter = Router();
 
-// Initialize repositories and services
 const fileRepository = new FileRepository();
 const folderRepository = new FolderRepository();
 const uploadSessionRepository = new UploadSessionRepository();
@@ -70,7 +69,6 @@ const deviceSessionRepository = new DeviceSessionRepository();
 const jwtService = new JwtService();
 const storageService = new OciStorageService();
 
-// Initialize use cases
 const uploadFileUseCase = new UploadFileUseCase(
   fileRepository,
   folderRepository,
@@ -203,7 +201,6 @@ const permanentDeleteFolderUseCase = new PermanentDeleteFolderUseCase(
 const restoreFolderUseCase = new RestoreFolderUseCase(folderRepository);
 const listFoldersUseCase = new ListFoldersUseCase(folderRepository);
 
-// Initialize controller
 const fileController = new FileController(
   uploadFileUseCase,
   initiateUploadUseCase,
@@ -250,24 +247,18 @@ const fileController = new FileController(
   createFileVersionUseCase
 );
 
-// Configure multer for file uploads
-// Store files in memory (buffer) since we upload directly to OCI
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit (can be configured via env)
+    fileSize: 100 * 1024 * 1024,
   },
   fileFilter: (_req, _file, cb) => {
-    // Allow all file types for now (can be restricted if needed)
     cb(null, true);
   },
 });
 
-// Authentication middleware for all routes
 const authenticate = authMiddleware(userRepository, deviceSessionRepository, jwtService);
 
-// File routes
-// Small file upload (through backend)
 router.post(
   '/upload',
   authenticate,

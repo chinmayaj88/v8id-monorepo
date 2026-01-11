@@ -23,47 +23,38 @@ export function authMiddleware(
     next: NextFunction
   ): Promise<void> => {
     try {
-      // Extract token from Authorization header
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         ResponseUtil.unauthorized(res, 'Missing or invalid authorization header');
         return;
       }
 
-      const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+      const token = authHeader.substring(7);
 
-      // Verify token
       const payload = jwtService.verifyToken(token);
 
-      // Verify user exists and is active
       const user = await userRepository.findById(payload.userId);
       if (!user || !user.isUserActive()) {
         ResponseUtil.unauthorized(res, 'User not found or inactive');
         return;
       }
 
-      // TOKEN VERSIONING: Verify token version matches user's current version
-      // If password was changed, tokenVersion increments and old tokens become invalid
       if (payload.tokenVersion !== undefined && payload.tokenVersion !== user.tokenVersion) {
         ResponseUtil.unauthorized(res, 'Token has been invalidated. Please login again.');
         return;
       }
 
-      // CRITICAL: Verify session is still valid (not revoked)
-      // Check if the access token belongs to an active, non-revoked session
       const session = await deviceSessionRepository.findByAccessToken(token);
       if (!session || session.isRevoked || !session.isActive || session.expiresAt < new Date()) {
         ResponseUtil.unauthorized(res, 'Session has been revoked or expired. Please login again.');
         return;
       }
 
-      // Verify session belongs to the user from token
       if (session.userId !== payload.userId) {
         ResponseUtil.unauthorized(res, 'Session mismatch');
         return;
       }
 
-      // Attach user to request
       req.user = {
         id: user.id,
         email: user.email,

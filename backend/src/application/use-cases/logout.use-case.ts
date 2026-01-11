@@ -14,7 +14,6 @@ export class LogoutUseCase {
   ) {}
 
   async execute(sessionId: string, userId: string): Promise<void> {
-    // 1. Find session
     const sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(userId);
     const session = sessions.find((s) => s.id === sessionId);
 
@@ -22,15 +21,12 @@ export class LogoutUseCase {
       throw new Error('Session not found');
     }
 
-    // 2. Verify session belongs to user
     if (session.userId !== userId) {
       throw new Error('Unauthorized');
     }
 
-    // 3. Revoke session
     await this.deviceSessionRepository.revoke(sessionId);
 
-    // 4. Log logout
     await this.auditLogService.logLogout(userId, {
       sessionId,
     });

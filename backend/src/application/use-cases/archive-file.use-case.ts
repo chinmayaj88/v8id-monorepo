@@ -15,23 +15,19 @@ export class ArchiveFileUseCase {
   ) {}
 
   async execute(userId: string, fileId: string): Promise<FileResponseDTO> {
-    // 1. Find file
     const file = await this.fileRepository.findById(fileId);
     if (!file) {
       throw new Error('File not found');
     }
 
-    // 2. Verify ownership
     if (file.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Verify file can be archived (must be active)
     if (!file.canBeArchived()) {
       throw new Error('File cannot be archived. Only active files can be archived.');
     }
 
-    // 4. Archive file
     const archivedFile = await this.fileRepository.update(fileId, {
       status: FileStatus.ARCHIVED,
     });

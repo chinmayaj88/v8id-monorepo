@@ -16,7 +16,7 @@ export interface InitiateUploadDTO {
   fileSize: number;
   mimeType: string;
   folderId?: string | null;
-  chunkSize?: number; // Optional, defaults to 5MB
+  chunkSize?: number;
 }
 
 export interface InitiateUploadResult {
@@ -24,20 +24,14 @@ export interface InitiateUploadResult {
   uploadMethod: 'DIRECT' | 'BACKEND';
   chunkSize: number;
   totalChunks: number;
-  parUrl?: string; // Only for DIRECT uploads
-  virusScanWarning?: boolean; // true for large files that can't be scanned
-  message?: string; // Warning message for large files
+  parUrl?: string;
+  virusScanWarning?: boolean;
+  message?: string;
 }
 
 export class InitiateUploadUseCase {
-  // File size threshold: files larger than this use direct upload (via PAR)
-  // Default: 10MB (10 * 1024 * 1024)
   private readonly DIRECT_UPLOAD_THRESHOLD = BigInt(process.env.DIRECT_UPLOAD_THRESHOLD_BYTES || '10485760');
-  
-  // Default chunk size: 5MB (5 * 1024 * 1024)
   private readonly DEFAULT_CHUNK_SIZE = parseInt(process.env.UPLOAD_CHUNK_SIZE_BYTES || '5242880', 10);
-  
-  // Session expiration: 24 hours
   private readonly SESSION_EXPIRATION_HOURS = parseInt(process.env.UPLOAD_SESSION_EXPIRATION_HOURS || '24', 10);
 
   constructor(
@@ -48,13 +42,11 @@ export class InitiateUploadUseCase {
   ) {}
 
   async execute(userId: string, dto: InitiateUploadDTO): Promise<InitiateUploadResult> {
-    // 1. Verify user exists and is active
     const user = await this.userRepository.findById(userId);
     if (!user || !user.isUserActive()) {
       throw new Error('User not found or inactive');
     }
 
-    // 2. Check storage quota
     const fileSize = BigInt(dto.fileSize);
     if (user.hasExceededStorageQuota()) {
       throw new Error('Storage quota exceeded');
@@ -65,7 +57,6 @@ export class InitiateUploadUseCase {
       throw new Error(`Insufficient storage. Available: ${this.formatBytes(Number(availableStorage))}, Required: ${this.formatBytes(dto.fileSize)}`);
     }
 
-    // 3. Validate folder if provided
     if (dto.folderId) {
       const folder = await this.folderRepository.findById(dto.folderId);
       if (!folder || folder.userId !== userId || !folder.isActive()) {
@@ -73,20 +64,16 @@ export class InitiateUploadUseCase {
       }
     }
 
-    // 4. Determine upload method based on file size
     const useDirectUpload = fileSize >= this.DIRECT_UPLOAD_THRESHOLD;
     const uploadMethod = useDirectUpload ? UploadMethod.DIRECT : UploadMethod.BACKEND;
     
-    // 5. Calculate chunk size and total chunks
     const chunkSize = dto.chunkSize || this.DEFAULT_CHUNK_SIZE;
     const totalChunks = Math.ceil(Number(fileSize) / chunkSize);
 
-    // 6. Generate OCI object name
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const ociObjectName = `users/${userId}/files/${timestamp}-${randomString}-${dto.fileName}`;
 
-    // 7. Create PAR if using direct upload
     let parUrl: string | undefined;
     let parId: string | undefined;
     
@@ -95,7 +82,7 @@ export class InitiateUploadUseCase {
         const parResult = await this.storageService.createPreAuthenticatedRequest({
           objectName: ociObjectName,
           expiresInHours: this.SESSION_EXPIRATION_HOURS,
-          accessType: 'ObjectWrite', // Write-only for uploads
+          accessType: 'ObjectWrite',
         });
         parUrl = parResult.parUrl;
         parId = parResult.parId;
@@ -104,7 +91,6 @@ export class InitiateUploadUseCase {
       }
     }
 
-    // 8. Create upload session
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + this.SESSION_EXPIRATION_HOURS);
 
@@ -123,7 +109,6 @@ export class InitiateUploadUseCase {
       expiresAt,
     });
 
-    // 9. Prepare result
     const result: InitiateUploadResult = {
       sessionId: session.id,
       uploadMethod: uploadMethod as 'DIRECT' | 'BACKEND',

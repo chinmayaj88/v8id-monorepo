@@ -23,14 +23,11 @@ export class ListSharedFilesUseCase {
   ) {}
 
   async execute(userId: string): Promise<ListSharedFilesResult> {
-    // 1. Get all shares for user
     const shares = await this.fileShareRepository.findBySharedWith(userId);
 
-    // 2. Separate file and folder shares
     const fileShares = shares.filter(s => s.isFileShare());
     const folderShares = shares.filter(s => s.isFolderShare());
 
-    // 3. Fetch files
     const files: FileResponseDTO[] = [];
     for (const share of fileShares) {
       if (share.fileId) {
@@ -57,7 +54,6 @@ export class ListSharedFilesUseCase {
       }
     }
 
-    // 4. Fetch folders
     const folders: FolderResponseDTO[] = [];
     for (const share of folderShares) {
       if (share.folderId) {

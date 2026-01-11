@@ -31,12 +31,10 @@ export class CreateFileCommentUseCase {
   ) {}
 
   async execute(userId: string, dto: CreateFileCommentDTO): Promise<FileCommentResponse> {
-    // 1. Validate that either fileId or folderId is provided
     if ((!dto.fileId && !dto.folderId) || (dto.fileId && dto.folderId)) {
       throw new Error('Either fileId or folderId must be provided, but not both');
     }
 
-    // 2. Validate content
     if (!dto.content || dto.content.trim().length === 0) {
       throw new Error('Comment content is required');
     }
@@ -45,7 +43,6 @@ export class CreateFileCommentUseCase {
       throw new Error('Comment content must be less than 5000 characters');
     }
 
-    // 3. Verify file/folder exists and user has access
     if (dto.fileId) {
       const file = await this.fileRepository.findById(dto.fileId);
       if (!file || file.userId !== userId) {
@@ -58,7 +55,6 @@ export class CreateFileCommentUseCase {
       }
     }
 
-    // 4. Create comment
     const comment = await prisma.fileComment.create({
       data: {
         userId,

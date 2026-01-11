@@ -29,10 +29,8 @@ import {
 
 const router: IRouter = Router();
 
-// Initialize services
 const passwordService = new PasswordService(parseInt(process.env.BCRYPT_ROUNDS || '12', 10));
 
-// Initialize repositories
 const userRepository = new UserRepository();
 const totpBackupCodeRepository = new TotpBackupCodeRepository(passwordService);
 const deviceSessionRepository = new DeviceSessionRepository();
@@ -42,7 +40,6 @@ const jwtService = new JwtService();
 const auditLogService = new AuditLogService(auditLogRepository);
 const emailService = EmailServiceFactory.create();
 
-// Initialize use cases
 const createUserUseCase = new CreateUserUseCase(
   userRepository,
   totpBackupCodeRepository,
@@ -51,7 +48,6 @@ const createUserUseCase = new CreateUserUseCase(
   totpService
 );
 
-// Initialize controller
 const userController = new UserController(
   createUserUseCase,
   userRepository,
@@ -59,8 +55,6 @@ const userController = new UserController(
   auditLogService
 );
 
-// Routes
-// Admin-only routes
 router.post(
   '/',
   authMiddleware(userRepository, deviceSessionRepository, jwtService),

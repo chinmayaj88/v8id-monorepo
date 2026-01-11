@@ -41,7 +41,6 @@ export class StorageAnalyticsUseCase {
   ) {}
 
   async execute(userId: string): Promise<StorageAnalyticsResult> {
-    // 1. Get user storage info
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new Error('User not found');
@@ -51,13 +50,10 @@ export class StorageAnalyticsUseCase {
     const usedStorage = Number(user.storageUsed);
     const availableStorage = totalStorage - usedStorage;
 
-    // 2. Get breakdown by file type
     const breakdownByType = await this.getBreakdownByType(userId, usedStorage);
 
-    // 3. Get folder usage
     const folderUsage = await this.getFolderUsage(userId, usedStorage);
 
-    // 4. Get recent activity (last 30 days)
     const recentActivity = await this.getRecentActivity(userId);
 
     return {

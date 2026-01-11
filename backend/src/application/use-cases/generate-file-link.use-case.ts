@@ -34,12 +34,10 @@ export class GenerateFileLinkUseCase {
   ) {}
 
   async execute(userId: string, dto: GenerateFileLinkDTO): Promise<FileLinkResponse> {
-    // 1. Validate that either fileId or folderId is provided
     if ((!dto.fileId && !dto.folderId) || (dto.fileId && dto.folderId)) {
       throw new Error('Either fileId or folderId must be provided, but not both');
     }
 
-    // 2. Verify file/folder exists and user has access
     let ociObjectName: string | null = null;
     if (dto.fileId) {
       const file = await this.fileRepository.findById(dto.fileId);
@@ -55,20 +53,15 @@ export class GenerateFileLinkUseCase {
       if (!folder || folder.userId !== userId) {
         throw new Error('Folder not found or access denied');
       }
-      // For folders, we'd need to create a zip or handle differently
-      // For now, throw error (folder links not fully supported)
       throw new Error('Folder links not yet supported');
     }
 
-    // 3. Generate link token
     const linkToken = randomBytes(32).toString('hex');
 
-    // 4. Calculate expiration
     const expiresInHours = dto.expiresInHours || 24;
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + expiresInHours);
 
-    // 5. Generate PAR for direct access
     let parUrl: string | undefined;
     let parId: string | undefined;
     if (ociObjectName) {
@@ -85,7 +78,6 @@ export class GenerateFileLinkUseCase {
       }
     }
 
-    // 6. Create link record
     const link = await prisma.fileLink.create({
       data: {
         userId,
@@ -101,7 +93,6 @@ export class GenerateFileLinkUseCase {
       },
     });
 
-    // 7. Construct public link URL (would be something like /api/files/link/:token)
     const linkUrl = `/api/files/link/${linkToken}`;
 
     return {

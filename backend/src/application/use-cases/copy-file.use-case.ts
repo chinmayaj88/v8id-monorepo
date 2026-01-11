@@ -24,23 +24,19 @@ export class CopyFileUseCase {
   ) {}
 
   async execute(userId: string, fileId: string, dto: CopyFileDTO): Promise<FileResponseDTO> {
-    // 1. Find source file
     const sourceFile = await this.fileRepository.findById(fileId);
     if (!sourceFile) {
       throw new Error('File not found');
     }
 
-    // 2. Verify ownership
     if (sourceFile.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Verify file is active
     if (!sourceFile.isActive()) {
       throw new Error('Cannot copy deleted or archived files');
     }
 
-    // 4. Validate target folder if provided
     const targetFolderId = dto.targetFolderId !== undefined ? dto.targetFolderId : sourceFile.folderId;
     if (targetFolderId) {
       const folder = await this.folderRepository.findById(targetFolderId);
@@ -49,7 +45,6 @@ export class CopyFileUseCase {
       }
     }
 
-    // 5. Check storage quota
     const user = await this.userRepository.findById(userId);
     if (!user || !user.isUserActive()) {
       throw new Error('User not found or inactive');
@@ -60,7 +55,6 @@ export class CopyFileUseCase {
       throw new Error('Insufficient storage to copy file');
     }
 
-    // 6. Determine new name
     let newName = dto.newName || sourceFile.name;
     const nameExists = await this.fileRepository.nameExistsInFolder(userId, targetFolderId, newName);
     if (nameExists) {
@@ -70,7 +64,6 @@ export class CopyFileUseCase {
       newName = ext ? `${baseName}-copy-${timestamp}.${ext}` : `${baseName}-copy-${timestamp}`;
     }
 
-    // 7. Copy file in storage
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
     const newOciObjectName = `users/${userId}/files/${timestamp}-${randomString}-${newName}`;
@@ -81,7 +74,6 @@ export class CopyFileUseCase {
       throw new Error(`Failed to copy file in storage: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    // 8. Create new file record
     const newFile = await this.fileRepository.create({
       userId,
       folderId: targetFolderId,
@@ -92,13 +84,12 @@ export class CopyFileUseCase {
       type: sourceFile.type,
       status: sourceFile.status,
       ociObjectName: newOciObjectName,
-      hash: sourceFile.hash, // Same hash (same content)
+      hash: sourceFile.hash,
       description: sourceFile.description,
       tags: sourceFile.tags,
       metadata: sourceFile.metadata,
     });
 
-    // 9. Update user storage
     const currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
     await this.userRepository.update(userId, {
       storageUsed: currentStorageUsed,

@@ -37,23 +37,19 @@ export class RegenerateBackupCodesUseCase {
       userAgent?: string;
     }
   ): Promise<RegenerateBackupCodesResult> {
-    // 1. Get user
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-    // 2. Check if user is active
     if (!user.isUserActive()) {
       throw new Error('Account is inactive');
     }
 
-    // 3. Verify TOTP is enabled
     if (!user.totpSecret) {
       throw new Error('TOTP is not enabled for this account');
     }
 
-    // 4. Verify password
     const isPasswordValid = await this.passwordService.verifyPassword(
       dto.password,
       user.passwordHash
@@ -70,7 +66,6 @@ export class RegenerateBackupCodesUseCase {
       throw new Error('Invalid password');
     }
 
-    // 5. Verify TOTP code
     const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
     let totpSecret: string;
     try {
@@ -81,7 +76,6 @@ export class RegenerateBackupCodesUseCase {
 
     const isTotpValid = this.totpService.verifyTotp(dto.totpCode, totpSecret);
     if (!isTotpValid) {
-      // Also check backup codes (user might be using a backup code to regenerate)
       const isBackupCodeValid = await this.totpBackupCodeRepository.verifyAndUseCode(
         userId,
         dto.totpCode
@@ -99,21 +93,17 @@ export class RegenerateBackupCodesUseCase {
       }
     }
 
-    // 6. Generate new backup codes
     const newBackupCodes = this.totpService.generateBackupCodes(10);
 
-    // 7. Hash backup codes for storage
     const hashedBackupCodes = await Promise.all(
       newBackupCodes.map(async (code) => {
         return await this.passwordService.hashPassword(code);
       })
     );
 
-    // 8. Delete old backup codes and create new ones
     await this.totpBackupCodeRepository.deleteAllForUser(user.id);
     await this.totpBackupCodeRepository.createCodes(user.id, hashedBackupCodes);
 
-    // 9. Log successful regeneration
     await this.auditLogService.logEvent({
       userId: user.id,
       eventType: 'BACKUP_CODES_REGENERATED',

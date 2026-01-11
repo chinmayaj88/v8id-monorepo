@@ -32,38 +32,29 @@ export class CompleteUploadUseCase {
   ) {}
 
   async execute(userId: string, dto: CompleteUploadDTO): Promise<FileResponseDTO> {
-    // 1. Find upload session
     const session = await this.uploadSessionRepository.findById(dto.sessionId);
     if (!session) {
       throw new Error('Upload session not found');
     }
 
-    // 2. Verify ownership
     if (session.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Verify session is not expired
     if (session.isExpired()) {
       throw new Error('Upload session has expired');
     }
 
-    // 4. Verify all chunks are uploaded
     if (!session.isFullyUploaded()) {
       throw new Error(`Upload incomplete. ${session.uploadedChunks}/${session.totalChunks} chunks uploaded.`);
     }
 
-    // 5. For direct uploads, verify file exists in storage
-    // For backend uploads, chunks are accumulated and file is already in storage
     if (session.isDirectUpload() && session.ociObjectName) {
       const exists = await this.storageService.fileExists(session.ociObjectName);
       if (!exists) {
         throw new Error('File not found in storage. Upload may have failed.');
       }
     } else if (session.isBackendUpload()) {
-      // For backend uploads, verify file exists (should have been uploaded incrementally)
-      // In a production system with proper chunk storage, you'd combine chunks here
-      // For now, we verify the file exists (assuming it was uploaded as chunks were received)
       if (session.ociObjectName) {
         const exists = await this.storageService.fileExists(session.ociObjectName);
         if (!exists) {
@@ -72,7 +63,6 @@ export class CompleteUploadUseCase {
       }
     }
 
-    // 6. Calculate file hash (download from storage and hash)
     let fileHash: string;
     if (session.ociObjectName) {
       try {
@@ -85,30 +75,23 @@ export class CompleteUploadUseCase {
       throw new Error('OCI object name not set in upload session');
     }
 
-    // 7. Check for duplicate file (same hash and user)
     const existingFile = await this.fileRepository.findByHash(fileHash, userId);
     if (existingFile && existingFile.isActive()) {
-      // File already exists - delete the uploaded file and return existing
       try {
         await this.storageService.deleteFile(session.ociObjectName!);
       } catch (error) {
         console.warn('Failed to delete duplicate file from storage:', error);
       }
       
-      // Clean up session
       await this.uploadSessionRepository.delete(session.id);
       
-      // Return existing file
       return this.fileToDto(existingFile);
     }
 
-    // 8. Determine file type
     const fileType = this.determineFileType(session.mimeType);
 
-    // 9. Determine display name
     const displayName = dto.name || session.fileName;
 
-    // 10. Check if file name already exists in folder
     const nameExists = await this.fileRepository.nameExistsInFolder(userId, session.folderId, displayName);
     let finalName = displayName;
     if (nameExists) {
@@ -118,7 +101,6 @@ export class CompleteUploadUseCase {
       finalName = ext ? `${baseName}-${timestamp}.${ext}` : `${baseName}-${timestamp}`;
     }
 
-    // 11. Create file record
     let file: File;
     try {
       file = await this.fileRepository.create({
@@ -137,7 +119,6 @@ export class CompleteUploadUseCase {
         metadata: dto.metadata,
       });
     } catch (error) {
-      // Rollback: delete from storage if database creation fails
       try {
         await this.storageService.deleteFile(session.ociObjectName!);
       } catch (deleteError) {
@@ -146,19 +127,16 @@ export class CompleteUploadUseCase {
       throw new Error(`Failed to create file record: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    // 12. Update session as completed and link to file
     await this.uploadSessionRepository.update(session.id, {
       isCompleted: true,
       hash: fileHash,
     });
 
-    // 13. Update user storage used
     const currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
     await this.userRepository.update(userId, {
       storageUsed: currentStorageUsed,
     });
 
-    // 14. Clean up PAR if it was used
     if (session.parId) {
       try {
         await this.storageService.deletePreAuthenticatedRequest(session.parId);

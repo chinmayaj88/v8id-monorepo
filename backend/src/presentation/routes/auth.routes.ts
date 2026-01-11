@@ -41,10 +41,8 @@ import {
 
 const router: IRouter = Router();
 
-// Initialize services
 const passwordService = new PasswordService(parseInt(process.env.BCRYPT_ROUNDS || '12', 10));
 
-// Initialize repositories
 const userRepository = new UserRepository();
 const deviceSessionRepository = new DeviceSessionRepository();
 const auditLogRepository = new AuditLogRepository();
@@ -53,9 +51,8 @@ const jwtService = new JwtService();
 const totpService = new TotpService();
 const auditLogService = new AuditLogService(auditLogRepository);
 const accountLockoutService = new AccountLockoutService(auditLogRepository);
-const emailService: IEmailService = EmailServiceFactory.create(); // Clean Architecture: Factory creates implementation
+const emailService: IEmailService = EmailServiceFactory.create();
 
-// Initialize use cases
 const verifyCredentialsUseCase = new VerifyCredentialsUseCase(
   userRepository,
   passwordService,
@@ -109,7 +106,6 @@ const resetupTotpUseCase = new ResetupTotpUseCase(
   auditLogService
 );
 
-// Initialize controller
 const authController = new AuthController(
   verifyCredentialsUseCase,
   verifyTotpLoginUseCase,
@@ -122,7 +118,6 @@ const authController = new AuthController(
   resetupTotpUseCase
 );
 
-// Routes
 router.post(
   '/verify-credentials',
   authRateLimiter,

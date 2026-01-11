@@ -12,7 +12,7 @@ import { RefreshTokenDTO } from '../dtos/auth.dto';
 
 export interface RefreshTokenResult {
   accessToken: string;
-  refreshToken: string; // New rotated refresh token
+  refreshToken: string;
   expiresIn: number;
 }
 
@@ -25,7 +25,6 @@ export class RefreshTokenUseCase {
   ) {}
 
   async execute(dto: RefreshTokenDTO): Promise<RefreshTokenResult> {
-    // 1. Verify refresh token
     let payload;
     try {
       payload = this.jwtService.verifyToken(dto.refreshToken);
@@ -33,7 +32,6 @@ export class RefreshTokenUseCase {
       throw new Error('Invalid or expired refresh token');
     }
 
-    // 2. Find device session by refresh token
     const session = await this.deviceSessionRepository.findByRefreshToken(
       dto.refreshToken
     );
@@ -41,28 +39,23 @@ export class RefreshTokenUseCase {
       throw new Error('Session not found');
     }
 
-    // 3. Check if session is active and not revoked
     if (!session.isActive || session.isRevoked) {
       throw new Error('Session is revoked');
     }
 
-    // 4. Check if session is expired
     if (session.expiresAt < new Date()) {
       throw new Error('Session expired');
     }
 
-    // 5. Get user to get current tokenVersion
     const user = await this.userRepository.findById(payload.userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-    // 6. Verify token version matches (password change invalidates tokens)
     if (payload.tokenVersion !== undefined && payload.tokenVersion !== user.tokenVersion) {
       throw new Error('Token has been invalidated. Please login again.');
     }
 
-    // 7. Generate new tokens (TOKEN ROTATION: rotate both access and refresh tokens)
     const tokenPayload = {
       userId: user.id,
       email: user.email,
@@ -71,18 +64,16 @@ export class RefreshTokenUseCase {
     };
 
     const accessToken = this.jwtService.generateAccessToken(tokenPayload);
-    const refreshToken = this.jwtService.generateRefreshToken(tokenPayload); // New refresh token
+    const refreshToken = this.jwtService.generateRefreshToken(tokenPayload);
     const expiresIn = this.jwtService.getAccessTokenExpirationSeconds();
 
-    // 8. Update session with new tokens (token rotation)
     await this.deviceSessionRepository.updateTokens(session.id, accessToken, refreshToken);
 
-    // 9. Log successful token refresh
     await this.auditLogService.logTokenRefresh(user.id, true);
 
     return {
       accessToken,
-      refreshToken, // Return new refresh token
+      refreshToken,
       expiresIn,
     };
   }

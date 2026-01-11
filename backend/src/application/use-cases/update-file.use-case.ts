@@ -16,23 +16,19 @@ export class UpdateFileUseCase {
   ) {}
 
   async execute(userId: string, fileId: string, dto: UpdateFileDTO): Promise<FileResponseDTO> {
-    // 1. Find file
     const file = await this.fileRepository.findById(fileId);
     if (!file) {
       throw new Error('File not found');
     }
 
-    // 2. Verify ownership
     if (file.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Verify file is active
     if (!file.isActive()) {
       throw new Error('Cannot update deleted file');
     }
 
-    // 4. Validate folder if being changed
     if (dto.folderId !== undefined && dto.folderId !== file.folderId) {
       if (dto.folderId !== null) {
         const folder = await this.folderRepository.findById(dto.folderId);
@@ -42,7 +38,6 @@ export class UpdateFileUseCase {
       }
     }
 
-    // 5. Check if new name already exists in target folder
     if (dto.name && dto.name !== file.name) {
       const targetFolderId = dto.folderId !== undefined ? dto.folderId : file.folderId;
       const nameExists = await this.fileRepository.nameExistsInFolder(userId, targetFolderId, dto.name);
@@ -51,7 +46,6 @@ export class UpdateFileUseCase {
       }
     }
 
-    // 6. Update file
     const updatedFile = await this.fileRepository.update(fileId, {
       name: dto.name,
       folderId: dto.folderId,

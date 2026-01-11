@@ -29,15 +29,11 @@ export class GetFileActivityUseCase {
   ) {}
 
   async execute(userId: string, fileId: string): Promise<GetFileActivityResult> {
-    // 1. Verify file exists and user has access
     const file = await this.fileRepository.findById(fileId);
     if (!file || file.userId !== userId) {
       throw new Error('File not found or access denied');
     }
 
-    // 2. Get audit logs related to this file
-    // Note: Prisma/MySQL doesn't support JSON path queries directly
-    // We fetch all file-related events and filter by eventData.fileId in memory
     const allAuditLogs = await prisma.auditLog.findMany({
       where: {
         userId,
@@ -57,10 +53,9 @@ export class GetFileActivityUseCase {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 500, // Fetch more to filter, then limit
+      take: 500,
     });
 
-    // Filter by fileId in eventData
     const auditLogs = allAuditLogs.filter(log => {
       if (!log.eventData || typeof log.eventData !== 'object') return false;
       const eventData = log.eventData as Record<string, unknown>;

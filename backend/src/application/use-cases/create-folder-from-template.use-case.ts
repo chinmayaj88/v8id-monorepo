@@ -21,7 +21,6 @@ export class CreateFolderFromTemplateUseCase {
   ) {}
 
   async execute(userId: string, dto: CreateFolderFromTemplateDTO): Promise<string> {
-    // 1. Find template
     const template = await prisma.folderTemplate.findUnique({
       where: { id: dto.templateId },
     });
@@ -30,12 +29,10 @@ export class CreateFolderFromTemplateUseCase {
       throw new Error('Template not found');
     }
 
-    // 2. Verify template belongs to user (or is public - can be extended)
     if (template.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Create folder from template structure
     const structure = template.structure as any;
     const folderName = dto.name || structure.name;
 
@@ -46,7 +43,6 @@ export class CreateFolderFromTemplateUseCase {
       color: structure.color,
     });
 
-    // 4. Recursively create subfolders
     if (structure.folders && Array.isArray(structure.folders)) {
       await this.createSubfolders(userId, rootFolder.id, structure.folders);
     }

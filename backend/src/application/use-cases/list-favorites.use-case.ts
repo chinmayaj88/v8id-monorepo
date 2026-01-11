@@ -22,16 +22,13 @@ export class ListFavoritesUseCase {
   ) {}
 
   async execute(userId: string): Promise<ListFavoritesResult> {
-    // 1. Get all favorites
     const favorites = await prisma.fileFavorite.findMany({
       where: { userId },
     });
 
-    // 2. Separate file and folder favorites
     const fileFavorites = favorites.filter(f => f.fileId);
     const folderFavorites = favorites.filter(f => f.folderId);
 
-    // 3. Fetch files
     const files: FileResponseDTO[] = [];
     for (const favorite of fileFavorites) {
       if (favorite.fileId) {
@@ -58,7 +55,6 @@ export class ListFavoritesUseCase {
       }
     }
 
-    // 4. Fetch folders
     const folders: FolderResponseDTO[] = [];
     for (const favorite of folderFavorites) {
       if (favorite.folderId) {

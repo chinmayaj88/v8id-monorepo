@@ -13,18 +13,15 @@ export class GetFolderUseCase {
   ) {}
 
   async execute(userId: string, folderId: string): Promise<FolderResponseDTO> {
-    // 1. Find folder
     const folder = await this.folderRepository.findById(folderId);
     if (!folder) {
       throw new Error('Folder not found');
     }
 
-    // 2. Verify ownership
     if (folder.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Return folder DTO
     return {
       id: folder.id,
       userId: folder.userId,

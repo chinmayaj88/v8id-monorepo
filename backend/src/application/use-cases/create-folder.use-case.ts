@@ -14,7 +14,6 @@ export class CreateFolderUseCase {
   ) {}
 
   async execute(userId: string, dto: CreateFolderDTO): Promise<FolderResponseDTO> {
-    // 1. Validate folder name
     if (!dto.name || dto.name.trim().length === 0) {
       throw new Error('Folder name is required');
     }
@@ -23,7 +22,6 @@ export class CreateFolderUseCase {
       throw new Error('Folder name must be less than 255 characters');
     }
 
-    // 2. Validate parent folder if provided
     if (dto.parentId) {
       const parent = await this.folderRepository.findById(dto.parentId);
       if (!parent || parent.userId !== userId || !parent.isActive()) {
@@ -31,13 +29,11 @@ export class CreateFolderUseCase {
       }
     }
 
-    // 3. Check if folder name already exists in parent
     const nameExists = await this.folderRepository.nameExistsInParent(userId, dto.parentId || null, dto.name);
     if (nameExists) {
       throw new Error('Folder with this name already exists in the parent folder');
     }
 
-    // 4. Create folder
     const folder = await this.folderRepository.create({
       userId,
       parentId: dto.parentId || null,

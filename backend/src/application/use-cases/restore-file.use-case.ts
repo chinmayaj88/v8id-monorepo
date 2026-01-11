@@ -16,45 +16,34 @@ export class RestoreFileUseCase {
   ) {}
 
   async execute(userId: string, fileId: string): Promise<FileResponseDTO> {
-    // 1. Find file
     const file = await this.fileRepository.findById(fileId);
     if (!file) {
       throw new Error('File not found');
     }
 
-    // 2. Verify ownership
     if (file.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Verify file can be restored
     if (!file.canBeRestored()) {
       throw new Error('File cannot be restored. Only deleted files can be restored.');
     }
 
-    // 4. Verify user exists and is active
     const user = await this.userRepository.findById(userId);
     if (!user || !user.isUserActive()) {
       throw new Error('User not found or inactive');
     }
 
-    // 5. Check if restoring would exceed storage quota
     const currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
     const fileSize = file.size;
     const availableStorage = user.getAvailableStorage();
     
-    // If file was soft deleted, storage wasn't actually freed, so we need to check
-    // if adding this file back (if it wasn't already counted) would exceed quota
-    // Actually, since it's soft delete, storageUsed should still include it, so we can restore safely
-    // But let's double-check available storage just in case
     if (currentStorageUsed + fileSize > user.storageQuota) {
       throw new Error(`Cannot restore file. Restoring would exceed storage quota. Available: ${this.formatBytes(Number(availableStorage))}, File size: ${this.formatBytes(Number(fileSize))}`);
     }
 
-    // 6. Restore file
     const restoredFile = await this.fileRepository.restore(fileId);
 
-    // 7. Update user storage used (recalculate to ensure accuracy)
     const updatedStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
     await this.userRepository.update(userId, {
       storageUsed: updatedStorageUsed,

@@ -30,12 +30,10 @@ import { ResponseUtil } from '../utils/response.util';
 export function validateBody<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      // Validate and transform the request body
       req.body = schema.parse(req.body);
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        // Format Zod errors into a user-friendly response
         const errors = error.issues.map((err) => ({
           field: err.path.join('.'),
           message: err.message,
@@ -45,7 +43,6 @@ export function validateBody<T>(schema: z.ZodSchema<T>) {
         return;
       }
 
-      // Handle unexpected errors
       ResponseUtil.internalError(res, 'Validation failed');
     }
   };
@@ -57,7 +54,6 @@ export function validateBody<T>(schema: z.ZodSchema<T>) {
 export function validateQuery<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      // Validate and transform the query parameters
       req.query = schema.parse(req.query) as any;
       next();
     } catch (error) {
@@ -82,7 +78,6 @@ export function validateQuery<T>(schema: z.ZodSchema<T>) {
 export function validateParams<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     try {
-      // Validate and transform the route parameters
       req.params = schema.parse(req.params) as any;
       next();
     } catch (error) {

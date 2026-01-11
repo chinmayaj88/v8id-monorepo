@@ -57,36 +57,29 @@ export class VerifyTotpLoginUseCase {
   ): Promise<VerifyTotpLoginResult> {
     const ipAddress = options?.ipAddress;
     const userAgent = options?.userAgent;
-    // 1. Verify temporary token (expires in 5 minutes for security)
     let tokenPayload;
     try {
       tokenPayload = this.jwtService.verifyToken(dto.tempToken);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Invalid or expired token';
-      // Check if token is expired (JWT throws specific errors for expiration)
       if (errorMessage.includes('expired') || errorMessage.includes('jwt expired')) {
         throw new Error('Temporary token has expired. Please verify credentials again.');
       }
       throw new Error('Invalid or expired temporary token');
     }
 
-    // 2. Get user
     const user = await this.userRepository.findById(tokenPayload.userId);
     if (!user) {
       throw new Error('User not found');
     }
 
-    // 3. Check if user is active
     if (!user.isUserActive()) {
       throw new Error('Account is inactive');
     }
 
-    // 4. Verify TOTP is set up (TOTP is mandatory)
     if (!user.totpSecret) {
       throw new Error('TOTP is not set up for this account');
     }
-
-    // 5. Verify TOTP code
 
     const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
     let totpSecret: string;
@@ -101,23 +94,18 @@ export class VerifyTotpLoginUseCase {
       throw new Error('Invalid TOTP code');
     }
 
-    // 6. If TOTP was not verified before, mark it as verified now
     if (!user.totpVerified) {
       await this.userRepository.update(user.id, {
         totpVerified: true,
       });
     }
 
-    // 7. Check device limits and detect new device
     const activeSessions = await this.deviceSessionRepository.findActiveSessionsByUserId(user.id);
     const mobileCount = await this.deviceSessionRepository.countActiveSessionsByType(user.id, 'MOBILE');
     const webCount = await this.deviceSessionRepository.countActiveSessionsByType(user.id, 'WEB');
 
-    // Check if this is a new device (before creating session)
-    // A device is "new" if no active session exists with this deviceId
     const isNewDevice = !activeSessions.some((s) => s.deviceId === dto.deviceId);
 
-    // Enforce limits: 2 mobile + 1 web
     if (dto.deviceType === 'MOBILE' && mobileCount >= 2) {
       const mobileSessions = activeSessions
         .filter((s) => s.deviceType === 'MOBILE')
@@ -132,7 +120,6 @@ export class VerifyTotpLoginUseCase {
       }
     }
 
-    // 8. Generate tokens (include tokenVersion for invalidation on password change)
     const finalTokenPayload = {
       userId: user.id,
       email: user.email,
@@ -144,11 +131,9 @@ export class VerifyTotpLoginUseCase {
     const refreshToken = this.jwtService.generateRefreshToken(finalTokenPayload);
     const expiresIn = this.jwtService.getAccessTokenExpirationSeconds();
 
-    // 9. Calculate expiration date for refresh token (7 days)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
-    // 10. Create device session
     const deviceSession = await this.deviceSessionRepository.create({
       userId: user.id,
       deviceType: dto.deviceType,
@@ -162,12 +147,10 @@ export class VerifyTotpLoginUseCase {
       expiresAt,
     });
 
-    // 11. Update user's last login time
     await this.userRepository.update(user.id, {
       lastLoginAt: new Date(),
     });
 
-    // 12. Send new device login alert if this is a new device (non-blocking)
     if (isNewDevice) {
       try {
         await this.emailService.sendNewDeviceLoginAlert(
@@ -179,7 +162,6 @@ export class VerifyTotpLoginUseCase {
           deviceSession.location
         );
       } catch (error) {
-        // Log error but don't fail login
         console.error('Failed to send new device login alert:', error);
       }
     }

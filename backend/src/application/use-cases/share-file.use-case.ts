@@ -26,23 +26,19 @@ export class ShareFileUseCase {
   ) {}
 
   async execute(ownerId: string, dto: ShareFileDTO): Promise<FileShare> {
-    // 1. Validate that either fileId or folderId is provided (not both, not neither)
     if ((!dto.fileId && !dto.folderId) || (dto.fileId && dto.folderId)) {
       throw new Error('Either fileId or folderId must be provided, but not both');
     }
 
-    // 2. Verify user exists
     const sharedWithUser = await this.userRepository.findById(dto.sharedWithId);
     if (!sharedWithUser || !sharedWithUser.isUserActive()) {
       throw new Error('User not found or inactive');
     }
 
-    // 3. Cannot share with yourself
     if (ownerId === dto.sharedWithId) {
       throw new Error('Cannot share with yourself');
     }
 
-    // 4. Verify file/folder exists and belongs to owner
     if (dto.fileId) {
       const file = await this.fileRepository.findById(dto.fileId);
       if (!file || file.userId !== ownerId) {
@@ -61,7 +57,6 @@ export class ShareFileUseCase {
       }
     }
 
-    // 5. Check if share already exists
     const existingShare = await this.fileShareRepository.findShare(
       dto.fileId || null,
       dto.folderId || null,
@@ -69,13 +64,11 @@ export class ShareFileUseCase {
     );
 
     if (existingShare) {
-      // Update existing share permission
       return await this.fileShareRepository.update(existingShare.id, {
         permission: dto.permission as SharePermission,
       });
     }
 
-    // 6. Create new share
     return await this.fileShareRepository.create({
       fileId: dto.fileId || null,
       folderId: dto.folderId || null,

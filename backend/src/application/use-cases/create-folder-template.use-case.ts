@@ -31,16 +31,13 @@ export class CreateFolderTemplateUseCase {
   ) {}
 
   async execute(userId: string, dto: CreateFolderTemplateDTO): Promise<FolderTemplateResponse> {
-    // 1. Verify source folder exists and belongs to user
     const sourceFolder = await this.folderRepository.findById(dto.sourceFolderId);
     if (!sourceFolder || sourceFolder.userId !== userId) {
       throw new Error('Source folder not found or access denied');
     }
 
-    // 2. Build folder structure recursively
     const structure = await this.buildFolderStructure(sourceFolder.id, userId);
 
-    // 3. Create template
     const template = await prisma.folderTemplate.create({
       data: {
         userId,

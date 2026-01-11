@@ -13,18 +13,15 @@ export class GetFileUseCase {
   ) {}
 
   async execute(userId: string, fileId: string): Promise<FileResponseDTO> {
-    // 1. Find file
     const file = await this.fileRepository.findById(fileId);
     if (!file) {
       throw new Error('File not found');
     }
 
-    // 2. Verify ownership
     if (file.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Return file DTO
     return {
       id: file.id,
       userId: file.userId,

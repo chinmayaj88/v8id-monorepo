@@ -14,23 +14,19 @@ export class RestoreFolderUseCase {
   ) {}
 
   async execute(userId: string, folderId: string): Promise<FolderResponseDTO> {
-    // 1. Find folder
     const folder = await this.folderRepository.findById(folderId);
     if (!folder) {
       throw new Error('Folder not found');
     }
 
-    // 2. Verify ownership
     if (folder.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Verify folder can be restored
     if (!folder.canBeRestored()) {
       throw new Error('Folder cannot be restored. Only deleted folders can be restored.');
     }
 
-    // 4. Validate parent folder if it exists and was also deleted
     if (folder.parentId) {
       const parent = await this.folderRepository.findById(folder.parentId);
       if (parent && parent.isDeleted) {
@@ -38,7 +34,6 @@ export class RestoreFolderUseCase {
       }
     }
 
-    // 5. Check if folder name would conflict with existing folder in parent
     const nameExists = await this.folderRepository.nameExistsInParent(
       userId,
       folder.parentId,
@@ -48,7 +43,6 @@ export class RestoreFolderUseCase {
       throw new Error(`Cannot restore folder. A folder with name "${folder.name}" already exists in the parent folder.`);
     }
 
-    // 6. Restore folder
     const restoredFolder = await this.folderRepository.restore(folderId);
 
     return this.folderToDto(restoredFolder);

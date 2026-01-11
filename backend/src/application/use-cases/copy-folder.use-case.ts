@@ -26,23 +26,19 @@ export class CopyFolderUseCase {
   ) {}
 
   async execute(userId: string, folderId: string, dto: CopyFolderDTO): Promise<FolderResponseDTO> {
-    // 1. Find source folder
     const sourceFolder = await this.folderRepository.findById(folderId);
     if (!sourceFolder) {
       throw new Error('Folder not found');
     }
 
-    // 2. Verify ownership
     if (sourceFolder.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Verify folder is active
     if (sourceFolder.isDeleted) {
       throw new Error('Cannot copy deleted folders');
     }
 
-    // 4. Validate target parent if provided
     const targetParentId = dto.targetParentId !== undefined ? dto.targetParentId : sourceFolder.parentId;
     if (targetParentId) {
       const parent = await this.folderRepository.findById(targetParentId);
@@ -51,7 +47,6 @@ export class CopyFolderUseCase {
       }
     }
 
-    // 5. Determine new name
     let newName = dto.newName || sourceFolder.name;
     const nameExists = await this.folderRepository.nameExistsInParent(userId, targetParentId, newName);
     if (nameExists) {
@@ -59,7 +54,6 @@ export class CopyFolderUseCase {
       newName = `${newName}-copy-${timestamp}`;
     }
 
-    // 6. Create new folder
     const newFolder = await this.createFolderUseCase.execute(userId, {
       parentId: targetParentId,
       name: newName,
@@ -67,17 +61,14 @@ export class CopyFolderUseCase {
       color: sourceFolder.color,
     });
 
-    // 7. Recursively copy contents
     await this.copyFolderContents(userId, sourceFolder.id, newFolder.id);
 
-    // newFolder is already a FolderResponseDTO with string dates, so return it directly
     return newFolder;
   }
 
   private async copyFolderContents(userId: string, sourceFolderId: string, targetFolderId: string): Promise<void> {
-    // Copy files
     const filesResult = await this.fileRepository.findByFolderId(sourceFolderId, userId, {
-      status: undefined, // Get all active files
+      status: undefined,
     });
 
     for (const file of filesResult.files) {
@@ -92,7 +83,6 @@ export class CopyFolderUseCase {
       }
     }
 
-    // Copy subfolders recursively
     const foldersResult = await this.folderRepository.findChildren(sourceFolderId, userId, {
       includeDeleted: false,
     });

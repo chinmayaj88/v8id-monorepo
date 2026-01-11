@@ -11,10 +11,8 @@ import { IPasswordService } from '../../application/interfaces/password-service.
 export class TotpBackupCodeRepository implements ITotpBackupCodeRepository {
   constructor(private passwordService: IPasswordService) {}
   async createCodes(userId: string, hashedCodes: string[]): Promise<void> {
-    // Delete existing codes first
     await this.deleteAllForUser(userId);
 
-    // Create new codes
     await prisma.totpBackupCode.createMany({
       data: hashedCodes.map((hashedCode) => ({
         userId,
@@ -25,7 +23,6 @@ export class TotpBackupCodeRepository implements ITotpBackupCodeRepository {
   }
 
   async verifyAndUseCode(userId: string, code: string): Promise<boolean> {
-    // Get all unused backup codes for the user
     const backupCodes = await prisma.totpBackupCode.findMany({
       where: {
         userId,
@@ -33,11 +30,9 @@ export class TotpBackupCodeRepository implements ITotpBackupCodeRepository {
       },
     });
 
-    // Check each code
     for (const backupCode of backupCodes) {
       const isValid = await this.passwordService.verifyPassword(code, backupCode.code);
       if (isValid) {
-        // Mark as used
         await prisma.totpBackupCode.update({
           where: { id: backupCode.id },
           data: {

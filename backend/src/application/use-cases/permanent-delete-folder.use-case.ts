@@ -20,26 +20,21 @@ export class PermanentDeleteFolderUseCase {
   ) {}
 
   async execute(userId: string, folderId: string): Promise<void> {
-    // 1. Find folder
     const folder = await this.folderRepository.findById(folderId);
     if (!folder) {
       throw new Error('Folder not found');
     }
 
-    // 2. Verify ownership
     if (folder.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Verify folder is in trash (soft-deleted)
     if (!folder.isDeleted || !folder.deletedAt) {
       throw new Error('Folder must be in trash before it can be permanently deleted. Delete the folder first to move it to trash.');
     }
 
-    // 4. Get all files in this folder and subfolders (recursively)
     const allFiles = await this.fileRepository.findByFolderIdRecursive(folderId);
 
-    // 5. Delete all files from storage
     for (const file of allFiles) {
       try {
         const exists = await this.storageService.fileExists(file.ociObjectName);
@@ -51,15 +46,12 @@ export class PermanentDeleteFolderUseCase {
       }
     }
 
-    // 6. Hard delete all files from database
     for (const file of allFiles) {
       await this.fileRepository.hardDelete(file.id);
     }
 
-    // 7. Hard delete folder and all subfolders recursively
     await this.folderRepository.hardDeleteRecursive(folderId);
 
-    // 8. Update user storage used (files are now removed from storage)
     const currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
     await this.userRepository.update(userId, {
       storageUsed: currentStorageUsed,

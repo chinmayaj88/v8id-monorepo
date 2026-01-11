@@ -14,23 +14,19 @@ export class UpdateFolderUseCase {
   ) {}
 
   async execute(userId: string, folderId: string, dto: UpdateFolderDTO): Promise<FolderResponseDTO> {
-    // 1. Find folder
     const folder = await this.folderRepository.findById(folderId);
     if (!folder) {
       throw new Error('Folder not found');
     }
 
-    // 2. Verify ownership
     if (folder.userId !== userId) {
       throw new Error('Access denied');
     }
 
-    // 3. Verify folder is active
     if (!folder.isActive()) {
       throw new Error('Cannot update deleted folder');
     }
 
-    // 4. Validate name if being changed
     if (dto.name !== undefined) {
       if (!dto.name || dto.name.trim().length === 0) {
         throw new Error('Folder name cannot be empty');
@@ -41,9 +37,7 @@ export class UpdateFolderUseCase {
       }
     }
 
-    // 5. Validate parent if being changed
     if (dto.parentId !== undefined && dto.parentId !== folder.parentId) {
-      // Check for circular reference
       if (dto.parentId !== null) {
         const wouldCreateCircular = await this.folderRepository.wouldCreateCircularReference(folderId, dto.parentId);
         if (wouldCreateCircular) {
@@ -57,7 +51,6 @@ export class UpdateFolderUseCase {
       }
     }
 
-    // 6. Check if new name already exists in target parent
     if (dto.name && dto.name !== folder.name) {
       const targetParentId = dto.parentId !== undefined ? dto.parentId : folder.parentId;
       const nameExists = await this.folderRepository.nameExistsInParent(userId, targetParentId, dto.name);
@@ -66,7 +59,6 @@ export class UpdateFolderUseCase {
       }
     }
 
-    // 7. Update folder
     const updatedFolder = await this.folderRepository.update(folderId, {
       name: dto.name?.trim(),
       parentId: dto.parentId,

@@ -25,12 +25,10 @@ export class ToggleFavoriteUseCase {
   ) {}
 
   async execute(userId: string, dto: ToggleFavoriteDTO): Promise<ToggleFavoriteResult> {
-    // 1. Validate that either fileId or folderId is provided
     if ((!dto.fileId && !dto.folderId) || (dto.fileId && dto.folderId)) {
       throw new Error('Either fileId or folderId must be provided, but not both');
     }
 
-    // 2. Verify file/folder exists and user has access
     if (dto.fileId) {
       const file = await this.fileRepository.findById(dto.fileId);
       if (!file || file.userId !== userId) {
@@ -43,7 +41,6 @@ export class ToggleFavoriteUseCase {
       }
     }
 
-    // 3. Check if favorite exists
     const existing = await prisma.fileFavorite.findFirst({
       where: {
         userId,
@@ -53,7 +50,6 @@ export class ToggleFavoriteUseCase {
     });
 
     if (existing) {
-      // Remove favorite
       await prisma.fileFavorite.delete({
         where: { id: existing.id },
       });
@@ -62,7 +58,6 @@ export class ToggleFavoriteUseCase {
         message: 'Removed from favorites',
       };
     } else {
-      // Add favorite
       await prisma.fileFavorite.create({
         data: {
           userId,

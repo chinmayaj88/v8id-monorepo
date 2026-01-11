@@ -36,13 +36,11 @@ export class UploadFileUseCase {
     originalFilename: string,
     mimeType: string
   ): Promise<UploadFileResult> {
-    // 1. Verify user exists and is active
     const user = await this.userRepository.findById(userId);
     if (!user || !user.isUserActive()) {
       throw new Error('User not found or inactive');
     }
 
-    // 2. Check storage quota
     const fileSize = BigInt(fileBuffer.length);
     if (user.hasExceededStorageQuota()) {
       throw new Error('Storage quota exceeded');
@@ -53,7 +51,6 @@ export class UploadFileUseCase {
       throw new Error(`Insufficient storage. Available: ${this.formatBytes(Number(availableStorage))}, Required: ${this.formatBytes(Number(fileSize))}`);
     }
 
-    // 3. Validate folder if provided
     if (dto.folderId) {
       const folder = await this.folderRepository.findById(dto.folderId);
       if (!folder || folder.userId !== userId || !folder.isActive()) {
@@ -61,32 +58,25 @@ export class UploadFileUseCase {
       }
     }
 
-    // 4. Calculate file hash for deduplication
     const hash = createHash('sha256').update(fileBuffer).digest('hex');
 
-    // 5. Check for duplicate file (same hash and user) for storage reuse
     const existingFile = await this.fileRepository.findByHash(hash, userId);
     let ociObjectName: string;
     let shouldUploadToStorage = true;
 
     if (existingFile && existingFile.isActive()) {
-      // File with same hash exists - reuse the OCI storage object
-      // This saves storage space and upload time for duplicate files
       ociObjectName = existingFile.ociObjectName;
       shouldUploadToStorage = false;
       
-      // Verify the file still exists in storage (defensive check)
       try {
         const exists = await this.storageService.fileExists(ociObjectName);
         if (!exists) {
-          // File was deleted from storage, need to re-upload
           shouldUploadToStorage = true;
           const timestamp = Date.now();
           const randomString = Math.random().toString(36).substring(2, 15);
           ociObjectName = `users/${userId}/files/${timestamp}-${randomString}-${originalFilename}`;
         }
       } catch (error) {
-        // If check fails, upload to be safe
         console.warn('Failed to verify existing file in storage, will upload new copy:', error);
         shouldUploadToStorage = true;
         const timestamp = Date.now();
@@ -94,31 +84,24 @@ export class UploadFileUseCase {
         ociObjectName = `users/${userId}/files/${timestamp}-${randomString}-${originalFilename}`;
       }
     } else {
-      // No duplicate found, generate new OCI object name
       const timestamp = Date.now();
       const randomString = Math.random().toString(36).substring(2, 15);
       ociObjectName = `users/${userId}/files/${timestamp}-${randomString}-${originalFilename}`;
     }
 
-    // 6. Determine file type from mime type
     const fileType = this.determineFileType(mimeType);
 
-    // 7. Determine display name
     const displayName = dto.name || originalFilename;
 
-    // 8. Check if file name already exists in folder
     const nameExists = await this.fileRepository.nameExistsInFolder(userId, dto.folderId || null, displayName);
     if (nameExists) {
-      // Generate unique name by appending timestamp
       const ext = this.getFileExtension(originalFilename);
       const baseName = ext ? displayName.replace(new RegExp(`\\.${ext}$`, 'i'), '') : displayName;
       const timestamp = Date.now();
       const uniqueName = ext ? `${baseName}-${timestamp}.${ext}` : `${baseName}-${timestamp}`;
-      // Update displayName
       Object.assign(dto, { name: uniqueName });
     }
 
-    // 9. Upload to OCI Object Storage (only if not reusing existing storage)
     if (shouldUploadToStorage) {
       try {
         await this.storageService.uploadFile({
@@ -129,16 +112,14 @@ export class UploadFileUseCase {
             userId,
             originalFilename,
             uploadDate: new Date().toISOString(),
-            hash, // Store hash in metadata for future reference
+            hash,
           },
         });
       } catch (error) {
         throw new Error(`Failed to upload file to storage: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
-    // Else: Reusing existing storage - skip upload, just use existing ociObjectName
 
-    // 10. Create file record in database
     let file: File;
     try {
       file = await this.fileRepository.create({
@@ -149,7 +130,7 @@ export class UploadFileUseCase {
         mimeType,
         size: fileSize,
         type: fileType,
-        status: FileStatus.ACTIVE, // Mark as active after successful upload
+        status: FileStatus.ACTIVE,
         ociObjectName,
         hash,
         description: dto.description,
@@ -157,22 +138,16 @@ export class UploadFileUseCase {
         metadata: dto.metadata,
       });
     } catch (error) {
-      // Rollback: delete from storage if database creation fails (only if we uploaded)
       if (shouldUploadToStorage) {
         try {
           await this.storageService.deleteFile(ociObjectName);
         } catch (deleteError) {
-          // Log error but don't throw - database error is more important
           console.error('Failed to delete file from storage after database error:', deleteError);
         }
       }
       throw new Error(`Failed to create file record: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    // 11. Update user storage used
-    // Note: If we reused existing storage (deduplication), we still count the file size
-    // because the user is storing another reference to the file
-    // However, for true deduplication accounting, you might want to track unique vs shared storage
     const currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
     await this.userRepository.update(userId, {
       storageUsed: currentStorageUsed,

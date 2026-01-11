@@ -23,13 +23,11 @@ export class PreviewFileUseCase {
   ) {}
 
   async execute(userId: string, fileId: string): Promise<PreviewFileResult> {
-    // 1. Find file
     const file = await this.fileRepository.findById(fileId);
     if (!file) {
       throw new Error('File not found');
     }
 
-    // 2. Check access (owner or shared)
     const isOwner = file.userId === userId;
     const hasShare = await this.fileShareRepository.hasAccess(userId, fileId, null);
     
@@ -37,29 +35,24 @@ export class PreviewFileUseCase {
       throw new Error('Access denied');
     }
 
-    // 3. Verify file is active
     if (!file.isActive()) {
       throw new Error('File is not available for preview');
     }
 
-    // 4. Determine preview type
     const previewType = this.determinePreviewType(file.mimeType);
 
-    // 5. Generate preview URL (presigned URL/PAR for direct access)
     let previewUrl: string | undefined;
     let canPreview = false;
     let message: string | undefined;
 
     if (previewType === 'image' || previewType === 'pdf' || previewType === 'document') {
       try {
-        // Generate presigned URL for preview (read-only, expires in 1 hour)
         previewUrl = await this.storageService.generatePresignedUrl(file.ociObjectName, 3600);
         canPreview = true;
       } catch (_error) {
         message = 'Failed to generate preview URL';
       }
     } else if (previewType === 'video' || previewType === 'audio') {
-      // For video/audio, return direct download URL (browser can handle preview)
       try {
         previewUrl = await this.storageService.generatePresignedUrl(file.ociObjectName, 3600);
         canPreview = true;
