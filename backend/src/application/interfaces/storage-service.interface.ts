@@ -1,3 +1,5 @@
+import { StorageTier } from '../../domain/entities/file';
+
 export interface IStorageService {
 
   uploadFile(params: {
@@ -5,6 +7,7 @@ export interface IStorageService {
     file: Buffer | ReadableStream;
     contentType: string;
     metadata?: Record<string, string>;
+    tier?: StorageTier; // Optional tier for tier-aware storage services
   }): Promise<{
     objectName: string;
     etag: string;
