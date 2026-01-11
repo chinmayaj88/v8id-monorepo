@@ -24,6 +24,7 @@ export class DeviceSessionRepository implements IDeviceSessionRepository {
       accessToken: prismaSession.accessToken,
       refreshToken: prismaSession.refreshToken,
       expiresAt: prismaSession.expiresAt,
+      rememberMe: prismaSession.rememberMe ?? false,
       lastActiveAt: prismaSession.lastActiveAt,
       isActive: prismaSession.isActive,
       isRevoked: prismaSession.isRevoked,
@@ -43,6 +44,7 @@ export class DeviceSessionRepository implements IDeviceSessionRepository {
     accessToken: string;
     refreshToken: string;
     expiresAt: Date;
+    rememberMe?: boolean;
   }): Promise<DeviceSession> {
     const session = await prisma.deviceSession.create({
       data,
@@ -88,7 +90,25 @@ export class DeviceSessionRepository implements IDeviceSessionRepository {
       orderBy: { lastActiveAt: 'desc' },
     });
 
-    return sessions.map((session) => this.toDomain(session));
+    return sessions.map((session: any) => this.toDomain(session));
+  }
+
+  async findRememberedMobileSession(userId: string): Promise<DeviceSession | null> {
+    const session = await prisma.deviceSession.findFirst({
+      where: {
+        userId,
+        deviceType: 'MOBILE',
+        rememberMe: true,
+        isActive: true,
+        isRevoked: false,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: { lastActiveAt: 'desc' },
+    });
+
+    return session ? this.toDomain(session) : null;
   }
 
   async countActiveSessionsByType(
