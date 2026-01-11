@@ -9,6 +9,8 @@ import { IFolderRepository } from '../interfaces/folder-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { FileResponseDTO } from '../dtos/file.dto';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
 
 export interface CopyFileDTO {
   targetFolderId?: string | null;
@@ -20,7 +22,8 @@ export class CopyFileUseCase {
     private fileRepository: IFileRepository,
     private folderRepository: IFolderRepository,
     private storageService: IStorageService,
-    private userRepository: IUserRepository
+    private userRepository: IUserRepository,
+    private storageCache?: StorageCacheService
   ) {}
 
   async execute(userId: string, fileId: string, dto: CopyFileDTO): Promise<FileResponseDTO> {
@@ -68,10 +71,24 @@ export class CopyFileUseCase {
     const randomString = Math.random().toString(36).substring(2, 15);
     const newOciObjectName = `users/${userId}/files/${timestamp}-${randomString}-${newName}`;
 
+    // Use tier-aware storage service for copying
+    const isTierAware = this.storageService instanceof TierAwareStorageService;
+    const storageTier = sourceFile.storageTier || 'STANDARD' as any;
+
     try {
-      await this.storageService.copyFile(sourceFile.ociObjectName, newOciObjectName);
+      if (isTierAware) {
+        // Copy within the same tier bucket
+        await (this.storageService as TierAwareStorageService).copyFile(
+          sourceFile.ociObjectName,
+          newOciObjectName,
+          storageTier
+        );
+      } else {
+        // Fallback for non-tier-aware storage service
+        await this.storageService.copyFile(sourceFile.ociObjectName, newOciObjectName);
+      }
     } catch (error) {
-      throw new Error(`Failed to copy file in storage: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Failed to copy file in ${storageTier} tier storage: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
     const newFile = await this.fileRepository.create({
@@ -83,6 +100,7 @@ export class CopyFileUseCase {
       size: sourceFile.size,
       type: sourceFile.type,
       status: sourceFile.status,
+      storageTier: sourceFile.storageTier, // Copy maintains same tier as source
       ociObjectName: newOciObjectName,
       hash: sourceFile.hash,
       description: sourceFile.description,
@@ -90,10 +108,23 @@ export class CopyFileUseCase {
       metadata: sourceFile.metadata,
     });
 
-    const currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
+    // Update storage - use cache if available
+    let currentStorageUsed: bigint;
+    const cachedStorage = this.storageCache?.get(userId);
+    if (cachedStorage !== null && cachedStorage !== undefined) {
+      // Use cached value and add copied file size
+      currentStorageUsed = cachedStorage + sourceFile.size;
+    } else {
+      // Calculate from database
+      currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
+    }
+    
     await this.userRepository.update(userId, {
       storageUsed: currentStorageUsed,
     });
+    
+    // Update cache
+    this.storageCache?.set(userId, currentStorageUsed);
 
     return {
       id: newFile.id,
@@ -105,6 +136,7 @@ export class CopyFileUseCase {
       size: Number(newFile.size),
       type: newFile.type,
       status: newFile.status,
+      storageTier: newFile.storageTier, // Copied file inherits same tier as source
       description: newFile.description,
       tags: newFile.tags,
       metadata: newFile.metadata,
