@@ -44,8 +44,8 @@ export class BulkMoveFilesUseCase {
       const file = files[i];
       const fileId = dto.fileIds[i];
 
-      if (!file) {
-        errors.push(`${fileId}: File not found`);
+      if (!file || !fileId) {
+        errors.push(`${fileId || 'unknown'}: File not found`);
         continue;
       }
 

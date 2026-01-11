@@ -137,6 +137,7 @@ export class CopyFileUseCase {
       type: newFile.type,
       status: newFile.status,
       storageTier: newFile.storageTier, // Copied file inherits same tier as source
+      thumbnailGenerated: newFile.thumbnailGenerated,
       description: newFile.description,
       tags: newFile.tags,
       metadata: newFile.metadata,

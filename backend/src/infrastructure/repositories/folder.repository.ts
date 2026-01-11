@@ -179,7 +179,7 @@ export class FolderRepository implements IFolderRepository {
       
       // Check if we already have this folder
       if (!folderMap.has(currentId)) {
-        const folder = await prisma.folder.findUnique({
+        const folder: Awaited<ReturnType<typeof prisma.folder.findUnique>> = await prisma.folder.findUnique({
           where: { id: currentId },
         });
         
@@ -190,7 +190,8 @@ export class FolderRepository implements IFolderRepository {
         currentId = folder.parentId;
       } else {
         // Already fetched, just get parent
-        const folder = folderMap.get(currentId)!;
+        const folder: Awaited<ReturnType<typeof prisma.folder.findUnique>> | undefined = folderMap.get(currentId);
+        if (!folder) break;
         path.unshift(this.toDomain(folder));
         currentId = folder.parentId;
       }

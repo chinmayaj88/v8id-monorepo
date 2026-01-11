@@ -45,6 +45,7 @@ export class ListFavoritesUseCase {
             type: file.type,
             status: file.status,
             storageTier: file.storageTier,
+            thumbnailGenerated: file.thumbnailGenerated,
             description: file.description,
             tags: file.tags,
             metadata: file.metadata,

@@ -437,7 +437,7 @@ export class TierAwareStorageService implements IStorageService {
         createPreauthenticatedRequestDetails: createParDetails,
       };
 
-      const response = await this.client.createPreAuthenticatedRequest(createParRequest);
+      const response = await this.client.createPreauthenticatedRequest(createParRequest);
 
       if (!response.preauthenticatedRequest) {
         throw new Error('Failed to create PAR: No response data');
