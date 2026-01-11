@@ -19,3 +19,4 @@ export { IFolderRepository } from './folder-repository.interface';
 export { IStorageService } from './storage-service.interface';
 export { IUploadSessionRepository } from './upload-session-repository.interface';
 export { IFileShareRepository } from './file-share-repository.interface';
+export { ISuspiciousActivityService, type SuspiciousActivityDetectionResult } from './suspicious-activity-service.interface';

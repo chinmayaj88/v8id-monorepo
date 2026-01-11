@@ -26,4 +26,13 @@ export interface IEmailService {
     ipAddress?: string,
     location?: string
   ): Promise<void>;
+
+  sendSuspiciousActivityAlert(
+    to: string,
+    firstName: string | undefined,
+    activityType: string,
+    details: Record<string, any>,
+    timestamp: Date,
+    ipAddress?: string
+  ): Promise<void>;
 }
