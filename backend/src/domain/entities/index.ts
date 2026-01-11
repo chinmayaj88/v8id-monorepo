@@ -5,12 +5,9 @@
  * These are pure domain objects with no dependencies on other layers.
  */
 
-// TODO: Create domain entities
-// - User
-// - File
-// - Folder
-// - Share
-// - etc.
-
-export {};
-
+export { User } from './user';
+export { UserRole } from './user-role';
+export { File, FileType, FileStatus } from './file';
+export { Folder } from './folder';
+export { UploadSession, UploadMethod } from './upload-session';
+export { FileShare, SharePermission } from './file-share';

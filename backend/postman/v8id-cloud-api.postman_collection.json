@@ -1,0 +1,2550 @@
+{
+	"info": {
+		"_postman_id": "v8id-cloud-api-collection",
+		"name": "v8id-cloud API",
+		"description": "Postman collection for v8id-cloud backend API - Authentication, User Management, and File Management\n\n## 🔒 Security Features\n\n### Token Versioning\n- All tokens include a `tokenVersion` field that matches the user's current token version\n- When a password is changed, the user's `tokenVersion` is incremented\n- All existing tokens become invalid immediately (even if not expired)\n- Users must login again after password change\n- This prevents token reuse after password compromise\n\n### Rate Limiting\nAll endpoints are protected by rate limiting to prevent brute force attacks:\n\n- **Authentication endpoints** (`/api/auth/verify-credentials`):\n  - 5 requests per 15 minutes per IP\n  - Successful requests are NOT counted (skipSuccessfulRequests: true)\n  - Rate limit headers: `RateLimit-Limit`, `RateLimit-Remaining`, `RateLimit-Reset`\n\n- **Token refresh** (`/api/auth/refresh`):\n  - 20 requests per 15 minutes per IP\n  - All requests are counted\n\n- **General API** (all `/api/*` routes):\n  - 100 requests per 15 minutes per IP\n  - Applied to all API endpoints\n\n**Rate Limit Headers:**\n- `RateLimit-Limit`: Maximum requests allowed\n- `RateLimit-Remaining`: Remaining requests in current window\n- `RateLimit-Reset`: Unix timestamp when the rate limit resets\n\n### Account Lockout\n- Account is locked after **5 failed login attempts** within **15 minutes**\n- Lockout expires automatically after 15 minutes from the first failed attempt\n- User receives clear error message with unlock time\n- Prevents brute force attacks\n- Failed attempts are tracked via audit logs\n\n### Security Headers (Helmet.js)\n- XSS Protection enabled\n- Content Security Policy (CSP) configured\n- HSTS (HTTP Strict Transport Security)\n- Request size limits (10MB)\n- Additional security headers for production\n\n### Audit Logging\nAll security events are logged to the `audit_logs` table:\n\n- **Login events**: LOGIN, LOGIN_FAILED\n- **Logout events**: LOGOUT\n- **Token events**: TOKEN_REFRESH, TOKEN_REFRESH_FAILED\n- **TOTP events**: TOTP_VERIFIED, TOTP_VERIFICATION_FAILED, TOTP_SETUP\n- **Password events**: PASSWORD_CHANGE, PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE\n- **User events**: USER_CREATED, USER_UPDATED, USER_DEACTIVATED, USER_ACTIVATED\n- **Session events**: SESSION_REVOKED, SESSION_EXPIRED\n- **Security events**: RATE_LIMIT_EXCEEDED, SUSPICIOUS_ACTIVITY\n\nEach log entry includes:\n- User ID (if applicable) - NULL for unknown users\n- Email address (for login attempts)\n- Event type\n- IP address (normalized - IPv6 localhost converted to IPv4)\n- User agent\n- Success/failure status\n- Error message (if failed)\n- Timestamp\n- Additional event data (device info, etc.)\n\n### Password Management\n- **Password Reset**: Forgot password flow with secure token (1 hour expiration)\n- **Password Change**: Requires current password + TOTP, invalidates all sessions\n- **Email Enumeration Prevention**: Password reset always returns success\n\n### Session Management\n- **List Sessions**: View all active device sessions\n- **Revoke Specific Session**: Logout from a specific device\n- **Revoke All Sessions**: Logout from all devices\n- All session operations are audit logged\n\n### Input Validation\n- Input sanitization middleware\n- Email normalization (lowercase, trim)\n- Control character removal\n- Required field validation",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Step 1: Verify Credentials",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Log rate limit info",
+									"if (pm.response.headers.get(\"RateLimit-Limit\")) {",
+									"    console.log(\"Rate Limit Info:\");",
+									"    console.log(\"  Limit: \" + pm.response.headers.get(\"RateLimit-Limit\"));",
+									"    console.log(\"  Remaining: \" + pm.response.headers.get(\"RateLimit-Remaining\"));",
+									"    console.log(\"  Reset: \" + new Date(parseInt(pm.response.headers.get(\"RateLimit-Reset\")) * 1000));",
+									"}",
+									"",
+									"// Save temporary token if successful",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        pm.environment.set(\"tempToken\", jsonData.data.tempToken);",
+									"        pm.environment.set(\"userId\", jsonData.data.user.id);",
+									"        pm.test(\"Temporary token saved\", function () {",
+									"            pm.expect(jsonData.data.tempToken).to.exist;",
+									"        });",
+									"        console.log(\"⚠️ IMPORTANT: Temporary token expires in 5 minutes!\");",
+									"        console.log(\"You must complete Step 2 (Verify TOTP) within 5 minutes.\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"UserPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verify-credentials",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"verify-credentials"
+							]
+						},
+						"description": "**Step 1: Verify email and password**\n\nVerify email and password. Returns a temporary token (expires in 5 minutes) for TOTP verification.\n\n**⚠️ SECURITY:**\n- Temporary token expires in **5 minutes**\n- You must complete Step 2 (Verify TOTP) within 5 minutes\n- If you wait too long, the temporary token will expire and you'll need to verify credentials again\n- This prevents users from logging in, leaving, and entering TOTP hours later\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP\n- Successful requests are NOT counted\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- `requiresTotp`: Boolean indicating if TOTP is required\n- `tempToken`: Temporary token for TOTP verification (expires in 5 minutes)\n- `user`: User information (id, email, firstName, lastName, role)"
+					},
+					"response": []
+				},
+				{
+					"name": "Step 2: Verify TOTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Log rate limit info",
+									"if (pm.response.headers.get(\"RateLimit-Limit\")) {",
+									"    console.log(\"Rate Limit Info:\");",
+									"    console.log(\"  Limit: \" + pm.response.headers.get(\"RateLimit-Limit\"));",
+									"    console.log(\"  Remaining: \" + pm.response.headers.get(\"RateLimit-Remaining\"));",
+									"    console.log(\"  Reset: \" + new Date(parseInt(pm.response.headers.get(\"RateLimit-Reset\")) * 1000));",
+									"}",
+									"",
+									"// Save tokens and session info",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"        pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+									"        pm.environment.set(\"userId\", jsonData.data.user.id);",
+									"        pm.environment.set(\"sessionId\", jsonData.data.deviceSession.id);",
+									"        ",
+									"        // Clear temporary token",
+									"        pm.environment.unset(\"tempToken\");",
+									"        ",
+									"        // Verify token versioning",
+									"        pm.test(\"Token includes version\", function () {",
+									"            const tokenParts = jsonData.data.accessToken.split('.');",
+									"            if (tokenParts.length === 3) {",
+									"                const payload = JSON.parse(atob(tokenParts[1]));",
+									"                pm.expect(payload.tokenVersion).to.exist;",
+									"                console.log(\"Token version: \" + payload.tokenVersion);",
+									"            }",
+									"});",
+									"    }",
+									"} else if (pm.response.code === 401) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.code === 'TEMP_TOKEN_EXPIRED') {",
+									"        console.log(\"❌ Temporary token expired! You must verify credentials again.\");",
+									"        pm.environment.unset(\"tempToken\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tempToken\": \"{{tempToken}}\",\n  \"totpCode\": \"123456\",\n  \"deviceType\": \"WEB\",\n  \"deviceName\": \"Chrome on Windows\",\n  \"deviceId\": \"web-device-001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verify-totp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"verify-totp"
+							]
+						},
+						"description": "**Step 2: Verify TOTP code**\n\nVerify TOTP code using the temporary token from Step 1. Returns access and refresh tokens.\n\n**⚠️ SECURITY:**\n- Temporary token from Step 1 expires in **5 minutes**\n- If the token has expired, you'll get error: \"Temporary token has expired. Please verify credentials again.\"\n- You must complete this step within 5 minutes of Step 1\n\n**Rate Limiting:**\n- 10 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Token Versioning:**\n- Access token includes `tokenVersion` field\n- Token version matches user's current token version\n- If password is changed, token version increments and all tokens become invalid\n\n**Device Limits:**\n- Maximum 2 mobile devices + 1 web session per user\n- Oldest sessions are automatically revoked when limits are exceeded\n\n**Response:**\n- `accessToken`: JWT access token (15 minutes)\n- `refreshToken`: JWT refresh token (7 days)\n- `user`: User information\n- `deviceSession`: Device session information"
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Log rate limit info",
+									"if (pm.response.headers.get(\"RateLimit-Limit\")) {",
+									"    console.log(\"Rate Limit Info:\");",
+									"    console.log(\"  Limit: \" + pm.response.headers.get(\"RateLimit-Limit\"));",
+									"    console.log(\"  Remaining: \" + pm.response.headers.get(\"RateLimit-Remaining\"));",
+									"    console.log(\"  Reset: \" + new Date(parseInt(pm.response.headers.get(\"RateLimit-Reset\")) * 1000));",
+									"}",
+									"",
+									"// Update access token",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+									"        ",
+									"        // Verify token versioning",
+									"        pm.test(\"New token includes version\", function () {",
+									"            const tokenParts = jsonData.data.accessToken.split('.');",
+									"            if (tokenParts.length === 3) {",
+									"                const payload = JSON.parse(atob(tokenParts[1]));",
+									"                pm.expect(payload.tokenVersion).to.exist;",
+									"                console.log(\"New token version: \" + payload.tokenVersion);",
+									"            }",
+									"});",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "**Refresh access token**\n\nRefresh access token using refresh token. Returns a new access token.\n\n**Rate Limiting:**\n- 20 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Successful refresh logged as `TOKEN_REFRESH`\n- Failed refresh logged as `TOKEN_REFRESH_FAILED`\n- Includes IP address and user agent\n\n**Token Versioning:**\n- New access token includes `tokenVersion` field\n- Token version must match user's current token version\n- If password was changed, refresh will fail with 401 (token invalidated)\n- User must login again after password change\n\n**Response:**\n- `accessToken`: New JWT access token (15 minutes)"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify logout success",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Logout successful\", function () {",
+									"        const jsonData = pm.response.json();",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    // Clear tokens from environment",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    pm.environment.unset(\"sessionId\");",
+									"    console.log(\"Tokens cleared from environment\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sessionId\": \"{{sessionId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "**Logout and revoke session**\n\nLogout and revoke the current device session. The session is marked as revoked and all tokens become invalid.\n\n**Audit Logging:**\n- Successful logout logged as `LOGOUT`\n- Includes session ID, IP address, and user agent\n\n**Token Versioning:**\n- After logout, the session is revoked\n- Access token becomes invalid immediately\n- Refresh token cannot be used to create new sessions for this device\n\n**Note:**\n- Session ID can be provided in request body or `X-Session-Id` header\n- If not provided, the session associated with the access token is revoked"
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Always returns success (prevents email enumeration)",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Request processed\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Password reset request processed\");",
+									"    console.log(\"📧 Check server logs for reset token (in production, email would be sent)\");",
+									"    console.log(\"⚠️ Reset token expires in 1 hour\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"user@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/forgot-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"forgot-password"
+							]
+						},
+						"description": "**Request password reset**\n\nRequest a password reset token. The token is sent via email (in production) or logged to console (in development).\n\n**⚠️ SECURITY - Email Enumeration Prevention:**\n- Always returns success (200) even if email doesn't exist\n- This prevents attackers from discovering which emails are registered\n- Response message is generic: \"If an account with that email exists, a password reset link has been sent.\"\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Request logged as `PASSWORD_RESET_REQUEST`\n- Includes email, IP address, and user agent\n- Logged even if user doesn't exist (for security monitoring)\n\n**Reset Token:**\n- Token expires in **1 hour**\n- Token is cryptographically random (32 bytes hex)\n- In development: Check server console logs for token\n- In production: Token sent via email\n\n**Response:**\n- Always returns success (200) with generic message\n- Prevents email enumeration attacks"
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Verify password reset success",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Password reset successful\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Password reset successful\");",
+									"    console.log(\"⚠️ All existing sessions have been invalidated\");",
+									"    console.log(\"⚠️ User must login again with new password\");",
+									"    ",
+									"    // Clear tokens if they exist",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    pm.environment.unset(\"sessionId\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Password reset failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"expired\")) {",
+									"            console.log(\"💡 Reset token has expired. Request a new one.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"reset-token-from-email-or-console\",\n  \"newPassword\": \"NewSecurePassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/reset-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password"
+							]
+						},
+						"description": "**Reset password using reset token**\n\nReset password using the token received from \"Forgot Password\" request.\n\n**⚠️ SECURITY:**\n- Token expires in **1 hour**\n- Token can only be used **once**\n- After successful reset, token is cleared\n- **All existing sessions are invalidated** (tokenVersion incremented)\n- User must login again with new password\n\n**Password Requirements:**\n- Minimum 12 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Successful reset logged as `PASSWORD_RESET_COMPLETE`\n- Password change logged as `PASSWORD_CHANGE`\n- Includes IP address and user agent\n\n**Token Versioning:**\n- User's `tokenVersion` is incremented\n- All existing access tokens become invalid\n- All existing refresh tokens become invalid\n- All device sessions remain but tokens are invalid\n\n**Response:**\n- Success message confirming password reset\n- Note that all sessions have been invalidated"
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify password change success",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Password change successful\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Password changed successfully\");",
+									"    console.log(\"⚠️ All existing sessions have been invalidated\");",
+									"    console.log(\"⚠️ Current access token is now invalid\");",
+									"    ",
+									"    // Clear tokens - user must login again",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    pm.environment.unset(\"sessionId\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Password change failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"TOTP\")) {",
+									"            console.log(\"💡 TOTP code is required for password change\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"current password\")) {",
+									"            console.log(\"💡 Current password is incorrect\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"different\")) {",
+									"            console.log(\"💡 New password must be different from current password\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"CurrentPassword123!\",\n  \"newPassword\": \"NewSecurePassword123!\",\n  \"totpCode\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/change-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"change-password"
+							]
+						},
+						"description": "**Change password (requires authentication + TOTP)**\n\nChange password for authenticated user. Requires current password and TOTP code.\n\n**⚠️ SECURITY:**\n- Requires **current password** verification\n- Requires **TOTP code** (mandatory for password change)\n- New password must be **different** from current password\n- **All existing sessions are invalidated** (tokenVersion incremented)\n- Current access token becomes invalid immediately\n- User must login again with new password\n\n**Password Requirements:**\n- Minimum 12 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character\n- Must be different from current password\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Password change logged as `PASSWORD_CHANGE`\n- Includes IP address and user agent\n- Logs success/failure with error message if failed\n\n**Token Versioning:**\n- User's `tokenVersion` is incremented\n- All existing access tokens become invalid\n- All existing refresh tokens become invalid\n- All device sessions remain but tokens are invalid\n\n**Response:**\n- Success message confirming password change\n- Note that all sessions have been invalidated"
+					},
+					"response": []
+				},
+				{
+					"name": "Regenerate Backup Codes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test rate limit headers",
+									"pm.test(\"Rate limit headers present\", function () {",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Limit\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Remaining\")).to.exist;",
+									"    pm.expect(pm.response.headers.get(\"RateLimit-Reset\")).to.exist;",
+									"});",
+									"",
+									"// Verify backup codes regeneration",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Backup codes regenerated successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.backupCodes).to.be.an('array');",
+									"        pm.expect(jsonData.data.backupCodes.length).to.equal(10);",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Backup codes regenerated successfully\");",
+									"    console.log(\"📋 New backup codes:\");",
+									"    jsonData.data.backupCodes.forEach((code, index) => {",
+									"        console.log(\"  \" + (index + 1) + \". \" + code);",
+									"    });",
+									"    console.log(\"\\n⚠️ IMPORTANT: Save these codes securely!\");",
+									"    console.log(\"⚠️ Old backup codes are now invalid\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Failed to regenerate backup codes: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"TOTP\")) {",
+									"            console.log(\"💡 TOTP code is required\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"password\")) {",
+									"            console.log(\"💡 Password verification failed\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"CurrentPassword123!\",\n  \"totpCode\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/regenerate-backup-codes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"regenerate-backup-codes"
+							]
+						},
+						"description": "**Regenerate TOTP backup codes (requires password + TOTP)**\n\nRegenerate TOTP backup codes for the authenticated user. Requires password and TOTP code verification.\n\n**⚠️ SECURITY:**\n- Requires **password** verification\n- Requires **TOTP code** (can use current TOTP code or a backup code)\n- **All old backup codes are invalidated** immediately\n- 10 new backup codes are generated\n- User must save new codes securely\n\n**Rate Limiting:**\n- 10 requests per 15 minutes per IP (TOTP rate limiter)\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Backup code regeneration logged as `BACKUP_CODES_REGENERATED`\n- Failed attempts logged as `BACKUP_CODES_REGENERATE_ATTEMPT`\n- Includes IP address and user agent\n\n**Use Cases:**\n- User lost their backup codes\n- User wants to rotate backup codes for security\n- User used all backup codes\n\n**Response:**\n- `backupCodes`: Array of 10 new backup codes (format: XXXX-XXXX-XXXX)\n- Old backup codes are immediately invalid\n\n**⚠️ IMPORTANT:**\n- Save the new backup codes immediately\n- Old backup codes cannot be used anymore\n- Each backup code can only be used once"
+					},
+					"response": []
+				},
+				{
+					"name": "Resetup TOTP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify TOTP resetup",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"TOTP resetup successful\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.qrCodeUrl).to.exist;",
+									"        pm.expect(jsonData.data.secret).to.exist;",
+									"        pm.expect(jsonData.data.backupCodes).to.be.an('array');",
+									"    });",
+									"    ",
+									"    console.log(\"✅ TOTP re-setup successful\");",
+									"    console.log(\"📷 QR Code URL: \" + jsonData.data.qrCodeUrl.substring(0, 50) + \"...\");",
+									"    console.log(\"🔐 TOTP Secret: \" + jsonData.data.secret);",
+									"    console.log(\"📋 Backup Codes: \" + jsonData.data.backupCodes.length + \" codes\");",
+									"    console.log(\"\\n⚠️ IMPORTANT:\");",
+									"    console.log(\"  1. Scan the new QR code with your authenticator app\");",
+									"    console.log(\"  2. Save the new backup codes securely\");",
+									"    console.log(\"  3. Old TOTP secret and backup codes are now invalid\");",
+									"    console.log(\"  4. You must verify the new TOTP setup on next login\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Failed to resetup TOTP: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"password\")) {",
+									"            console.log(\"💡 Password verification failed\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"CurrentPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/resetup-totp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"resetup-totp"
+							]
+						},
+						"description": "**Re-setup TOTP (requires password verification)**\n\nRe-setup TOTP for the authenticated user. This generates a new TOTP secret and backup codes. Requires password verification.\n\n**⚠️ SECURITY:**\n- Requires **password** verification\n- **Old TOTP secret is invalidated** immediately\n- **Old backup codes are invalidated** immediately\n- New TOTP secret and backup codes are generated\n- User must verify new TOTP setup on next login\n- TOTP verification status is reset to false\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP (auth rate limiter)\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- TOTP resetup logged as `TOTP_RESETUP`\n- Failed attempts logged as `TOTP_RESETUP_ATTEMPT`\n- Includes IP address and user agent\n\n**Use Cases:**\n- User lost access to their authenticator app\n- User lost their phone/device with authenticator\n- User wants to change authenticator app\n- User suspects TOTP secret was compromised\n\n**Response:**\n- `qrCodeUrl`: Base64-encoded QR code image (display to user)\n- `secret`: TOTP secret for manual entry (if QR code cannot be scanned)\n- `backupCodes`: Array of 10 new backup codes\n\n**⚠️ IMPORTANT:**\n- Old TOTP secret and backup codes are immediately invalid\n- User must scan new QR code with authenticator app\n- User must save new backup codes securely\n- User must verify new TOTP setup on next login\n- If user cannot verify new TOTP, they may be locked out"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints for login, token refresh, logout, password management, and TOTP management.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of security events\n- **Token versioning** for security\n- **Account lockout** after failed attempts\n- **Email enumeration prevention** (password reset)"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create User (Admin Only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify user creation",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"User created successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.user).to.exist;",
+									"        pm.expect(jsonData.data.totpSetup).to.exist;",
+									"    });",
+									"    ",
+									"    // Log TOTP setup info",
+									"    if (jsonData.data.totpSetup) {",
+									"        console.log(\"TOTP Setup Info:\");",
+									"        console.log(\"  QR Code URL: Base64 image (display to user)\");",
+									"        console.log(\"  Secret: \" + jsonData.data.totpSetup.secret);",
+									"        console.log(\"  Backup Codes: \" + jsonData.data.totpSetup.backupCodes.length + \" codes\");",
+									"        console.log(\"\\n⚠️ IMPORTANT: User must save backup codes securely!\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"NewUserPassword123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"USER\",\n  \"storageQuota\": 10737418240\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "**Create a new user account (Admin Only)**\n\nOnly admins can create users. Password must meet security requirements.\n\n**Password Requirements:**\n- Minimum 12 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character\n\n**TOTP Setup (MANDATORY):**\n- TOTP is automatically set up for all new users\n- Response includes:\n  - `totpSetup.qrCodeUrl`: Base64-encoded QR code image (display to user)\n  - `totpSetup.secret`: TOTP secret for manual entry (if QR code cannot be scanned)\n  - `totpSetup.backupCodes`: Array of 10 backup codes (user MUST save these securely)\n\n**⚠️ IMPORTANT:**\n- User must scan the QR code with an authenticator app (Google Authenticator, Authy, etc.)\n- User must save backup codes in a secure location\n- User cannot login until TOTP is verified\n\n**Audit Logging:**\n- User creation logged as `USER_CREATED`\n- Includes creator ID, new user ID, and user information\n\n**Response:**\n- `user`: Created user information\n- `totpSetup`: TOTP setup information (QR code, secret, backup codes)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Users (Admin Only)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users?page=1&limit=50&search=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "50",
+									"description": "Items per page (default: 50)"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search by email or name (optional)"
+								}
+							]
+						},
+						"description": "**List all users with pagination (Admin Only)**\n\nOnly admins can access this endpoint.\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 50)\n- `search`: Search by email or name (optional)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- `users`: Array of user objects\n- `pagination`: Pagination information (page, limit, total, totalPages)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify token versioning",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        // Check if token is still valid",
+									"        pm.test(\"User data retrieved\", function () {",
+									"            pm.expect(jsonData.data.id).to.exist;",
+									"            pm.expect(jsonData.data.email).to.exist;",
+									"        });",
+									"        ",
+									"        // If token was invalidated, we would get 401",
+									"        console.log(\"Token is valid - token version matches user's current version\");",
+									"    }",
+									"} else if (pm.response.code === 401) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"Token invalidated: \" + jsonData.error.message);",
+									"        console.log(\"This happens when password is changed - token version mismatch\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "**Get current authenticated user's profile**\n\nReturns the profile information of the currently authenticated user.\n\n**Token Versioning:**\n- This endpoint validates token version\n- If password was changed, token version increments\n- Old tokens become invalid and return 401 with message: \"Token has been invalidated. Please login again.\"\n- This prevents token reuse after password compromise\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- User profile information including:\n  - `id`, `email`, `firstName`, `lastName`, `avatarUrl`\n  - `role`, `storageQuota`, `storageUsed`\n  - `emailVerified`, `totpEnabled`, `totpVerified`\n  - `createdAt`, `updatedAt`"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Current User",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\",\n  \"avatarUrl\": \"https://example.com/avatar.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "**Update current user's profile**\n\nUpdate the current authenticated user's profile information.\n\n**Allowed Fields:**\n- `firstName`: User's first name\n- `lastName`: User's last name\n- `avatarUrl`: URL to user's avatar image\n\n**Token Versioning:**\n- Token version is validated before allowing update\n- If token is invalid (password changed), returns 401\n\n**Audit Logging:**\n- User update logged as `USER_UPDATED`\n- Includes updated fields and user ID\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- Updated user information (id, firstName, lastName, avatarUrl, updatedAt)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Active Sessions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify sessions list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Sessions retrieved\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.sessions).to.be.an('array');",
+									"    });",
+									"    ",
+									"    if (jsonData.data.sessions.length > 0) {",
+									"        console.log(\"📱 Active Sessions: \" + jsonData.data.sessions.length);",
+									"        jsonData.data.sessions.forEach((session, index) => {",
+									"            console.log(\"\\nSession \" + (index + 1) + \":\");",
+									"            console.log(\"  ID: \" + session.id);",
+									"            console.log(\"  Device: \" + session.deviceType + \" - \" + session.deviceName);",
+									"            console.log(\"  IP: \" + (session.ipAddress || 'N/A'));",
+									"            console.log(\"  Last Active: \" + new Date(session.lastActiveAt));",
+									"        });",
+									"        ",
+									"        // Save first session ID for testing",
+									"        if (jsonData.data.sessions[0]) {",
+									"            pm.environment.set(\"sessionId\", jsonData.data.sessions[0].id);",
+									"        }",
+									"    } else {",
+									"        console.log(\"No active sessions\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/sessions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"sessions"
+							]
+						},
+						"description": "**List all active sessions for current user**\n\nGet a list of all active device sessions for the authenticated user.\n\n**Session Information:**\n- `id`: Session ID (use for revoking specific session)\n- `deviceType`: MOBILE or WEB\n- `deviceName`: User-friendly device name\n- `deviceId`: Unique device identifier\n- `userAgent`: Browser/app user agent\n- `ipAddress`: IP address of the session\n- `location`: Approximate location (if available)\n- `lastActiveAt`: Last activity timestamp\n- `createdAt`: Session creation timestamp\n- `expiresAt`: Session expiration timestamp\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Session listing is not logged (read-only operation)\n\n**Response:**\n- Array of active session objects with device and location information"
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke Specific Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify session revocation",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Session revoked successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Session revoked successfully\");",
+									"    console.log(\"⚠️ All tokens for this session are now invalid\");",
+									"    ",
+									"    // If this was the current session, clear tokens",
+									"    const currentSessionId = pm.environment.get(\"sessionId\");",
+									"    const revokedSessionId = pm.variables.get(\"sessionId\") || pm.environment.get(\"sessionId\");",
+									"    if (currentSessionId === revokedSessionId) {",
+									"        pm.environment.unset(\"accessToken\");",
+									"        pm.environment.unset(\"refreshToken\");",
+									"        pm.environment.unset(\"sessionId\");",
+									"        console.log(\"⚠️ Current session was revoked - tokens cleared\");",
+									"    }",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Session not found or already revoked\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/sessions/:sessionId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"sessions",
+								":sessionId"
+							],
+							"variable": [
+								{
+									"key": "sessionId",
+									"value": "{{sessionId}}",
+									"description": "Session ID to revoke (get from List Active Sessions)"
+								}
+							]
+						},
+						"description": "**Revoke a specific device session**\n\nRevoke a specific device session by session ID. The session is marked as revoked and all tokens for that session become invalid.\n\n**⚠️ SECURITY:**\n- Session is immediately revoked\n- Access token for this session becomes invalid\n- Refresh token for this session becomes invalid\n- Session cannot be used again\n- If you revoke your current session, you'll be logged out\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Session revocation logged as `SESSION_REVOKED`\n- Includes session ID, IP address, and user agent\n\n**Path Parameter:**\n- `sessionId`: ID of the session to revoke (get from List Active Sessions endpoint)\n\n**Response:**\n- Success message confirming session revocation\n- Note that tokens for this session are now invalid"
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke All Sessions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify all sessions revoked",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"All sessions revoked successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ \" + jsonData.message);",
+									"    console.log(\"⚠️ All device sessions have been revoked\");",
+									"    console.log(\"⚠️ All tokens are now invalid\");",
+									"    console.log(\"⚠️ You must login again\");",
+									"    ",
+									"    // Clear all tokens",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    pm.environment.unset(\"sessionId\");",
+									"    pm.environment.unset(\"tempToken\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/sessions/revoke-all",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"sessions",
+								"revoke-all"
+							]
+						},
+						"description": "**Revoke all device sessions**\n\nRevoke all active device sessions for the authenticated user. This logs out the user from all devices.\n\n**⚠️ SECURITY:**\n- **All** device sessions are immediately revoked\n- **All** access tokens become invalid\n- **All** refresh tokens become invalid\n- User is logged out from all devices\n- User must login again on all devices\n\n**Use Cases:**\n- User suspects account compromise\n- User wants to logout from all devices\n- Security measure after password change (though password change already invalidates tokens)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Each session revocation logged as `SESSION_REVOKED`\n- Includes session ID, IP address, and user agent for each session\n- Multiple audit log entries (one per session)\n\n**Response:**\n- Success message with count of revoked sessions\n- Note that all tokens are now invalid"
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints including profile management and session management.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of user events\n- **Token versioning** validation\n- **Session management** (list, revoke specific, revoke all)"
+		},
+		{
+			"name": "Files",
+			"item": [
+				{
+					"name": "Upload File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file upload",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File uploaded successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.ociObjectName).to.exist;",
+									"    });",
+									"    ",
+									"    // Save file ID for subsequent requests",
+									"    if (jsonData.data.id) {",
+									"        pm.environment.set(\"fileId\", jsonData.data.id);",
+									"        console.log(\"✅ File uploaded successfully\");",
+									"        console.log(\"📁 File ID: \" + jsonData.data.id);",
+									"        console.log(\"📦 OCI Object Name: \" + jsonData.data.ociObjectName);",
+									"        console.log(\"📊 Size: \" + jsonData.data.size + \" bytes\");",
+									"    }",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Upload failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"quota\")) {",
+									"            console.log(\"💡 Storage quota exceeded\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "File to upload (max 100MB)"
+								},
+								{
+									"key": "folderId",
+									"value": "",
+									"type": "text",
+									"description": "Optional: Folder ID to upload file into (null for root)",
+									"disabled": true
+								},
+								{
+									"key": "name",
+									"value": "",
+									"type": "text",
+									"description": "Optional: Display name (defaults to original filename)",
+									"disabled": true
+								},
+								{
+									"key": "description",
+									"value": "",
+									"type": "text",
+									"description": "Optional: File description",
+									"disabled": true
+								},
+								{
+									"key": "tags",
+									"value": "[]",
+									"type": "text",
+									"description": "Optional: JSON array of tags, e.g. [\"work\", \"important\"]",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload"
+							]
+						},
+						"description": "**Upload a file (small files only)**\n\nUpload a small file to the user's storage through the backend server. Files are stored in OCI Object Storage.\n\n**⚠️ For large files (>= 10MB):**\n- Use \"Initiate Upload\" endpoint instead\n- Large files use direct upload via Pre-Authenticated Request (PAR)\n- Supports chunked uploads with resume capability\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Storage quota is checked before upload\n- File size is validated (max 100MB default)\n- File is hashed (SHA-256) for deduplication\n- Files uploaded through backend are scanned (if antivirus enabled)\n\n**File Size Limits:**\n- Default: 100MB per file (backend upload)\n- Recommended: Use chunked upload for files > 10MB\n- Check server configuration for limits\n- Total storage cannot exceed user's quota\n\n**Storage Quota:**\n- Default quota: 10GB per user\n- Checked before upload\n- User's `storageUsed` is updated after successful upload\n\n**File Deduplication:**\n- Files are hashed using SHA-256\n- Duplicate files (same hash) can be detected\n- Currently creates new file record even if hash exists\n\n**Request Body (multipart/form-data):**\n- `file` (required): File to upload\n- `folderId` (optional): Folder ID (null for root)\n- `name` (optional): Display name\n- `description` (optional): File description\n- `tags` (optional): JSON array of tags\n\n**Response:**\n- `id`: File ID\n- `name`: Display name\n- `size`: File size in bytes\n- `mimeType`: MIME type\n- `ociObjectName`: OCI Object Storage key\n- `status`: File status (ACTIVE)"
+					},
+					"response": []
+				},
+				{
+					"name": "Initiate Upload (Large Files)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify upload session creation",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Upload session created successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.sessionId).to.exist;",
+									"        pm.expect(jsonData.data.uploadMethod).to.exist;",
+									"        pm.expect(jsonData.data.totalChunks).to.exist;",
+									"    });",
+									"    ",
+									"    // Save session ID for subsequent requests",
+									"    if (jsonData.data.sessionId) {",
+									"        pm.environment.set(\"uploadSessionId\", jsonData.data.sessionId);",
+									"        console.log(\"✅ Upload session created successfully\");",
+									"        console.log(\"📦 Session ID: \" + jsonData.data.sessionId);",
+									"        console.log(\"📊 Upload Method: \" + jsonData.data.uploadMethod);",
+									"        console.log(\"📦 Total Chunks: \" + jsonData.data.totalChunks);",
+									"        console.log(\"📏 Chunk Size: \" + jsonData.data.chunkSize + \" bytes\");",
+									"        ",
+									"        if (jsonData.data.parUrl) {",
+									"            console.log(\"🔗 Direct Upload URL (PAR): \" + jsonData.data.parUrl);",
+									"            console.log(\"⚠️ \" + (jsonData.data.message || \"Large files are uploaded directly to storage and cannot be scanned for viruses.\"));",
+									"        }",
+									"    }",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Session creation failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"quota\")) {",
+									"            console.log(\"💡 Storage quota exceeded\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fileName\": \"large-file.pdf\",\n  \"fileSize\": 50000000,\n  \"mimeType\": \"application/pdf\",\n  \"folderId\": null,\n  \"chunkSize\": 5242880\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload/initiate",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload",
+								"initiate"
+							]
+						},
+						"description": "**Initiate chunked upload session (for large files)**\n\nStart a chunked upload session for large files. Determines upload method based on file size:\n- **Small files (< 10MB)**: Use \"Upload File\" endpoint instead (backend upload)\n- **Large files (>= 10MB)**: Direct upload via Pre-Authenticated Request (PAR)\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Storage quota is checked before session creation\n- Large files uploaded directly to OCI cannot be scanned for viruses\n- Virus scan warning is shown in response for large files\n\n**Upload Methods:**\n- **DIRECT**: Files >= 10MB (default threshold)\n  - Client uploads directly to OCI via PAR URL\n  - Chunks are uploaded directly to OCI\n  - Backend tracks progress only\n  - Files cannot be scanned for viruses\n\n- **BACKEND**: Files < 10MB\n  - Use \"Upload File\" endpoint instead\n  - Files go through backend server\n  - Can be scanned for viruses\n\n**Request Body:**\n- `fileName` (required): Original filename\n- `fileSize` (required): File size in bytes\n- `mimeType` (required): MIME type\n- `folderId` (optional): Folder ID (null for root)\n- `chunkSize` (optional): Chunk size in bytes (default: 5MB)\n\n**Response:**\n- `sessionId`: Upload session ID\n- `uploadMethod`: 'DIRECT' or 'BACKEND'\n- `chunkSize`: Chunk size in bytes\n- `totalChunks`: Total number of chunks\n- `parUrl` (for DIRECT): Pre-Authenticated Request URL for direct upload\n- `virusScanWarning` (for DIRECT): true if file cannot be scanned\n- `message` (for DIRECT): Warning message about virus scanning\n\n**Next Steps:**\n1. For DIRECT uploads: Upload chunks directly to `parUrl` using PUT requests\n2. For BACKEND uploads: Use \"Upload Chunk\" endpoint\n3. After all chunks: Use \"Complete Upload\" endpoint\n4. To resume: Use \"Resume Upload\" endpoint"
+					},
+					"response": []
+				},
+				{
+					"name": "Upload Chunk",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify chunk upload",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Chunk uploaded successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.sessionId).to.exist;",
+									"        pm.expect(jsonData.data.uploadedChunks).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Chunk uploaded successfully\");",
+									"    console.log(\"📊 Progress: \" + jsonData.data.uploadedChunks + \"/\" + jsonData.data.totalChunks + \" chunks (\" + jsonData.data.progress.toFixed(1) + \"%)\");",
+									"    console.log(\"📦 Uploaded: \" + jsonData.data.uploadedBytes + \" bytes\");",
+									"    ",
+									"    if (jsonData.data.isComplete) {",
+									"        console.log(\"✅ All chunks uploaded! Use 'Complete Upload' endpoint to finalize.\");",
+									"    }",
+									"} else if (pm.response.code === 400 || pm.response.code === 404) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Chunk upload failed: \" + jsonData.error.message);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "sessionId",
+									"value": "{{uploadSessionId}}",
+									"type": "text",
+									"description": "Upload session ID from 'Initiate Upload'"
+								},
+								{
+									"key": "chunkNumber",
+									"value": "0",
+									"type": "text",
+									"description": "Chunk number (0-indexed, start from 0)"
+								},
+								{
+									"key": "isLastChunk",
+									"value": "false",
+									"type": "text",
+									"description": "Set to 'true' for the last chunk"
+								},
+								{
+									"key": "chunk",
+									"type": "file",
+									"src": [],
+									"description": "Chunk data (binary)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload/chunk",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload",
+								"chunk"
+							]
+						},
+						"description": "**Upload a chunk (for backend uploads only)**\n\nUpload a single chunk of a file. This endpoint is for BACKEND uploads only.\n\n**⚠️ For DIRECT uploads:**\n- Upload chunks directly to the PAR URL using PUT requests\n- Do NOT use this endpoint for DIRECT uploads\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Chunk number must match expected sequence\n- Session must be active and not expired\n\n**Chunk Validation:**\n- Chunk number must match expected next chunk\n- Chunk size must match session chunk size (except last chunk)\n- Session must not be completed or expired\n\n**Request Body (multipart/form-data):**\n- `sessionId` (required): Upload session ID\n- `chunkNumber` (required): Chunk number (0-indexed)\n- `isLastChunk` (required): 'true' for last chunk, 'false' otherwise\n- `chunk` (required): Chunk data (binary file)\n\n**Response:**\n- `sessionId`: Upload session ID\n- `uploadedChunks`: Number of chunks uploaded\n- `totalChunks`: Total number of chunks\n- `uploadedBytes`: Total bytes uploaded\n- `progress`: Upload progress percentage\n- `isComplete`: true if all chunks uploaded\n\n**Note:**\n- For DIRECT uploads, upload chunks directly to PAR URL\n- This endpoint tracks progress for backend uploads"
+					},
+					"response": []
+				},
+				{
+					"name": "Resume Upload",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify resume upload",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Upload session retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.sessionId).to.exist;",
+									"        pm.expect(jsonData.data.nextChunkNumber).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Upload session retrieved\");",
+									"    console.log(\"📊 Progress: \" + jsonData.data.uploadedChunks + \"/\" + jsonData.data.totalChunks + \" chunks (\" + jsonData.data.progress.toFixed(1) + \"%)\");",
+									"    console.log(\"📦 Next Chunk: \" + jsonData.data.nextChunkNumber);",
+									"    console.log(\"📏 Chunk Size: \" + jsonData.data.chunkSize + \" bytes\");",
+									"    ",
+									"    if (jsonData.data.parUrl) {",
+									"        console.log(\"🔗 PAR URL: \" + jsonData.data.parUrl);",
+									"        console.log(\"💡 Continue uploading chunks directly to PAR URL\");",
+									"    }",
+									"} else if (pm.response.code === 404 || pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Resume failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"expired\")) {",
+									"            console.log(\"💡 Session expired. Start a new upload.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload/:sessionId/resume",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload",
+								":sessionId",
+								"resume"
+							],
+							"variable": [
+								{
+									"key": "sessionId",
+									"value": "{{uploadSessionId}}",
+									"description": "Upload session ID"
+								}
+							]
+						},
+						"description": "**Resume interrupted upload**\n\nResume an interrupted upload session. Returns current progress and next chunk number.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Session must not be expired\n- Session must not be completed\n\n**Use Cases:**\n- Network interruption during upload\n- Browser/application crash\n- User cancellation and restart\n\n**Session Validation:**\n- Session must exist and belong to user\n- Session must not be expired\n- Session must not be completed\n\n**Response:**\n- `sessionId`: Upload session ID\n- `uploadMethod`: 'DIRECT' or 'BACKEND'\n- `uploadedChunks`: Number of chunks uploaded\n- `totalChunks`: Total number of chunks\n- `uploadedBytes`: Total bytes uploaded\n- `progress`: Upload progress percentage\n- `nextChunkNumber`: Next chunk number to upload\n- `parUrl` (for DIRECT): PAR URL for direct upload\n- `chunkSize`: Chunk size in bytes\n- `isExpired`: false if session is valid\n\n**Next Steps:**\n1. Use `nextChunkNumber` to continue uploading\n2. For DIRECT uploads: Upload chunks directly to `parUrl`\n3. For BACKEND uploads: Use \"Upload Chunk\" endpoint\n4. After all chunks: Use \"Complete Upload\" endpoint"
+					},
+					"response": []
+				},
+				{
+					"name": "Complete Upload",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify upload completion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Upload completed successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.status).to.equal(\"ACTIVE\");",
+									"    });",
+									"    ",
+									"    // Save file ID for subsequent requests",
+									"    if (jsonData.data.id) {",
+									"        pm.environment.set(\"fileId\", jsonData.data.id);",
+									"        console.log(\"✅ Upload completed successfully\");",
+									"        console.log(\"📁 File ID: \" + jsonData.data.id);",
+									"        console.log(\"📦 OCI Object Name: \" + jsonData.data.ociObjectName);",
+									"        console.log(\"📊 Size: \" + jsonData.data.size + \" bytes\");",
+									"        console.log(\"📊 Status: \" + jsonData.data.status);",
+									"    }",
+									"} else if (pm.response.code === 400 || pm.response.code === 404) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Upload completion failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"incomplete\")) {",
+									"            console.log(\"💡 Not all chunks have been uploaded. Use 'Resume Upload' to check progress.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"My File\",\n  \"description\": \"Optional file description\",\n  \"tags\": [\"important\", \"work\"],\n  \"metadata\": {\n    \"customField\": \"value\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/upload/:sessionId/complete",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"upload",
+								":sessionId",
+								"complete"
+							],
+							"variable": [
+								{
+									"key": "sessionId",
+									"value": "{{uploadSessionId}}",
+									"description": "Upload session ID"
+								}
+							]
+						},
+						"description": "**Complete upload and create file record**\n\nFinalize upload after all chunks are uploaded. Creates file record, calculates hash, and updates user storage.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- All chunks must be uploaded\n- Session must not be expired\n- File must exist in storage (for DIRECT uploads)\n\n**Validation:**\n- All chunks must be uploaded (verified by chunk count)\n- File must exist in OCI storage\n- File hash is calculated (SHA-256)\n- Duplicate detection (same hash and user)\n\n**File Creation:**\n- Creates file record in database\n- Sets status to ACTIVE\n- Updates user storage usage\n- Cleans up PAR (for DIRECT uploads)\n- Links file to upload session\n\n**Request Body (JSON):**\n- `name` (optional): Display name (defaults to original filename)\n- `description` (optional): File description\n- `tags` (optional): Array of tag strings\n- `metadata` (optional): Object with custom metadata\n\n**Path Parameter:**\n- `sessionId`: Upload session ID\n\n**Response:**\n- Complete file object with status = ACTIVE\n- Includes all file metadata\n- Storage usage updated\n\n**Error Responses:**\n- `400`: Upload incomplete or validation failed\n- `404`: Session not found\n- `403`: Access denied\n- `500`: Storage or database error"
+					},
+					"response": []
+				},
+				{
+					"name": "Download File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file download",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"File downloaded successfully\", function () {",
+									"        pm.expect(pm.response.headers.get(\"Content-Type\")).to.exist;",
+									"        pm.expect(pm.response.headers.get(\"Content-Length\")).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File downloaded successfully\");",
+									"    console.log(\"📦 Content-Type: \" + pm.response.headers.get(\"Content-Type\"));",
+									"    console.log(\"📊 Size: \" + pm.response.headers.get(\"Content-Length\") + \" bytes\");",
+									"    ",
+									"    // Note: File content is in response body",
+									"    // In Postman, use 'Send and Download' to save file",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied - file belongs to another user\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId/download",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId",
+								"download"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to download"
+								}
+							]
+						},
+						"description": "**Download a file**\n\nDownload a file from the user's storage.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can download\n- File must be active (not deleted)\n- File must exist in OCI Object Storage\n\n**Response Headers:**\n- `Content-Type`: File MIME type\n- `Content-Length`: File size in bytes\n- `Content-Disposition`: Attachment filename\n- `X-Meta-*`: Custom metadata headers (if any)\n\n**Response Body:**\n- Binary file content\n- In Postman, use 'Send and Download' button to save file\n\n**Path Parameter:**\n- `fileId`: ID of the file to download\n\n**Error Responses:**\n- `404`: File not found\n- `403`: Access denied (file belongs to another user)\n- `400`: File is not available (deleted or archived)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Files",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify files list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Files retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data).to.be.an('array');",
+									"        pm.expect(jsonData.meta.pagination).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Files retrieved successfully\");",
+									"    console.log(\"📁 Total files: \" + jsonData.meta.pagination.total);",
+									"    console.log(\"📄 Files in this page: \" + jsonData.data.length);",
+									"    console.log(\"📊 Page: \" + jsonData.meta.pagination.page + \" / \" + jsonData.meta.pagination.totalPages);",
+									"    ",
+									"    if (jsonData.data.length > 0) {",
+									"        // Save first file ID for testing",
+									"        pm.environment.set(\"fileId\", jsonData.data[0].id);",
+									"        console.log(\"\\nFirst file: \" + jsonData.data[0].name);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files?folderId=&status=&type=&search=&page=1&limit=20&orderBy=createdAt&orderDirection=desc",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files"
+							],
+							"query": [
+								{
+									"key": "folderId",
+									"value": "",
+									"description": "Filter by folder ID (null for root, omit for all)",
+									"disabled": true
+								},
+								{
+									"key": "status",
+									"value": "",
+									"description": "Filter by status: ACTIVE, DELETED, UPLOADING, ARCHIVED",
+									"disabled": true
+								},
+								{
+									"key": "type",
+									"value": "",
+									"description": "Filter by type: DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search in name, originalName, or description",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Items per page (default: 20, max: 100)"
+								},
+								{
+									"key": "orderBy",
+									"value": "createdAt",
+									"description": "Sort by: name, createdAt, updatedAt, size (default: createdAt)"
+								},
+								{
+									"key": "orderDirection",
+									"value": "desc",
+									"description": "Sort direction: asc, desc (default: desc)"
+								}
+							]
+						},
+						"description": "**List files with filtering and pagination**\n\nGet a list of files for the authenticated user with optional filtering and pagination.\n\n**Query Parameters:**\n- `folderId`: Filter by folder ID (null for root files, omit for all files)\n- `status`: Filter by status (ACTIVE, DELETED, UPLOADING, ARCHIVED)\n- `type`: Filter by file type (DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER)\n- `search`: Search in name, originalName, or description\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n- `orderBy`: Sort by field (name, createdAt, updatedAt, size)\n- `orderDirection`: Sort direction (asc, desc)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of file objects with metadata\n- Pagination information in `meta.pagination`"
+					},
+					"response": []
+				},
+				{
+					"name": "Update File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file update",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File updated successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File updated successfully\");",
+									"    console.log(\"📁 File: \" + jsonData.data.name);",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Update failed: \" + jsonData.error.message);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated File Name\",\n  \"folderId\": null,\n  \"description\": \"Updated description\",\n  \"tags\": [\"tag1\", \"tag2\"],\n  \"metadata\": {\n    \"customField\": \"customValue\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to update"
+								}
+							]
+						},
+						"description": "**Update file metadata**\n\nUpdate file metadata (name, folder, description, tags, metadata). File content cannot be updated - use upload with same name for versioning.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can update\n- File must be active (not deleted)\n\n**Allowed Fields:**\n- `name`: Display name (must be unique in folder)\n- `folderId`: Move to folder (null for root)\n- `description`: File description\n- `tags`: Array of tag strings\n- `metadata`: Object with custom metadata\n\n**Validation:**\n- Name must be unique in target folder\n- Folder must exist and belong to user (if moving)\n- File cannot be moved if new name already exists in target folder\n\n**Path Parameter:**\n- `fileId`: ID of the file to update\n\n**Response:**\n- Updated file object with all metadata"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file deletion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File deleted successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File moved to trash successfully\");",
+									"    console.log(\"🗑️ File is now in trash (soft delete)\");",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to delete"
+								}
+							]
+						},
+						"description": "**Delete a file (move to trash)**\n\nDelete a file - always performs soft delete (moves file to trash).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can delete\n\n**Trash System:**\n- Files are always soft-deleted (moved to trash)\n- Status changed to DELETED\n- File remains in storage (storage not freed)\n- File can be restored from trash\n- Use \"Permanent Delete File\" endpoint to permanently delete from trash\n\n**Storage Quota:**\n- Storage is NOT freed on soft delete\n- Storage is only freed when permanently deleted from trash\n\n**Path Parameter:**\n- `fileId`: ID of the file to delete\n\n**Related Endpoints:**\n- `GET /api/files/trash` - List files in trash\n- `POST /api/files/:id/restore` - Restore file from trash\n- `DELETE /api/files/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Success message confirming file moved to trash"
+					},
+					"response": []
+				},
+				{
+					"name": "Permanent Delete File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify permanent deletion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File permanently deleted successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File permanently deleted from trash\");",
+									"    console.log(\"⚠️ This action cannot be undone\");",
+									"    console.log(\"📊 User storage will be updated\");",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"must be in trash\")) {",
+									"            console.log(\"💡 File must be in trash first. Delete the file to move it to trash.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId/permanent",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId",
+								"permanent"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to permanently delete"
+								}
+							]
+						},
+						"description": "**Permanently delete a file from trash**\n\nPermanently delete a file that is already in trash. This action cannot be undone.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can delete\n- File MUST be in trash (soft-deleted) first\n\n**Permanent Deletion:**\n- File removed from OCI Object Storage\n- File record removed from database\n- User's `storageUsed` is updated (storage freed)\n- **This action cannot be undone**\n\n**Validation:**\n- File must be in trash (status = DELETED)\n- If file is not in trash, you'll get error: \"File must be in trash before it can be permanently deleted\"\n- Delete the file first to move it to trash, then use this endpoint\n\n**Path Parameter:**\n- `fileId`: ID of the file to permanently delete\n\n**Related Endpoints:**\n- `DELETE /api/files/:id` - Move file to trash\n- `GET /api/files/trash` - List files in trash\n- `POST /api/files/:id/restore` - Restore file from trash\n\n**Response:**\n- Success message confirming permanent deletion"
+					},
+					"response": []
+				},
+				{
+					"name": "Restore File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file restoration",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File restored successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.status).to.equal(\"ACTIVE\");",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File restored from trash successfully\");",
+									"    console.log(\"📁 File: \" + jsonData.data.name);",
+									"    console.log(\"📊 Status: \" + jsonData.data.status);",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Restore failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"cannot be restored\")) {",
+									"            console.log(\"💡 Only deleted files can be restored from trash.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId/restore",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId",
+								"restore"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to restore"
+								}
+							]
+						},
+						"description": "**Restore a file from trash**\n\nRestore a soft-deleted file back to active status.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can restore\n- File must be in trash (soft-deleted)\n\n**Restoration:**\n- File status changed to ACTIVE\n- `deletedAt` field cleared\n- File becomes visible in regular file list\n- Storage quota is checked before restoration\n\n**Validation:**\n- File must be in trash (status = DELETED)\n- If file is not deleted, you'll get error: \"File cannot be restored. Only deleted files can be restored.\"\n- Storage quota is checked - restoration will fail if quota would be exceeded\n\n**Path Parameter:**\n- `fileId`: ID of the file to restore\n\n**Related Endpoints:**\n- `DELETE /api/files/:id` - Move file to trash\n- `GET /api/files/trash` - List files in trash\n- `DELETE /api/files/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Restored file object with status = ACTIVE"
+					},
+					"response": []
+				},
+				{
+					"name": "Archive File",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify file archiving",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"File archived successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.status).to.equal(\"ARCHIVED\");",
+									"    });",
+									"    ",
+									"    console.log(\"✅ File archived successfully\");",
+									"    console.log(\"📁 File: \" + jsonData.data.name);",
+									"    console.log(\"📊 Status: \" + jsonData.data.status);",
+									"    console.log(\"📦 Archived files are kept for long-term storage\");",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ File not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Archive failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"cannot be archived\")) {",
+									"            console.log(\"💡 Only active files can be archived.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/:fileId/archive",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								":fileId",
+								"archive"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "{{fileId}}",
+									"description": "File ID to archive"
+								}
+							]
+						},
+						"description": "**Archive a file**\n\nArchive an active file. Archived files are kept for long-term storage but marked as archived.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can archive\n- File must be active (not deleted or already archived)\n\n**Archiving:**\n- File status changed to ARCHIVED\n- File remains in storage\n- File can be filtered by status\n- Storage is NOT freed (file still counts toward quota)\n\n**Validation:**\n- File must be active (status = ACTIVE)\n- If file is not active, you'll get error: \"File cannot be archived. Only active files can be archived.\"\n- Only file owner can archive\n\n**Use Cases:**\n- Long-term document retention\n- Compliance requirements\n- Historical record keeping\n- Marking files as inactive without deleting\n\n**Path Parameter:**\n- `fileId`: ID of the file to archive\n\n**Response:**\n- Archived file object with status = ARCHIVED\n\n**Note:**\n- Archived files are kept but marked differently\n- Storage quota still counts archived files\n- To permanently remove, delete file first, then permanently delete from trash"
+					},
+					"response": []
+				},
+				{
+					"name": "List Trash Files",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify trash files list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Trash files retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data).to.be.an('array');",
+									"        pm.expect(jsonData.meta.pagination).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Trash files retrieved successfully\");",
+									"    console.log(\"🗑️ Total files in trash: \" + jsonData.meta.pagination.total);",
+									"    console.log(\"📄 Files in this page: \" + jsonData.data.length);",
+									"    console.log(\"📊 Page: \" + jsonData.meta.pagination.page + \" / \" + jsonData.meta.pagination.totalPages);",
+									"    ",
+									"    if (jsonData.data.length > 0) {",
+									"        console.log(\"\\nFirst file in trash: \" + jsonData.data[0].name);",
+									"        pm.environment.set(\"fileId\", jsonData.data[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/trash?type=&search=&page=1&limit=20&orderBy=createdAt&orderDirection=desc",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"trash"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "",
+									"description": "Filter by type: DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search in name, originalName, or description",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Items per page (default: 20, max: 100)"
+								},
+								{
+									"key": "orderBy",
+									"value": "createdAt",
+									"description": "Sort by: name, createdAt, updatedAt, size (default: createdAt)"
+								},
+								{
+									"key": "orderDirection",
+									"value": "desc",
+									"description": "Sort direction: asc, desc (default: desc)"
+								}
+							]
+						},
+						"description": "**List files in trash**\n\nGet a list of soft-deleted files (files in trash) for the authenticated user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows files owned by the authenticated user\n\n**Query Parameters:**\n- `type`: Filter by file type (DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER)\n- `search`: Search in name, originalName, or description\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n- `orderBy`: Sort by field (name, createdAt, updatedAt, size)\n- `orderDirection`: Sort direction (asc, desc)\n\n**Note:**\n- Only files with status = DELETED are returned\n- Files remain in storage until permanently deleted\n- Use \"Restore File\" endpoint to restore files from trash\n- Use \"Permanent Delete File\" endpoint to permanently delete from trash\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of deleted file objects with metadata\n- Pagination information in `meta.pagination`"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder creation",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder created successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.name).to.exist;",
+									"    });",
+									"    ",
+									"    // Save folder ID for subsequent requests",
+									"    if (jsonData.data.id) {",
+									"        pm.environment.set(\"folderId\", jsonData.data.id);",
+									"        console.log(\"✅ Folder created successfully\");",
+									"        console.log(\"📁 Folder ID: \" + jsonData.data.id);",
+									"        console.log(\"📂 Name: \" + jsonData.data.name);",
+									"    }",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Folder creation failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"already exists\")) {",
+									"            console.log(\"💡 A folder with this name already exists in the parent\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"parentId\": null,\n  \"name\": \"My New Folder\",\n  \"description\": \"Folder description\",\n  \"color\": \"#FF5733\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders"
+							]
+						},
+						"description": "**Create a new folder**\n\nCreate a new folder in the user's storage. Folders can be nested (hierarchical structure).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Folder name must be unique in parent folder\n- Parent folder must exist and belong to user (if specified)\n\n**Request Body:**\n- `parentId` (optional): Parent folder ID (null for root folder)\n- `name` (required): Folder name (max 255 characters)\n- `description` (optional): Folder description\n- `color` (optional): Hex color code for UI (e.g., #FF5733)\n\n**Validation:**\n- Name is required and cannot be empty\n- Name must be unique within the parent folder\n- Name length must be <= 255 characters\n- Parent folder must exist if provided\n\n**Response:**\n- Created folder object with all metadata"
+					},
+					"response": []
+				},
+				{
+					"name": "List Folders",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folders list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folders retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data).to.be.an('array');",
+									"        pm.expect(jsonData.meta.pagination).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folders retrieved successfully\");",
+									"    console.log(\"📁 Total folders: \" + jsonData.meta.pagination.total);",
+									"    console.log(\"📂 Folders in this page: \" + jsonData.data.length);",
+									"    ",
+									"    if (jsonData.data.length > 0) {",
+									"        pm.environment.set(\"folderId\", jsonData.data[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders?parentId=&includeDeleted=false&page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders"
+							],
+							"query": [
+								{
+									"key": "parentId",
+									"value": "",
+									"description": "Filter by parent folder ID (null for root folders, omit for all)",
+									"disabled": true
+								},
+								{
+									"key": "includeDeleted",
+									"value": "false",
+									"description": "Include deleted folders (default: false)"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Items per page (default: 20, max: 100)"
+								}
+							]
+						},
+						"description": "**List folders with filtering and pagination**\n\nGet a list of folders for the authenticated user with optional filtering.\n\n**Query Parameters:**\n- `parentId`: Filter by parent folder ID (null for root folders, omit for all folders)\n- `includeDeleted`: Include deleted folders (default: false)\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of folder objects\n- Pagination information in `meta.pagination`"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder update",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder updated successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder updated successfully\");",
+									"    console.log(\"📂 Folder: \" + jsonData.data.name);",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Update failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"circular\")) {",
+									"            console.log(\"💡 Cannot move folder into itself or its subfolders\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Folder Name\",\n  \"parentId\": null,\n  \"description\": \"Updated description\",\n  \"color\": \"#33FF57\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to update"
+								}
+							]
+						},
+						"description": "**Update folder metadata**\n\nUpdate folder metadata (name, parent, description, color). Can also move folder to different parent.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can update\n- Folder must be active (not deleted)\n- Cannot create circular references (cannot move folder into itself or its subfolders)\n\n**Allowed Fields:**\n- `name`: Folder name (must be unique in new parent if moving)\n- `parentId`: Move to different parent (null for root)\n- `description`: Folder description\n- `color`: Hex color code\n\n**Validation:**\n- Name must be unique in target parent folder\n- Cannot move folder into itself\n- Cannot move folder into any of its subfolders (circular reference prevention)\n- New parent must exist and belong to user (if moving)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to update\n\n**Response:**\n- Updated folder object with all metadata"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder deletion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder deleted successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder moved to trash successfully\");",
+									"    console.log(\"🗑️ Folder is now in trash (soft delete)\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"subfolders\")) {",
+									"            console.log(\"💡 Folder contains subfolders. Delete them first or use force delete.\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"files\")) {",
+									"            console.log(\"💡 Folder contains files. Delete them first or use force delete.\");",
+									"        }",
+									"    }",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder not found\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId?forceDelete=false",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId"
+							],
+							"query": [
+								{
+									"key": "forceDelete",
+									"value": "false",
+									"description": "Set to true to delete folder even if it contains active files/subfolders"
+								}
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to delete"
+								}
+							]
+						},
+						"description": "**Delete a folder (move to trash)**\n\nDelete a folder - always performs soft delete (moves folder to trash).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can delete\n- Folder must be empty (no active files or subfolders) unless `forceDelete=true`\n\n**Trash System:**\n- Folders are always soft-deleted (moved to trash)\n- `isDeleted` set to true\n- `deletedAt` timestamp set\n- Folder can be restored from trash\n- Use \"Permanent Delete Folder\" endpoint to permanently delete from trash\n\n**Validation:**\n- By default, folder must be empty (no active files, no active subfolders)\n- Use `forceDelete=true` to delete folder with active contents\n  - ⚠️ This will delete the folder even if it contains active files/subfolders\n\n**Query Parameter:**\n- `forceDelete`: Set to `true` to delete even if folder contains active files/subfolders (default: `false`)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to delete\n\n**Related Endpoints:**\n- `GET /api/files/folders/trash` - List folders in trash\n- `POST /api/files/folders/:id/restore` - Restore folder from trash\n- `DELETE /api/files/folders/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Success message confirming folder moved to trash"
+					},
+					"response": []
+				},
+				{
+					"name": "Permanent Delete Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify permanent deletion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder permanently deleted successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder permanently deleted from trash\");",
+									"    console.log(\"⚠️ This action cannot be undone\");",
+									"    console.log(\"📊 All files in folder and subfolders are also permanently deleted\");",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"must be in trash\")) {",
+									"            console.log(\"💡 Folder must be in trash first. Delete the folder to move it to trash.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId/permanent",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId",
+								"permanent"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to permanently delete"
+								}
+							]
+						},
+						"description": "**Permanently delete a folder from trash**\n\nPermanently delete a folder that is already in trash. This action cannot be undone.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can delete\n- Folder MUST be in trash (soft-deleted) first\n\n**Permanent Deletion:**\n- Folder and all subfolders removed from database\n- All files in folder and subfolders permanently deleted from storage and database\n- User's `storageUsed` is updated (storage freed)\n- **This action cannot be undone**\n\n**Validation:**\n- Folder must be in trash (isDeleted = true)\n- If folder is not in trash, you'll get error: \"Folder must be in trash before it can be permanently deleted\"\n- Delete the folder first to move it to trash, then use this endpoint\n\n**Path Parameter:**\n- `folderId`: ID of the folder to permanently delete\n\n**Related Endpoints:**\n- `DELETE /api/files/folders/:id` - Move folder to trash\n- `GET /api/files/folders/trash` - List folders in trash\n- `POST /api/files/folders/:id/restore` - Restore folder from trash\n\n**Response:**\n- Success message confirming permanent deletion"
+					},
+					"response": []
+				},
+				{
+					"name": "Restore Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder restoration",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder restored successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.isDeleted).to.be.false;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder restored from trash successfully\");",
+									"    console.log(\"📁 Folder: \" + jsonData.data.name);",
+									"    console.log(\"📊 Is Deleted: \" + jsonData.data.isDeleted);",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Restore failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"cannot be restored\")) {",
+									"            console.log(\"💡 Only deleted folders can be restored from trash.\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"Parent folder\")) {",
+									"            console.log(\"💡 Parent folder must be restored first.\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"already exists\")) {",
+									"            console.log(\"💡 A folder with this name already exists in the parent.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId/restore",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId",
+								"restore"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to restore"
+								}
+							]
+						},
+						"description": "**Restore a folder from trash**\n\nRestore a soft-deleted folder back to active status.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can restore\n- Folder must be in trash (soft-deleted)\n\n**Restoration:**\n- Folder `isDeleted` set to false\n- `deletedAt` field cleared\n- Folder becomes visible in regular folder list\n\n**Validation:**\n- Folder must be in trash (isDeleted = true)\n- If folder is not deleted, you'll get error: \"Folder cannot be restored. Only deleted folders can be restored.\"\n- Parent folder must not be deleted (if parent exists)\n- Folder name must not conflict with existing folder in parent\n\n**Path Parameter:**\n- `folderId`: ID of the folder to restore\n\n**Related Endpoints:**\n- `DELETE /api/files/folders/:id` - Move folder to trash\n- `GET /api/files/folders/trash` - List folders in trash\n- `DELETE /api/files/folders/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Restored folder object with isDeleted = false"
+					},
+					"response": []
+				},
+				{
+					"name": "List Trash Folders",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify trash folders list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Trash folders retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data).to.be.an('array');",
+									"        pm.expect(jsonData.meta.pagination).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Trash folders retrieved successfully\");",
+									"    console.log(\"🗑️ Total folders in trash: \" + jsonData.meta.pagination.total);",
+									"    console.log(\"📂 Folders in this page: \" + jsonData.data.length);",
+									"    console.log(\"📊 Page: \" + jsonData.meta.pagination.page + \" / \" + jsonData.meta.pagination.totalPages);",
+									"    ",
+									"    if (jsonData.data.length > 0) {",
+									"        console.log(\"\\nFirst folder in trash: \" + jsonData.data[0].name);",
+									"        pm.environment.set(\"folderId\", jsonData.data[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/trash?page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								"trash"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Items per page (default: 20, max: 100)"
+								}
+							]
+						},
+						"description": "**List folders in trash**\n\nGet a list of soft-deleted folders (folders in trash) for the authenticated user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows folders owned by the authenticated user\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n\n**Note:**\n- Only folders with isDeleted = true are returned\n- Folders remain in database until permanently deleted\n- Use \"Restore Folder\" endpoint to restore folders from trash\n- Use \"Permanent Delete Folder\" endpoint to permanently delete from trash\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of deleted folder objects with metadata\n- Pagination information in `meta.pagination`"
+					},
+					"response": []
+				}
+			],
+			"description": "File and folder management endpoints for uploading, downloading, organizing, and managing files.\n\nAll endpoints include:\n- **Authentication required** (Bearer token)\n- **Rate limiting** protection\n- **Storage quota** validation\n- **File deduplication** (SHA-256 hash)\n- **OCI Object Storage** integration for actual file storage\n\n### Storage Features:\n- **Hierarchical folders**: Create nested folder structures\n- **File metadata**: Name, description, tags, custom metadata\n- **File types**: Automatic detection (DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER)\n- **Trash system**: All deletions are soft-deletes (move to trash)\n  - Files and folders can be restored from trash\n  - Permanent deletion only available from trash\n  - Storage is freed only when permanently deleted\n- **Storage quota**: Default 10GB per user, checked before upload\n- **Storage tracking**: User's `storageUsed` is automatically updated"
+		},
+		{
+			"name": "Testing & Utilities",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "**Health check endpoint**\n\nCheck if the server is running and responding.\n\n**No authentication required**\n\n**Response:**\n- `status`: \"ok\"\n- `timestamp`: Current server timestamp"
+					},
+					"response": []
+				}
+			],
+			"description": "Testing and utility endpoints for verifying system functionality."
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4000",
+			"type": "string"
+		}
+	]
+}

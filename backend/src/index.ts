@@ -4,7 +4,7 @@ import { Server } from './framework/server/server.js';
 const PORT = Number(process.env.PORT) || 4000;
 
 async function main() {
-  console.log('🚀 v8id-cloud Backend starting...');
+  console.log('🚀 void Backend starting...');
   
   const server = new Server();
   await server.start(PORT);

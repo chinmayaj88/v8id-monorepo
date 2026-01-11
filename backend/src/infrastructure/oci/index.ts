@@ -1,15 +1,7 @@
 /**
- * OCI (Oracle Cloud Infrastructure) Integration
+ * OCI Infrastructure
  * 
- * OCI Object Storage client and related services.
- * Handles file storage operations on OCI.
+ * Oracle Cloud Infrastructure (OCI) integrations.
  */
 
-// TODO: Implement OCI integration
-// - OciStorageClient
-// - OciConfig
-// - File upload/download operations
-// - Bucket management
-
-export {};
-
+export { OciStorageService } from './storage.service';

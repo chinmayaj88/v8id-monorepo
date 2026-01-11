@@ -1,17 +1,8 @@
 /**
- * Middleware
+ * Presentation Middleware
  * 
- * Express middleware for cross-cutting concerns like
- * authentication, error handling, logging, etc.
+ * Express middleware for request handling, authentication, validation, etc.
  */
 
-// TODO: Create middleware
-// - AuthMiddleware
-// - ErrorHandlerMiddleware
-// - RequestLoggerMiddleware
-// - ValidationMiddleware
-// - RateLimitingMiddleware
-// - etc.
-
-export {};
-
+export { authMiddleware, adminMiddleware, type AuthenticatedRequest } from './auth.middleware';
+export { generalRateLimiter, authRateLimiter, totpRateLimiter, refreshRateLimiter } from './rate-limit.middleware';

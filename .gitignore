@@ -79,3 +79,9 @@ oci-config
 *.key
 *.crt
 
+
+API_SPECIFICATION.md
+DATABASE_SCHEMA.md
+FEATURES.md
+
+.cursor

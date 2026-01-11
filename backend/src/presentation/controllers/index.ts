@@ -5,13 +5,6 @@
  * call use cases, and format responses.
  */
 
-// TODO: Create controllers
-// - FileController
-// - UserController
-// - FolderController
-// - ShareController
-// - AuthController
-// - etc.
-
-export {};
-
+export { AuthController } from './auth.controller';
+export { UserController } from './user.controller';
+export { FileController } from './file.controller';

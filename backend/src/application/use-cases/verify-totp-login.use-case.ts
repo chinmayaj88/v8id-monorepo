@@ -1,0 +1,207 @@
+/**
+ * Verify TOTP Login Use Case
+ * 
+ * Second step of two-step login: Verifies TOTP code and completes login.
+ */
+
+import { IUserRepository } from '../interfaces/user-repository.interface';
+import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface';
+import { IEmailService } from '../interfaces/email-service.interface';
+import { ITotpService } from '../interfaces/totp-service.interface';
+import { IJwtService } from '../interfaces/jwt-service.interface';
+
+export interface VerifyTotpLoginResult {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  deviceSession: {
+    id: string;
+    deviceType: 'MOBILE' | 'WEB';
+    deviceName: string;
+    location?: string;
+  };
+  user: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    role: string;
+  };
+}
+
+export interface VerifyTotpLoginDTO {
+  tempToken: string;
+  totpCode: string;
+  deviceType: 'MOBILE' | 'WEB';
+  deviceName: string;
+  deviceId: string;
+}
+
+export interface VerifyTotpLoginOptions {
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export class VerifyTotpLoginUseCase {
+  constructor(
+    private userRepository: IUserRepository,
+    private deviceSessionRepository: IDeviceSessionRepository,
+    private emailService: IEmailService,
+    private totpService: ITotpService,
+    private jwtService: IJwtService
+  ) {}
+
+  async execute(
+    dto: VerifyTotpLoginDTO,
+    options?: VerifyTotpLoginOptions
+  ): Promise<VerifyTotpLoginResult> {
+    const ipAddress = options?.ipAddress;
+    const userAgent = options?.userAgent;
+    // 1. Verify temporary token (expires in 5 minutes for security)
+    let tokenPayload;
+    try {
+      tokenPayload = this.jwtService.verifyToken(dto.tempToken);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid or expired token';
+      // Check if token is expired (JWT throws specific errors for expiration)
+      if (errorMessage.includes('expired') || errorMessage.includes('jwt expired')) {
+        throw new Error('Temporary token has expired. Please verify credentials again.');
+      }
+      throw new Error('Invalid or expired temporary token');
+    }
+
+    // 2. Get user
+    const user = await this.userRepository.findById(tokenPayload.userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // 3. Check if user is active
+    if (!user.isUserActive()) {
+      throw new Error('Account is inactive');
+    }
+
+    // 4. Verify TOTP is set up (TOTP is mandatory)
+    if (!user.totpSecret) {
+      throw new Error('TOTP is not set up for this account');
+    }
+
+    // 5. Verify TOTP code
+
+    const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
+    let totpSecret: string;
+    try {
+      totpSecret = this.totpService.decryptSecret(user.totpSecret, encryptionKey);
+    } catch {
+      throw new Error('Invalid TOTP configuration');
+    }
+
+    const isTotpValid = this.totpService.verifyTotp(dto.totpCode, totpSecret);
+    if (!isTotpValid) {
+      throw new Error('Invalid TOTP code');
+    }
+
+    // 6. If TOTP was not verified before, mark it as verified now
+    if (!user.totpVerified) {
+      await this.userRepository.update(user.id, {
+        totpVerified: true,
+      });
+    }
+
+    // 7. Check device limits and detect new device
+    const activeSessions = await this.deviceSessionRepository.findActiveSessionsByUserId(user.id);
+    const mobileCount = await this.deviceSessionRepository.countActiveSessionsByType(user.id, 'MOBILE');
+    const webCount = await this.deviceSessionRepository.countActiveSessionsByType(user.id, 'WEB');
+
+    // Check if this is a new device (before creating session)
+    // A device is "new" if no active session exists with this deviceId
+    const isNewDevice = !activeSessions.some((s) => s.deviceId === dto.deviceId);
+
+    // Enforce limits: 2 mobile + 1 web
+    if (dto.deviceType === 'MOBILE' && mobileCount >= 2) {
+      const mobileSessions = activeSessions
+        .filter((s) => s.deviceType === 'MOBILE')
+        .sort((a, b) => a.lastActiveAt.getTime() - b.lastActiveAt.getTime());
+      if (mobileSessions.length > 0 && mobileSessions[0]) {
+        await this.deviceSessionRepository.revoke(mobileSessions[0].id);
+      }
+    } else if (dto.deviceType === 'WEB' && webCount >= 1) {
+      const webSessions = activeSessions.filter((s) => s.deviceType === 'WEB');
+      for (const session of webSessions) {
+        await this.deviceSessionRepository.revoke(session.id);
+      }
+    }
+
+    // 8. Generate tokens (include tokenVersion for invalidation on password change)
+    const finalTokenPayload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      tokenVersion: user.tokenVersion,
+    };
+
+    const accessToken = this.jwtService.generateAccessToken(finalTokenPayload);
+    const refreshToken = this.jwtService.generateRefreshToken(finalTokenPayload);
+    const expiresIn = this.jwtService.getAccessTokenExpirationSeconds();
+
+    // 9. Calculate expiration date for refresh token (7 days)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // 10. Create device session
+    const deviceSession = await this.deviceSessionRepository.create({
+      userId: user.id,
+      deviceType: dto.deviceType,
+      deviceName: dto.deviceName,
+      deviceId: dto.deviceId,
+      userAgent: userAgent || dto.deviceName,
+      ipAddress: ipAddress,
+      location: undefined,
+      accessToken,
+      refreshToken,
+      expiresAt,
+    });
+
+    // 11. Update user's last login time
+    await this.userRepository.update(user.id, {
+      lastLoginAt: new Date(),
+    });
+
+    // 12. Send new device login alert if this is a new device (non-blocking)
+    if (isNewDevice) {
+      try {
+        await this.emailService.sendNewDeviceLoginAlert(
+          user.email,
+          user.firstName,
+          dto.deviceType,
+          dto.deviceName,
+          ipAddress,
+          deviceSession.location
+        );
+      } catch (error) {
+        // Log error but don't fail login
+        console.error('Failed to send new device login alert:', error);
+      }
+    }
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn,
+      deviceSession: {
+        id: deviceSession.id,
+        deviceType: deviceSession.deviceType,
+        deviceName: deviceSession.deviceName,
+        location: deviceSession.location,
+      },
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      },
+    };
+  }
+}
+
