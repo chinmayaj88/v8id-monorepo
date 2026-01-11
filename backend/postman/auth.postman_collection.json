@@ -142,7 +142,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"tempToken\": \"{{tempToken}}\",\n  \"totpCode\": \"123456\",\n  \"deviceType\": \"WEB\",\n  \"deviceName\": \"Chrome on Windows\",\n  \"deviceId\": \"web-device-001\"\n}"
+							"raw": "{\n  \"tempToken\": \"{{tempToken}}\",\n  \"totpCode\": \"123456\",\n  \"deviceType\": \"WEB\",\n  \"deviceName\": \"Chrome on Windows\",\n  \"deviceId\": \"web-device-001\",\n  \"rememberMe\": false\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/api/auth/verify-totp",
@@ -155,7 +155,7 @@
 								"verify-totp"
 							]
 						},
-						"description": "**Step 2: Verify TOTP code**\n\nVerify TOTP code using the temporary token from Step 1. Returns access and refresh tokens.\n\n**⚠️ SECURITY:**\n- Temporary token from Step 1 expires in **5 minutes**\n- If the token has expired, you'll get error: \"Temporary token has expired. Please verify credentials again.\"\n- You must complete this step within 5 minutes of Step 1\n\n**Rate Limiting:**\n- 10 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Token Versioning:**\n- Access token includes `tokenVersion` field\n- Token version matches user's current token version\n- If password is changed, token version increments and all tokens become invalid\n\n**Device Limits:**\n- Maximum 2 mobile devices + 1 web session per user\n- Oldest sessions are automatically revoked when limits are exceeded\n\n**Response:**\n- `accessToken`: JWT access token (15 minutes)\n- `refreshToken`: JWT refresh token (7 days)\n- `user`: User information\n- `deviceSession`: Device session information"
+						"description": "**Step 2: Verify TOTP code**\n\nVerify TOTP code using the temporary token from Step 1. Returns access and refresh tokens.\n\n**⚠️ SECURITY:**\n- Temporary token from Step 1 expires in **5 minutes**\n- If the token has expired, you'll get error: \"Temporary token has expired. Please verify credentials again.\"\n- You must complete this step within 5 minutes of Step 1\n\n**Rate Limiting:**\n- 10 requests per 15 minutes per IP\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Token Versioning:**\n- Access token includes `tokenVersion` field\n- Token version matches user's current token version\n- If password is changed, token version increments and all tokens become invalid\n\n**Device Limits:**\n- Maximum 2 mobile devices + 1 web session per user\n- Oldest sessions are automatically revoked when limits are exceeded\n\n**Remember Me (Mobile Only):**\n- `rememberMe`: Optional boolean (default: false)\n- Only available on MOBILE devices (not WEB)\n- Creates 30-day session instead of 7 days\n- Only one remembered mobile device allowed per user\n- If user already has a remembered device, error is returned\n\n**Response:**\n- `accessToken`: JWT access token (15 minutes)\n- `refreshToken`: JWT refresh token (7 days for normal, 30 days if rememberMe=true on mobile)\n- `user`: User information\n- `deviceSession`: Device session information"
 					},
 					"response": []
 				},
@@ -632,6 +632,64 @@
 							]
 						},
 						"description": "**Re-setup TOTP (requires password verification)**\n\nRe-setup TOTP for the authenticated user. This generates a new TOTP secret and backup codes. Requires password verification.\n\n**⚠️ SECURITY:**\n- Requires **password** verification\n- **Old TOTP secret is invalidated** immediately\n- **Old backup codes are invalidated** immediately\n- New TOTP secret and backup codes are generated\n- User must verify new TOTP setup on next login\n- TOTP verification status is reset to false\n\n**Rate Limiting:**\n- 5 requests per 15 minutes per IP (auth rate limiter)\n- All requests are counted\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- TOTP resetup logged as `TOTP_RESETUP`\n- Failed attempts logged as `TOTP_RESETUP_ATTEMPT`\n- Includes IP address and user agent\n\n**Use Cases:**\n- User lost access to their authenticator app\n- User lost their phone/device with authenticator\n- User wants to change authenticator app\n- User suspects TOTP secret was compromised\n\n**Response:**\n- `qrCodeUrl`: Base64-encoded QR code image (display to user)\n- `secret`: TOTP secret for manual entry (if QR code cannot be scanned)\n- `backupCodes`: Array of 10 new backup codes\n\n**⚠️ IMPORTANT:**\n- Old TOTP secret and backup codes are immediately invalid\n- User must scan new QR code with authenticator app\n- User must save new backup codes securely\n- User must verify new TOTP setup on next login\n- If user cannot verify new TOTP, they may be locked out"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Backup Codes",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify backup codes status",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Backup codes status retrieved\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.totalCodes).to.be.a('number');",
+									"        pm.expect(jsonData.data.unusedCodes).to.be.a('number');",
+									"        pm.expect(jsonData.data.usedCodes).to.be.a('number');",
+									"    });",
+									"    ",
+									"    console.log(\"📋 Backup Codes Status:\");",
+									"    console.log(\"  Total Codes: \" + jsonData.data.totalCodes);",
+									"    console.log(\"  Unused Codes: \" + jsonData.data.unusedCodes);",
+									"    console.log(\"  Used Codes: \" + jsonData.data.usedCodes);",
+									"    ",
+									"    if (jsonData.data.unusedCodes === 0) {",
+									"        console.log(\"\\n⚠️ WARNING: All backup codes have been used!\");",
+									"        console.log(\"💡 Consider regenerating backup codes\");",
+									"    } else if (jsonData.data.unusedCodes < 3) {",
+									"        console.log(\"\\n⚠️ WARNING: Only \" + jsonData.data.unusedCodes + \" backup codes remaining!\");",
+									"        console.log(\"💡 Consider regenerating backup codes\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/backup-codes",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"backup-codes"
+							]
+						},
+						"description": "**Get backup codes status**\n\nView the current status of TOTP backup codes for the authenticated user. This endpoint returns statistics about backup codes (total, unused, used) but does not return the actual codes.\n\n**⚠️ SECURITY:**\n- Does NOT return the actual backup codes (for security)\n- Returns only statistics (total, unused, used counts)\n- To view actual codes, user must regenerate them (which invalidates old codes)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Backup codes status viewing is not logged (read-only operation)\n\n**Use Cases:**\n- Check how many backup codes remain unused\n- Check if user needs to regenerate backup codes\n- Monitor backup code usage\n\n**Response:**\n- `totalCodes`: Total number of backup codes\n- `unusedCodes`: Number of unused backup codes\n- `usedCodes`: Number of used backup codes\n\n**⚠️ NOTE:**\n- Actual backup codes are not returned (for security)\n- To get actual codes, use \"Regenerate Backup Codes\" endpoint (requires password + TOTP)"
 					},
 					"response": []
 				}

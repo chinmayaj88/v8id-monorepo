@@ -388,6 +388,89 @@
 						"description": "**Revoke all device sessions**\n\nRevoke all active device sessions for the authenticated user. This logs out the user from all devices.\n\n**⚠️ SECURITY:**\n- **All** device sessions are immediately revoked\n- **All** access tokens become invalid\n- **All** refresh tokens become invalid\n- User is logged out from all devices\n- User must login again on all devices\n\n**Use Cases:**\n- User suspects account compromise\n- User wants to logout from all devices\n- Security measure after password change (though password change already invalidates tokens)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Each session revocation logged as `SESSION_REVOKED`\n- Includes session ID, IP address, and user agent for each session\n- Multiple audit log entries (one per session)\n\n**Response:**\n- Success message with count of revoked sessions\n- Note that all tokens are now invalid"
 					},
 					"response": []
+				},
+				{
+					"name": "Get Login History",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify login history",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Login history retrieved\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.logs).to.be.an('array');",
+									"        pm.expect(jsonData.data.total).to.be.a('number');",
+									"        pm.expect(jsonData.data.page).to.be.a('number');",
+									"        pm.expect(jsonData.data.limit).to.be.a('number');",
+									"    });",
+									"    ",
+									"    console.log(\"📜 Login History:\");",
+									"    console.log(\"  Total Logs: \" + jsonData.data.total);",
+									"    console.log(\"  Page: \" + jsonData.data.page);",
+									"    console.log(\"  Limit: \" + jsonData.data.limit);",
+									"    console.log(\"  Showing: \" + jsonData.data.logs.length + \" logs\");",
+									"    ",
+									"    if (jsonData.data.logs.length > 0) {",
+									"        console.log(\"\\nRecent Login Events:\");",
+									"        jsonData.data.logs.slice(0, 5).forEach((log, index) => {",
+									"            console.log(\"\\n\" + (index + 1) + \". \" + log.eventType + \" - \" + (log.success ? \"✅ Success\" : \"❌ Failed\"));",
+									"            console.log(\"   Time: \" + new Date(log.createdAt));",
+									"            if (log.ipAddress) console.log(\"   IP: \" + log.ipAddress);",
+									"            if (log.userAgent) console.log(\"   User Agent: \" + log.userAgent);",
+									"        });",
+									"    } else {",
+									"        console.log(\"No login history found\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/login-history?page=1&limit=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"login-history"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "50",
+									"description": "Items per page (default: 50, max: 100)"
+								},
+								{
+									"key": "eventType",
+									"value": "",
+									"description": "Filter by event type (optional): LOGIN, LOGIN_FAILED, LOGOUT, TOKEN_REFRESH, TOKEN_REFRESH_FAILED",
+									"disabled": true
+								}
+							]
+						},
+						"description": "**Get user's login history**\n\nRetrieve the login history for the authenticated user. Returns a paginated list of authentication-related events.\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 50, max: 100)\n- `eventType`: Optional filter by event type:\n  - `LOGIN`: Successful login\n  - `LOGIN_FAILED`: Failed login attempt\n  - `LOGOUT`: User logout\n  - `TOKEN_REFRESH`: Successful token refresh\n  - `TOKEN_REFRESH_FAILED`: Failed token refresh\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Login history viewing is not logged (read-only operation)\n\n**Use Cases:**\n- Review login activity\n- Monitor for suspicious login attempts\n- Track login patterns\n- Security audit\n\n**Response:**\n- `logs`: Array of login history entries with:\n  - `id`: Log entry ID\n  - `eventType`: Type of event (LOGIN, LOGIN_FAILED, LOGOUT, etc.)\n  - `success`: Whether the event was successful\n  - `ipAddress`: IP address of the event\n  - `userAgent`: User agent/browser info\n  - `eventData`: Additional event data (optional)\n  - `createdAt`: Timestamp of the event\n- `total`: Total number of log entries\n- `page`: Current page number\n- `limit`: Items per page\n\n**⚠️ NOTE:**\n- This endpoint only returns authentication-related events\n- Events are sorted by most recent first\n- Maximum 100 items per page"
+					},
+					"response": []
 				}
 			],
 			"description": "User management endpoints including profile management and session management.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of user events\n- **Token versioning** validation\n- **Session management** (list, revoke specific, revoke all)"
