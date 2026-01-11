@@ -1,9 +1,3 @@
-/**
- * Audit Log Repository Interface
- * 
- * Defines the contract for audit log data access operations.
- */
-
 export interface AuditLog {
   id: string;
   userId?: string;
@@ -17,9 +11,7 @@ export interface AuditLog {
 }
 
 export interface IAuditLogRepository {
-  /**
-   * Create a new audit log entry
-   */
+
   create(data: {
     userId?: string;
     eventType: string;
@@ -30,31 +22,22 @@ export interface IAuditLogRepository {
     errorMessage?: string;
   }): Promise<AuditLog>;
 
-  /**
-   * Find audit logs by user ID
-   */
+
   findByUserId(userId: string, options?: {
     page?: number;
     limit?: number;
     eventType?: string;
   }): Promise<{ logs: AuditLog[]; total: number }>;
 
-  /**
-   * Find audit logs by event type
-   */
+
   findByEventType(eventType: string, options?: {
     page?: number;
     limit?: number;
   }): Promise<{ logs: AuditLog[]; total: number }>;
 
-  /**
-   * Find failed login attempts for a user
-   */
+
   findFailedLoginAttempts(userId: string, since?: Date): Promise<AuditLog[]>;
 
-  /**
-   * Find audit logs by user ID and event type with date filter
-   */
   findByUserIdAndEventType(
     userId: string,
     eventType: string,

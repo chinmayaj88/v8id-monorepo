@@ -1,9 +1,3 @@
-/**
- * Audit Log Service Interface
- * 
- * Defines the contract for audit logging operations.
- */
-
 export enum AuditEventType {
   // Authentication events
   LOGIN = 'LOGIN',
@@ -42,9 +36,7 @@ export enum AuditEventType {
 }
 
 export interface IAuditLogService {
-  /**
-   * Log a security event
-   */
+
   logEvent(data: {
     userId?: string;
     eventType: AuditEventType | string;
@@ -55,9 +47,7 @@ export interface IAuditLogService {
     errorMessage?: string;
   }): Promise<void>;
 
-  /**
-   * Log login attempt
-   */
+
   logLogin(
     userId: string | undefined,
     success: boolean,
@@ -71,9 +61,7 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 
-  /**
-   * Log logout
-   */
+
   logLogout(
     userId: string,
     options?: {
@@ -83,9 +71,7 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 
-  /**
-   * Log token refresh
-   */
+
   logTokenRefresh(
     userId: string,
     success: boolean,
@@ -96,9 +82,7 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 
-  /**
-   * Log TOTP verification
-   */
+
   logTotpVerification(
     userId: string,
     success: boolean,
@@ -109,9 +93,7 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 
-  /**
-   * Log password change
-   */
+
   logPasswordChange(
     userId: string,
     options?: {
@@ -122,9 +104,7 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 
-  /**
-   * Log password reset request
-   */
+ 
   logPasswordResetRequest(
     userId: string | undefined,
     success: boolean,
@@ -136,9 +116,7 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 
-  /**
-   * Log password reset completion
-   */
+
   logPasswordResetComplete(
     userId: string | undefined,
     success: boolean,
@@ -149,9 +127,7 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 
-  /**
-   * Log user creation
-   */
+
   logUserCreated(
     createdByUserId: string,
     newUserId: string,
@@ -161,9 +137,7 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 
-  /**
-   * Log session revocation
-   */
+
   logSessionRevoked(
     userId: string,
     sessionId: string,
@@ -173,9 +147,6 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 
-  /**
-   * Log rate limit exceeded
-   */
   logRateLimitExceeded(
     userId: string | undefined,
     options?: {
