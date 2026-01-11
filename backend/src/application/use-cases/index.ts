@@ -57,3 +57,5 @@ export { DeleteFolderUseCase } from './delete-folder.use-case';
 export { PermanentDeleteFolderUseCase } from './permanent-delete-folder.use-case';
 export { RestoreFolderUseCase } from './restore-folder.use-case';
 export { ListFoldersUseCase, type ListFoldersResult } from './list-folders.use-case';
+export { GenerateThumbnailUseCase, type GenerateThumbnailResult } from './generate-thumbnail.use-case';
+export { RegenerateThumbnailUseCase, type RegenerateThumbnailResult } from './regenerate-thumbnail.use-case';
