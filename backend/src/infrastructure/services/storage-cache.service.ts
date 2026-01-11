@@ -78,7 +78,7 @@ export class StorageCacheService {
   /**
    * Start periodic cleanup
    */
-  startCleanup(intervalSeconds: number = 300): NodeJS.Timeout {
+  startCleanup(intervalSeconds: number = 300): ReturnType<typeof setInterval> {
     return setInterval(() => {
       this.clearExpired();
     }, intervalSeconds * 1000);

@@ -7,7 +7,6 @@
 
 import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IUserRepository } from '../interfaces/user-repository.interface';
-import { FileStatus } from '../../domain/entities/file';
 import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
 
 export interface BulkRestoreFilesDTO {

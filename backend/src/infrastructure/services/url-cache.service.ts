@@ -88,7 +88,7 @@ export class UrlCacheService {
   /**
    * Start periodic cleanup of expired entries
    */
-  startCleanup(intervalSeconds: number = 300): NodeJS.Timeout {
+  startCleanup(intervalSeconds: number = 300): ReturnType<typeof setInterval> {
     return setInterval(() => {
       this.clearExpired();
     }, intervalSeconds * 1000);

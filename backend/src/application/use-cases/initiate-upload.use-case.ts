@@ -13,8 +13,6 @@ import { UploadMethod } from '../../domain/entities/upload-session';
 import { StorageTier } from '../../domain/entities/file';
 import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
 
-import { StorageTier } from '../../domain/entities/file';
-
 export interface InitiateUploadDTO {
   fileName: string;
   fileSize: number;

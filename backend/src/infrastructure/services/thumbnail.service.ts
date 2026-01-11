@@ -29,7 +29,6 @@ export class ThumbnailService implements IThumbnailService {
         width = THUMBNAIL_SIZES.medium.width,
         height = THUMBNAIL_SIZES.medium.height,
         quality = 85,
-        format = 'jpeg',
       } = options;
 
       // Create sharp instance
@@ -104,7 +103,7 @@ export class ThumbnailService implements IThumbnailService {
   /**
    * Get optimal thumbnail dimensions for a file type
    */
-  getOptimalDimensions(mimeType: string): { width: number; height: number } {
+  getOptimalDimensions(_mimeType: string): { width: number; height: number } {
     // For now, use medium size for all images
     // Can be customized based on file type in the future
     return THUMBNAIL_SIZES.medium;
