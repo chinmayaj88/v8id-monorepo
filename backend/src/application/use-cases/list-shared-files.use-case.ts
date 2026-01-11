@@ -43,6 +43,7 @@ export class ListSharedFilesUseCase {
             size: Number(file.size),
             type: file.type,
             status: file.status,
+            storageTier: file.storageTier,
             description: file.description,
             tags: file.tags,
             metadata: file.metadata,
