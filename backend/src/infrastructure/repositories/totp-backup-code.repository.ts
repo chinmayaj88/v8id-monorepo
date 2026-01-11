@@ -52,5 +52,27 @@ export class TotpBackupCodeRepository implements ITotpBackupCodeRepository {
       where: { userId },
     });
   }
+
+  async getBackupCodeStats(userId: string): Promise<{ total: number; unused: number; used: number }> {
+    const [total, unused, used] = await Promise.all([
+      prisma.totpBackupCode.count({
+        where: { userId },
+      }),
+      prisma.totpBackupCode.count({
+        where: {
+          userId,
+          isUsed: false,
+        },
+      }),
+      prisma.totpBackupCode.count({
+        where: {
+          userId,
+          isUsed: true,
+        },
+      }),
+    ]);
+
+    return { total, unused, used };
+  }
 }
 
