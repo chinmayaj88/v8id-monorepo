@@ -99,6 +99,7 @@ model DeviceSession {
   accessToken  String     @unique @db.VarChar(500) // JWT tokens (typically 200-500 chars)
   refreshToken String     @unique @db.VarChar(500) // JWT tokens (typically 200-500 chars)
   expiresAt    DateTime
+  rememberMe   Boolean    @default(false) // Remember Me flag (30-day session, only on first mobile device)
   lastActiveAt DateTime   @default(now())
   isActive     Boolean    @default(true)
   isRevoked    Boolean    @default(false)
