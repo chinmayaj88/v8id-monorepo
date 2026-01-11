@@ -6,7 +6,9 @@
     "module": "ESNext",
     "target": "ES2022",
     "moduleResolution": "node",
-    "types": ["node"]
+    "types": ["node"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
   },
   "include": ["src/**/*", "generated/**/*"],
   "exclude": ["node_modules", "dist", "tests"]
