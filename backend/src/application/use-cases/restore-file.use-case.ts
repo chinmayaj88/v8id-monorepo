@@ -8,11 +8,13 @@ import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IUserRepository } from '../interfaces/user-repository.interface';
 import { FileResponseDTO } from '../dtos/file.dto';
 import { File } from '../../domain/entities/file';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
 
 export class RestoreFileUseCase {
   constructor(
     private fileRepository: IFileRepository,
-    private userRepository: IUserRepository
+    private userRepository: IUserRepository,
+    private storageCache?: StorageCacheService
   ) {}
 
   async execute(userId: string, fileId: string): Promise<FileResponseDTO> {
@@ -49,6 +51,9 @@ export class RestoreFileUseCase {
       storageUsed: updatedStorageUsed,
     });
 
+    // Update cache
+    this.storageCache?.set(userId, updatedStorageUsed);
+
     return this.fileToDto(restoredFile);
   }
 
@@ -63,6 +68,7 @@ export class RestoreFileUseCase {
       size: Number(file.size),
       type: file.type,
       status: file.status,
+      storageTier: file.storageTier,
       description: file.description,
       tags: file.tags,
       metadata: file.metadata,

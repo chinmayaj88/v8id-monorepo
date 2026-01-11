@@ -42,6 +42,7 @@ export class ArchiveFileUseCase {
       size: Number(archivedFile.size),
       type: archivedFile.type,
       status: archivedFile.status,
+      storageTier: archivedFile.storageTier,
       description: archivedFile.description,
       tags: archivedFile.tags,
       metadata: archivedFile.metadata,
