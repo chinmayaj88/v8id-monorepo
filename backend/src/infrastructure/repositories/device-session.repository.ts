@@ -167,5 +167,24 @@ export class DeviceSessionRepository implements IDeviceSessionRepository {
 
     return result.count;
   }
+
+  /**
+   * Find session by ID and verify it belongs to the user
+   * Optimized for session revocation - single query instead of fetching all sessions
+   */
+  async findByIdAndUserId(sessionId: string, userId: string): Promise<DeviceSession | null> {
+    const session = await prisma.deviceSession.findFirst({
+      where: {
+        id: sessionId,
+        userId,
+      },
+    });
+
+    if (!session) {
+      return null;
+    }
+
+    return this.toDomain(session);
+  }
 }
 

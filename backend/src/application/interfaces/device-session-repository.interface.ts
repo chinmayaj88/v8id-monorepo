@@ -53,5 +53,11 @@ export interface IDeviceSessionRepository {
   updateTokens(sessionId: string, accessToken: string, refreshToken: string): Promise<void>;
 
   deleteExpired(): Promise<number>;
+
+  /**
+   * Find session by ID and verify it belongs to the user
+   * Optimized for session revocation - single query instead of fetching all sessions
+   */
+  findByIdAndUserId(sessionId: string, userId: string): Promise<DeviceSession | null>;
 }
 
