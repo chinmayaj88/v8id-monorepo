@@ -34,6 +34,11 @@ enum FileStatus {
   ARCHIVED
 }
 
+enum StorageTier {
+  STANDARD
+  ARCHIVE
+}
+
 // User Model
 model User {
   id                   String    @id @default(cuid())
@@ -199,6 +204,7 @@ model UploadSession {
   parId         String?  @db.VarChar(200) // PAR ID for cleanup
   ociObjectName String?  @db.VarChar(500) // OCI object name (set when upload starts)
   hash          String?  @db.VarChar(64) // SHA-256 hash (calculated during upload)
+  storageTier   StorageTier @default(STANDARD) // Storage tier for the file being uploaded
   isCompleted   Boolean  @default(false)
   expiresAt     DateTime // Session expiration (default 24 hours)
   createdAt     DateTime @default(now())
@@ -227,8 +233,11 @@ model File {
   size          BigInt     // File size in bytes
   type          FileType
   status        FileStatus @default(UPLOADING)
+  storageTier   StorageTier @default(STANDARD) // Storage tier: STANDARD (frequent access) or ARCHIVE (rare access)
   ociObjectName String     @unique @db.VarChar(500) // OCI Object Storage key
   hash          String     @db.VarChar(64) // SHA-256 hash for deduplication
+  thumbnailObjectName String? @db.VarChar(500) // Thumbnail OCI Object Storage key
+  thumbnailGenerated Boolean @default(false) // Whether thumbnail has been generated
   description   String?    @db.Text
   tags          Json?      // Array of tags as JSON
   metadata      Json?      // Additional metadata as JSON
@@ -252,9 +261,12 @@ model File {
   @@index([folderId])
   @@index([status])
   @@index([type])
+  @@index([storageTier]) // For tier-based queries and operations
   @@index([hash]) // For deduplication lookup
   @@index([userId, folderId, name]) // For unique file names per folder
   @@index([createdAt])
+  @@index([expiresAt]) // For expired file queries (auto-delete jobs)
+  @@index([deletedAt]) // For trash queries
   @@map("files")
 }
 
