@@ -5,5 +5,7 @@ export interface ITotpBackupCodeRepository {
   verifyAndUseCode(userId: string, code: string): Promise<boolean>;
 
   deleteAllForUser(userId: string): Promise<void>;
+
+  getBackupCodeStats(userId: string): Promise<{ total: number; unused: number; used: number }>;
 }
 
