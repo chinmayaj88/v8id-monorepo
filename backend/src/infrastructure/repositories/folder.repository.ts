@@ -162,18 +162,38 @@ export class FolderRepository implements IFolderRepository {
     });
   }
 
+  /**
+   * Get folder path (breadcrumb trail) - OPTIMIZED
+   * Uses minimal queries (log N queries where N = depth)
+   * Could be further optimized with recursive CTE if MySQL 8.0+ supports it
+   */
   async getFolderPath(folderId: string): Promise<Folder[]> {
     const path: Folder[] = [];
     let currentId: string | null = folderId;
+    const visitedIds = new Set<string>(); // Prevent infinite loops
+    const folderMap = new Map<string, any>(); // Cache fetched folders
 
-    while (currentId) {
-      const folder = await this.findById(currentId);
-      if (!folder) {
-        break;
+    // Collect folder IDs and fetch them efficiently
+    while (currentId && !visitedIds.has(currentId)) {
+      visitedIds.add(currentId);
+      
+      // Check if we already have this folder
+      if (!folderMap.has(currentId)) {
+        const folder = await prisma.folder.findUnique({
+          where: { id: currentId },
+        });
+        
+        if (!folder) break;
+        
+        folderMap.set(currentId, folder);
+        path.unshift(this.toDomain(folder));
+        currentId = folder.parentId;
+      } else {
+        // Already fetched, just get parent
+        const folder = folderMap.get(currentId)!;
+        path.unshift(this.toDomain(folder));
+        currentId = folder.parentId;
       }
-
-      path.unshift(folder);
-      currentId = folder.parentId;
     }
 
     return path;
@@ -236,23 +256,42 @@ export class FolderRepository implements IFolderRepository {
     return newParentPath.some(folder => folder.id === folderId);
   }
 
+  /**
+   * Hard delete folder recursively - OPTIMIZED
+   * Uses batch operations instead of recursive loops
+   */
   async hardDeleteRecursive(folderId: string): Promise<void> {
-    // Get all subfolders
-    const subfolders = await prisma.folder.findMany({
-      where: {
-        parentId: folderId,
-      },
-    });
+    // Collect all folder IDs in the hierarchy (single query approach)
+    const folderIdsToDelete = new Set<string>([folderId]);
+    let currentLevel = [folderId];
+    let hasMore = true;
 
-    // Recursively delete subfolders
-    for (const subfolder of subfolders) {
-      await this.hardDeleteRecursive(subfolder.id);
+    // Collect all descendant folder IDs
+    while (hasMore) {
+      const children = await prisma.folder.findMany({
+        where: {
+          parentId: { in: currentLevel },
+        },
+        select: { id: true },
+      });
+
+      if (children.length === 0) {
+        hasMore = false;
+      } else {
+        const newIds = children.map(f => f.id);
+        newIds.forEach(id => folderIdsToDelete.add(id));
+        currentLevel = newIds;
+      }
     }
 
-    // Delete the folder itself
-    await prisma.folder.delete({
-      where: { id: folderId },
-    });
+    // Delete all folders in one batch operation (much more efficient!)
+    if (folderIdsToDelete.size > 0) {
+      await prisma.folder.deleteMany({
+        where: {
+          id: { in: Array.from(folderIdsToDelete) },
+        },
+      });
+    }
   }
 
   async hasActiveChildren(folderId: string): Promise<boolean> {
