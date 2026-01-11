@@ -311,11 +311,92 @@ export class OciStorageService implements IStorageService {
     }
   }
 
-  async generatePresignedUrl(_objectName: string, _expiresInSeconds: number = 3600): Promise<string> {
+  async generatePresignedUrl(objectName: string, expiresInSeconds: number = 3600): Promise<string> {
     // OCI uses Pre-Authenticated Requests (PAR) instead of presigned URLs
-    // This would require creating a PAR first via the API
-    // For now, throw an error indicating this needs implementation
-    throw new Error('Pre-signed URL generation not yet implemented. Use Pre-Authenticated Requests (PAR) instead.');
+    const result = await this.createPreAuthenticatedRequest({
+      objectName,
+      expiresInHours: Math.ceil(expiresInSeconds / 3600),
+      accessType: 'ObjectRead',
+    });
+    return result.parUrl;
+  }
+
+  async createPreAuthenticatedRequest(params: {
+    objectName: string;
+    expiresInHours?: number;
+    accessType?: 'ObjectRead' | 'ObjectWrite' | 'ObjectReadWrite';
+  }): Promise<{
+    parUrl: string;
+    parId: string;
+  }> {
+    try {
+      const expiresInHours = params.expiresInHours || 24;
+      const expirationTime = new Date();
+      expirationTime.setHours(expirationTime.getHours() + expiresInHours);
+
+      const accessType = params.accessType || 'ObjectReadWrite';
+      
+      // Map access type to OCI enum
+      let ociAccessType: objectstorage.models.CreatePreauthenticatedRequestDetails.AccessType;
+      switch (accessType) {
+        case 'ObjectRead':
+          ociAccessType = objectstorage.models.CreatePreauthenticatedRequestDetails.AccessType.ObjectRead;
+          break;
+        case 'ObjectWrite':
+          ociAccessType = objectstorage.models.CreatePreauthenticatedRequestDetails.AccessType.ObjectWrite;
+          break;
+        case 'ObjectReadWrite':
+        default:
+          ociAccessType = objectstorage.models.CreatePreauthenticatedRequestDetails.AccessType.ObjectReadWrite;
+          break;
+      }
+
+      const createParDetails: objectstorage.models.CreatePreauthenticatedRequestDetails = {
+        name: `upload-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
+        accessType: ociAccessType,
+        objectName: params.objectName,
+        timeExpires: expirationTime,
+      };
+
+      const createParRequest: objectstorage.requests.CreatePreauthenticatedRequestRequest = {
+        namespaceName: this.namespace,
+        bucketName: this.bucketName,
+        createPreauthenticatedRequestDetails: createParDetails,
+      };
+
+      const response = await this.client.createPreauthenticatedRequest(createParRequest);
+
+      if (!response.preauthenticatedRequest) {
+        throw new Error('Failed to create PAR: No response data');
+      }
+
+      // Construct full PAR URL
+      const regionId = this.region.regionId;
+      const parUrl = `https://objectstorage.${regionId}.oraclecloud.com${response.preauthenticatedRequest.accessUri}`;
+      const parId = response.preauthenticatedRequest.id;
+
+      return {
+        parUrl,
+        parId,
+      };
+    } catch (error) {
+      throw new Error(`Failed to create Pre-Authenticated Request: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async deletePreAuthenticatedRequest(parId: string): Promise<void> {
+    try {
+      const deleteParRequest: objectstorage.requests.DeletePreauthenticatedRequestRequest = {
+        namespaceName: this.namespace,
+        bucketName: this.bucketName,
+        parId,
+      };
+
+      await this.client.deletePreauthenticatedRequest(deleteParRequest);
+    } catch (error) {
+      // Log but don't throw - PAR might already be deleted or expired
+      console.warn(`Failed to delete PAR ${parId}:`, error instanceof Error ? error.message : 'Unknown error');
+    }
   }
 
   async copyFile(sourceObjectName: string, destinationObjectName: string): Promise<void> {

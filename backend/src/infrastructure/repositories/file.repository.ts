@@ -28,6 +28,7 @@ export class FileRepository implements IFileRepository {
       prismaFile.description ?? undefined,
       prismaFile.tags ? (Array.isArray(prismaFile.tags) ? prismaFile.tags : []) : undefined,
       prismaFile.metadata ? (typeof prismaFile.metadata === 'object' ? prismaFile.metadata as Record<string, unknown> : undefined) : undefined,
+      prismaFile.expiresAt ?? undefined,
       prismaFile.createdAt,
       prismaFile.updatedAt,
       prismaFile.deletedAt ?? undefined
@@ -121,6 +122,7 @@ export class FileRepository implements IFileRepository {
     metadata?: Record<string, unknown>;
     status?: FileStatus;
     deletedAt?: Date | null;
+    expiresAt?: Date | null;
   }>): Promise<File> {
     const updateData: any = {};
     
@@ -138,6 +140,7 @@ export class FileRepository implements IFileRepository {
     }
     if (data.status !== undefined) updateData.status = data.status;
     if (data.deletedAt !== undefined) updateData.deletedAt = data.deletedAt ?? null;
+    if (data.expiresAt !== undefined) updateData.expiresAt = data.expiresAt ?? null;
     
     const file = await prisma.file.update({
       where: { id },

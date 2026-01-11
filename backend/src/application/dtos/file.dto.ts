@@ -69,6 +69,7 @@ export interface FileResponseDTO {
   description?: string;
   tags?: string[];
   metadata?: Record<string, unknown>;
+  expiresAt?: string;
   createdAt: string; 
   updatedAt: string; 
   deletedAt?: string;

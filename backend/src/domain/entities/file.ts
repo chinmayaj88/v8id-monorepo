@@ -37,6 +37,7 @@ export class File {
     public readonly description?: string,
     public readonly tags?: string[],
     public readonly metadata?: Record<string, unknown>,
+    public readonly expiresAt?: Date,
     public readonly createdAt: Date = new Date(),
     public readonly updatedAt: Date = new Date(),
     public readonly deletedAt?: Date
@@ -68,6 +69,20 @@ export class File {
    */
   isUploading(): boolean {
     return this.status === FileStatus.UPLOADING;
+  }
+
+  /**
+   * Check if file is archived
+   */
+  isArchived(): boolean {
+    return this.status === FileStatus.ARCHIVED;
+  }
+
+  /**
+   * Check if file can be archived (must be active)
+   */
+  canBeArchived(): boolean {
+    return this.isActive();
   }
 
   /**
@@ -148,5 +163,27 @@ export class File {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - this.createdAt.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  /**
+   * Check if file has expired
+   */
+  isExpired(): boolean {
+    if (!this.expiresAt) {
+      return false;
+    }
+    return new Date() > this.expiresAt;
+  }
+
+  /**
+   * Check if file will expire soon (within 7 days)
+   */
+  expiresSoon(): boolean {
+    if (!this.expiresAt) {
+      return false;
+    }
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return this.expiresAt <= sevenDaysFromNow && this.expiresAt > now;
   }
 }

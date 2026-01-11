@@ -30,6 +30,7 @@ export interface IFileRepository {
     metadata?: Record<string, unknown>;
     status?: FileStatus;
     deletedAt?: Date | null;
+    expiresAt?: Date | null;
   }>): Promise<File>;
 
   delete(id: string): Promise<void>;

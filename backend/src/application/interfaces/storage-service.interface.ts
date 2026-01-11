@@ -32,6 +32,23 @@ export interface IStorageService {
 
   generatePresignedUrl(objectName: string, expiresInSeconds?: number): Promise<string>;
 
+  /**
+   * Create Pre-Authenticated Request (PAR) for direct upload
+   */
+  createPreAuthenticatedRequest(params: {
+    objectName: string;
+    expiresInHours?: number;
+    accessType?: 'ObjectRead' | 'ObjectWrite' | 'ObjectReadWrite';
+  }): Promise<{
+    parUrl: string;
+    parId: string;
+  }>;
+
+  /**
+   * Delete Pre-Authenticated Request (PAR)
+   */
+  deletePreAuthenticatedRequest(parId: string): Promise<void>;
+
   copyFile(sourceObjectName: string, destinationObjectName: string): Promise<void>;
 
   getFileSize(objectName: string): Promise<number>;
