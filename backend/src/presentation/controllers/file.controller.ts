@@ -48,6 +48,8 @@ import { ChunkUploadUseCase } from '../../application/use-cases/chunk-upload.use
 import { CompleteUploadUseCase } from '../../application/use-cases/complete-upload.use-case';
 import { ResumeUploadUseCase } from '../../application/use-cases/resume-upload.use-case';
 import { CreateFileVersionUseCase } from '../../application/use-cases/create-file-version.use-case';
+import { GenerateThumbnailUseCase } from '../../application/use-cases/generate-thumbnail.use-case';
+import { RegenerateThumbnailUseCase } from '../../application/use-cases/regenerate-thumbnail.use-case';
 import { UploadFileDTO, UpdateFileDTO, ListFilesDTO, CreateFolderDTO, UpdateFolderDTO, ListFoldersDTO } from '../../application/dtos/file.dto';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 import { ResponseUtil } from '../utils/response.util';
@@ -96,7 +98,9 @@ export class FileController {
     private permanentDeleteFolderUseCase: PermanentDeleteFolderUseCase,
     private restoreFolderUseCase: RestoreFolderUseCase,
     private listFoldersUseCase: ListFoldersUseCase,
-    private createFileVersionUseCase: CreateFileVersionUseCase
+    private createFileVersionUseCase: CreateFileVersionUseCase,
+    private generateThumbnailUseCase: GenerateThumbnailUseCase,
+    private regenerateThumbnailUseCase: RegenerateThumbnailUseCase
   ) {}
 
   /**
@@ -119,6 +123,7 @@ export class FileController {
         description: req.body.description,
         tags: req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : JSON.parse(req.body.tags)) : undefined,
         metadata: req.body.metadata ? (typeof req.body.metadata === 'string' ? JSON.parse(req.body.metadata) : req.body.metadata) : undefined,
+        storageTier: req.body.storageTier || undefined, // Accept storageTier from request (STANDARD or ARCHIVE)
       };
 
       const result = await this.uploadFileUseCase.execute(
@@ -635,6 +640,7 @@ export class FileController {
         mimeType: req.body.mimeType,
         folderId: req.body.folderId || null,
         chunkSize: req.body.chunkSize,
+        storageTier: req.body.storageTier || undefined, // Accept storageTier for chunked uploads
       };
 
       const result = await this.initiateUploadUseCase.execute(userId, dto);
@@ -1022,6 +1028,98 @@ export class FileController {
       } else {
         ResponseUtil.error(res, 'PREVIEW_ERROR', message, 500);
       }
+    }
+  }
+
+  /**
+   * GET /api/files/:id/thumbnail
+   * Get thumbnail for a file (redirects to presigned URL or generates if missing)
+   */
+  async getThumbnail(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const fileId = req.params.id as string;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
+
+      // Get the file first
+      const file = await this.getFileUseCase.execute(userId, fileId);
+      
+      // If thumbnail exists, redirect to it
+      if (file.thumbnailUrl) {
+        res.redirect(file.thumbnailUrl);
+        return;
+      }
+
+      // If no thumbnail, try to generate it
+      const result = await this.generateThumbnailUseCase.execute(fileId);
+
+      if (!result.success) {
+        if (result.error?.includes('not supported')) {
+          ResponseUtil.error(res, 'THUMBNAIL_NOT_SUPPORTED', result.error, 400);
+        } else {
+          ResponseUtil.error(res, 'THUMBNAIL_ERROR', result.error || 'Failed to generate thumbnail', 500);
+        }
+        return;
+      }
+
+      // Get updated file with thumbnail URL
+      const updatedFile = await this.getFileUseCase.execute(userId, fileId);
+      if (updatedFile.thumbnailUrl) {
+        res.redirect(updatedFile.thumbnailUrl);
+      } else {
+        ResponseUtil.error(res, 'THUMBNAIL_NOT_AVAILABLE', 'Thumbnail URL not available', 404);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get thumbnail';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else {
+        ResponseUtil.error(res, 'THUMBNAIL_ERROR', message, 500);
+      }
+    }
+  }
+
+  /**
+   * POST /api/files/:id/thumbnail/regenerate
+   * Manually regenerate thumbnail for a file
+   */
+  async regenerateThumbnail(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const fileId = req.params.id as string;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
+
+      const result = await this.regenerateThumbnailUseCase.execute(userId, fileId);
+
+      if (!result.success) {
+        if (result.error?.includes('not found')) {
+          ResponseUtil.notFound(res, result.error);
+        } else if (result.error?.includes('Access denied')) {
+          ResponseUtil.forbidden(res, result.error);
+        } else if (result.error?.includes('not supported')) {
+          ResponseUtil.error(res, 'THUMBNAIL_NOT_SUPPORTED', result.error, 400);
+        } else {
+          ResponseUtil.error(res, 'THUMBNAIL_ERROR', result.error || 'Failed to regenerate thumbnail', 500);
+        }
+        return;
+      }
+
+      ResponseUtil.success(res, {
+        thumbnailObjectName: result.thumbnailObjectName,
+      }, 'Thumbnail regenerated successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to regenerate thumbnail';
+      ResponseUtil.error(res, 'THUMBNAIL_ERROR', message, 500);
     }
   }
 
