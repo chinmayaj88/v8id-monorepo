@@ -1,0 +1,403 @@
+{
+	"info": {
+		"_postman_id": "users-collection",
+		"name": "Users",
+		"description": "User management endpoints including profile management and session management.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of user events\n- **Token versioning** validation\n- **Session management** (list, revoke specific, revoke all)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Create User (Admin Only)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify user creation",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"User created successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.user).to.exist;",
+									"        pm.expect(jsonData.data.totpSetup).to.exist;",
+									"    });",
+									"    ",
+									"    // Log TOTP setup info",
+									"    if (jsonData.data.totpSetup) {",
+									"        console.log(\"TOTP Setup Info:\");",
+									"        console.log(\"  QR Code URL: Base64 image (display to user)\");",
+									"        console.log(\"  Secret: \" + jsonData.data.totpSetup.secret);",
+									"        console.log(\"  Backup Codes: \" + jsonData.data.totpSetup.backupCodes.length + \" codes\");",
+									"        console.log(\"\\n⚠️ IMPORTANT: User must save backup codes securely!\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"NewUserPassword123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"USER\",\n  \"storageQuota\": 10737418240\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "**Create a new user account (Admin Only)**\n\nOnly admins can create users. Password must meet security requirements.\n\n**Password Requirements:**\n- Minimum 12 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character\n\n**TOTP Setup (MANDATORY):**\n- TOTP is automatically set up for all new users\n- Response includes:\n  - `totpSetup.qrCodeUrl`: Base64-encoded QR code image (display to user)\n  - `totpSetup.secret`: TOTP secret for manual entry (if QR code cannot be scanned)\n  - `totpSetup.backupCodes`: Array of 10 backup codes (user MUST save these securely)\n\n**⚠️ IMPORTANT:**\n- User must scan the QR code with an authenticator app (Google Authenticator, Authy, etc.)\n- User must save backup codes in a secure location\n- User cannot login until TOTP is verified\n\n**Audit Logging:**\n- User creation logged as `USER_CREATED`\n- Includes creator ID, new user ID, and user information\n\n**Response:**\n- `user`: Created user information\n- `totpSetup`: TOTP setup information (QR code, secret, backup codes)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Users (Admin Only)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users?page=1&limit=50&search=",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "50",
+									"description": "Items per page (default: 50)"
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search by email or name (optional)"
+								}
+							]
+						},
+						"description": "**List all users with pagination (Admin Only)**\n\nOnly admins can access this endpoint.\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 50)\n- `search`: Search by email or name (optional)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- `users`: Array of user objects\n- `pagination`: Pagination information (page, limit, total, totalPages)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify token versioning",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.success && jsonData.data) {",
+									"        // Check if token is still valid",
+									"        pm.test(\"User data retrieved\", function () {",
+									"            pm.expect(jsonData.data.id).to.exist;",
+									"            pm.expect(jsonData.data.email).to.exist;",
+									"        });",
+									"        ",
+									"        // If token was invalidated, we would get 401",
+									"        console.log(\"Token is valid - token version matches user's current version\");",
+									"    }",
+									"} else if (pm.response.code === 401) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"Token invalidated: \" + jsonData.error.message);",
+									"        console.log(\"This happens when password is changed - token version mismatch\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "**Get current authenticated user's profile**\n\nReturns the profile information of the currently authenticated user.\n\n**Token Versioning:**\n- This endpoint validates token version\n- If password was changed, token version increments\n- Old tokens become invalid and return 401 with message: \"Token has been invalidated. Please login again.\"\n- This prevents token reuse after password compromise\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- User profile information including:\n  - `id`, `email`, `firstName`, `lastName`, `avatarUrl`\n  - `role`, `storageQuota`, `storageUsed`\n  - `emailVerified`, `totpEnabled`, `totpVerified`\n  - `createdAt`, `updatedAt`"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Current User",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\",\n  \"avatarUrl\": \"https://example.com/avatar.jpg\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "**Update current user's profile**\n\nUpdate the current authenticated user's profile information.\n\n**Allowed Fields:**\n- `firstName`: User's first name\n- `lastName`: User's last name\n- `avatarUrl`: URL to user's avatar image\n\n**Token Versioning:**\n- Token version is validated before allowing update\n- If token is invalid (password changed), returns 401\n\n**Audit Logging:**\n- User update logged as `USER_UPDATED`\n- Includes updated fields and user ID\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- Updated user information (id, firstName, lastName, avatarUrl, updatedAt)"
+					},
+					"response": []
+				},
+				{
+					"name": "List Active Sessions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify sessions list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Sessions retrieved\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.sessions).to.be.an('array');",
+									"    });",
+									"    ",
+									"    if (jsonData.data.sessions.length > 0) {",
+									"        console.log(\"📱 Active Sessions: \" + jsonData.data.sessions.length);",
+									"        jsonData.data.sessions.forEach((session, index) => {",
+									"            console.log(\"\\nSession \" + (index + 1) + \":\");",
+									"            console.log(\"  ID: \" + session.id);",
+									"            console.log(\"  Device: \" + session.deviceType + \" - \" + session.deviceName);",
+									"            console.log(\"  IP: \" + (session.ipAddress || 'N/A'));",
+									"            console.log(\"  Last Active: \" + new Date(session.lastActiveAt));",
+									"        });",
+									"        ",
+									"        // Save first session ID for testing",
+									"        if (jsonData.data.sessions[0]) {",
+									"            pm.environment.set(\"sessionId\", jsonData.data.sessions[0].id);",
+									"        }",
+									"    } else {",
+									"        console.log(\"No active sessions\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/sessions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"sessions"
+							]
+						},
+						"description": "**List all active sessions for current user**\n\nGet a list of all active device sessions for the authenticated user.\n\n**Session Information:**\n- `id`: Session ID (use for revoking specific session)\n- `deviceType`: MOBILE or WEB\n- `deviceName`: User-friendly device name\n- `deviceId`: Unique device identifier\n- `userAgent`: Browser/app user agent\n- `ipAddress`: IP address of the session\n- `location`: Approximate location (if available)\n- `lastActiveAt`: Last activity timestamp\n- `createdAt`: Session creation timestamp\n- `expiresAt`: Session expiration timestamp\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Session listing is not logged (read-only operation)\n\n**Response:**\n- Array of active session objects with device and location information"
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke Specific Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify session revocation",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Session revoked successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Session revoked successfully\");",
+									"    console.log(\"⚠️ All tokens for this session are now invalid\");",
+									"    ",
+									"    // If this was the current session, clear tokens",
+									"    const currentSessionId = pm.environment.get(\"sessionId\");",
+									"    const revokedSessionId = pm.variables.get(\"sessionId\") || pm.environment.get(\"sessionId\");",
+									"    if (currentSessionId === revokedSessionId) {",
+									"        pm.environment.unset(\"accessToken\");",
+									"        pm.environment.unset(\"refreshToken\");",
+									"        pm.environment.unset(\"sessionId\");",
+									"        console.log(\"⚠️ Current session was revoked - tokens cleared\");",
+									"    }",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Session not found or already revoked\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/sessions/:sessionId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"sessions",
+								":sessionId"
+							],
+							"variable": [
+								{
+									"key": "sessionId",
+									"value": "{{sessionId}}",
+									"description": "Session ID to revoke (get from List Active Sessions)"
+								}
+							]
+						},
+						"description": "**Revoke a specific device session**\n\nRevoke a specific device session by session ID. The session is marked as revoked and all tokens for that session become invalid.\n\n**⚠️ SECURITY:**\n- Session is immediately revoked\n- Access token for this session becomes invalid\n- Refresh token for this session becomes invalid\n- Session cannot be used again\n- If you revoke your current session, you'll be logged out\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Session revocation logged as `SESSION_REVOKED`\n- Includes session ID, IP address, and user agent\n\n**Path Parameter:**\n- `sessionId`: ID of the session to revoke (get from List Active Sessions endpoint)\n\n**Response:**\n- Success message confirming session revocation\n- Note that tokens for this session are now invalid"
+					},
+					"response": []
+				},
+				{
+					"name": "Revoke All Sessions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify all sessions revoked",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"All sessions revoked successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ \" + jsonData.message);",
+									"    console.log(\"⚠️ All device sessions have been revoked\");",
+									"    console.log(\"⚠️ All tokens are now invalid\");",
+									"    console.log(\"⚠️ You must login again\");",
+									"    ",
+									"    // Clear all tokens",
+									"    pm.environment.unset(\"accessToken\");",
+									"    pm.environment.unset(\"refreshToken\");",
+									"    pm.environment.unset(\"sessionId\");",
+									"    pm.environment.unset(\"tempToken\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/me/sessions/revoke-all",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me",
+								"sessions",
+								"revoke-all"
+							]
+						},
+						"description": "**Revoke all device sessions**\n\nRevoke all active device sessions for the authenticated user. This logs out the user from all devices.\n\n**⚠️ SECURITY:**\n- **All** device sessions are immediately revoked\n- **All** access tokens become invalid\n- **All** refresh tokens become invalid\n- User is logged out from all devices\n- User must login again on all devices\n\n**Use Cases:**\n- User suspects account compromise\n- User wants to logout from all devices\n- Security measure after password change (though password change already invalidates tokens)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Audit Logging:**\n- Each session revocation logged as `SESSION_REVOKED`\n- Includes session ID, IP address, and user agent for each session\n- Multiple audit log entries (one per session)\n\n**Response:**\n- Success message with count of revoked sessions\n- Note that all tokens are now invalid"
+					},
+					"response": []
+				}
+			],
+			"description": "User management endpoints including profile management and session management.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of user events\n- **Token versioning** validation\n- **Session management** (list, revoke specific, revoke all)"
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:4000",
+			"type": "string"
+		}
+	]
+}
