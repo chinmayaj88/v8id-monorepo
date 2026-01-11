@@ -7,6 +7,7 @@
 import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
 import { IFileShareRepository } from '../interfaces/file-share-repository.interface';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
 
 export interface PreviewFileResult {
   previewUrl?: string;
@@ -41,20 +42,40 @@ export class PreviewFileUseCase {
 
     const previewType = this.determinePreviewType(file.mimeType);
 
+    // Use tier-aware storage service for presigned URL generation
+    const isTierAware = this.storageService instanceof TierAwareStorageService;
+    const storageTier = file.storageTier || 'STANDARD' as any;
+
     let previewUrl: string | undefined;
     let canPreview = false;
     let message: string | undefined;
 
     if (previewType === 'image' || previewType === 'pdf' || previewType === 'document') {
       try {
-        previewUrl = await this.storageService.generatePresignedUrl(file.ociObjectName, 3600);
+        if (isTierAware) {
+          previewUrl = await (this.storageService as TierAwareStorageService).generatePresignedUrl(
+            file.ociObjectName,
+            3600,
+            storageTier
+          );
+        } else {
+          previewUrl = await this.storageService.generatePresignedUrl(file.ociObjectName, 3600);
+        }
         canPreview = true;
       } catch (_error) {
         message = 'Failed to generate preview URL';
       }
     } else if (previewType === 'video' || previewType === 'audio') {
       try {
-        previewUrl = await this.storageService.generatePresignedUrl(file.ociObjectName, 3600);
+        if (isTierAware) {
+          previewUrl = await (this.storageService as TierAwareStorageService).generatePresignedUrl(
+            file.ociObjectName,
+            3600,
+            storageTier
+          );
+        } else {
+          previewUrl = await this.storageService.generatePresignedUrl(file.ociObjectName, 3600);
+        }
         canPreview = true;
         message = 'Video/audio preview available via browser player';
       } catch (_error) {

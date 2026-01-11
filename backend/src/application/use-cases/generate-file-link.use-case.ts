@@ -7,6 +7,7 @@
 import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IFolderRepository } from '../interfaces/folder-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
 import { prisma } from '../../infrastructure/database';
 import { randomBytes } from 'crypto';
 
@@ -64,15 +65,31 @@ export class GenerateFileLinkUseCase {
 
     let parUrl: string | undefined;
     let parId: string | undefined;
-    if (ociObjectName) {
+    if (ociObjectName && dto.fileId) {
       try {
-        const parResult = await this.storageService.createPreAuthenticatedRequest({
-          objectName: ociObjectName,
-          expiresInHours,
-          accessType: 'ObjectRead',
-        });
-        parUrl = parResult.parUrl;
-        parId = parResult.parId;
+        // Use tier-aware storage service for PAR generation
+        const isTierAware = this.storageService instanceof TierAwareStorageService;
+        const file = await this.fileRepository.findById(dto.fileId);
+        const storageTier = file?.storageTier || 'STANDARD' as any;
+
+        if (isTierAware) {
+          const parResult = await (this.storageService as TierAwareStorageService).createPreAuthenticatedRequest({
+            objectName: ociObjectName,
+            expiresInHours,
+            accessType: 'ObjectRead',
+            tier: storageTier,
+          });
+          parUrl = parResult.parUrl;
+          parId = parResult.parId;
+        } else {
+          const parResult = await this.storageService.createPreAuthenticatedRequest({
+            objectName: ociObjectName,
+            expiresInHours,
+            accessType: 'ObjectRead',
+          });
+          parUrl = parResult.parUrl;
+          parId = parResult.parId;
+        }
       } catch (error) {
         throw new Error(`Failed to generate download link: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
