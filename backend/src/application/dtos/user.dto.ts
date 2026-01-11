@@ -1,9 +1,3 @@
-/**
- * User DTOs
- * 
- * Data Transfer Objects for user operations.
- */
-
 export interface UpdateUserDTO {
   firstName?: string;
   lastName?: string;

@@ -1,9 +1,3 @@
-/**
- * Authentication DTOs
- * 
- * Data Transfer Objects for authentication operations.
- */
-
 export interface VerifyCredentialsDTO {
   email: string;
   password: string;

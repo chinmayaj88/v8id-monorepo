@@ -1,14 +1,8 @@
-/**
- * File DTOs
- * 
- * Data Transfer Objects for file operations.
- */
-
 import { FileStatus, FileType } from '../../domain/entities/file';
 
 export interface UploadFileDTO {
   folderId?: string | null;
-  name?: string; // Optional display name (uses original filename if not provided)
+  name?: string;
   description?: string;
   tags?: string[];
   metadata?: Record<string, unknown>;
@@ -34,14 +28,14 @@ export interface ListFilesDTO {
 }
 
 export interface MoveFileDTO {
-  folderId: string | null; // null to move to root
+  folderId: string | null;
 }
 
 export interface CreateFolderDTO {
-  parentId?: string | null; // null for root folder
+  parentId?: string | null; 
   name: string;
   description?: string;
-  color?: string; // Hex color code
+  color?: string; 
 }
 
 export interface UpdateFolderDTO {
@@ -52,14 +46,14 @@ export interface UpdateFolderDTO {
 }
 
 export interface ListFoldersDTO {
-  parentId?: string | null; // null for root folders
+  parentId?: string | null;
   includeDeleted?: boolean;
   page?: number;
   limit?: number;
 }
 
 export interface MoveFolderDTO {
-  parentId: string | null; // null to move to root
+  parentId: string | null;
 }
 
 export interface FileResponseDTO {
@@ -69,15 +63,15 @@ export interface FileResponseDTO {
   name: string;
   originalName: string;
   mimeType: string;
-  size: number; // Convert BigInt to number for JSON
+  size: number; 
   type: FileType;
   status: FileStatus;
   description?: string;
   tags?: string[];
   metadata?: Record<string, unknown>;
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-  deletedAt?: string; // ISO date string
+  createdAt: string; 
+  updatedAt: string; 
+  deletedAt?: string;
 }
 
 export interface FolderResponseDTO {
@@ -88,7 +82,7 @@ export interface FolderResponseDTO {
   description?: string;
   color?: string;
   isDeleted: boolean;
-  createdAt: string; // ISO date string
-  updatedAt: string; // ISO date string
-  deletedAt?: string; // ISO date string
+  createdAt: string; 
+  updatedAt: string;
+  deletedAt?: string;
 }
