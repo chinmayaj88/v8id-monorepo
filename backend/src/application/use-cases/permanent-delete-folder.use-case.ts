@@ -10,13 +10,16 @@ import { IFolderRepository } from '../interfaces/folder-repository.interface';
 import { IFileRepository } from '../interfaces/file-repository.interface';
 import { IStorageService } from '../interfaces/storage-service.interface';
 import { IUserRepository } from '../interfaces/user-repository.interface';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
 
 export class PermanentDeleteFolderUseCase {
   constructor(
     private folderRepository: IFolderRepository,
     private fileRepository: IFileRepository,
     private storageService: IStorageService,
-    private userRepository: IUserRepository
+    private userRepository: IUserRepository,
+    private storageCache?: StorageCacheService
   ) {}
 
   async execute(userId: string, folderId: string): Promise<void> {
@@ -35,19 +38,32 @@ export class PermanentDeleteFolderUseCase {
 
     const allFiles = await this.fileRepository.findByFolderIdRecursive(folderId);
 
-    for (const file of allFiles) {
+    // OPTIMIZED: Delete files from storage in parallel (batch) - tier-aware
+    const isTierAware = this.storageService instanceof TierAwareStorageService;
+    const deletePromises = allFiles.map(async (file) => {
       try {
-        const exists = await this.storageService.fileExists(file.ociObjectName);
+        const storageTier = file.storageTier || 'STANDARD' as any;
+        const exists = isTierAware
+          ? await (this.storageService as TierAwareStorageService).fileExists(file.ociObjectName, storageTier)
+          : await this.storageService.fileExists(file.ociObjectName);
+        
         if (exists) {
-          await this.storageService.deleteFile(file.ociObjectName);
+          if (isTierAware) {
+            await (this.storageService as TierAwareStorageService).deleteFile(file.ociObjectName, storageTier);
+          } else {
+            await this.storageService.deleteFile(file.ociObjectName);
+          }
         }
       } catch (error) {
-        console.error(`Failed to delete file ${file.id} from storage:`, error);
+        console.error(`Failed to delete file ${file.id} from ${file.storageTier || 'STANDARD'} tier storage:`, error);
       }
-    }
+    });
+    await Promise.all(deletePromises);
 
-    for (const file of allFiles) {
-      await this.fileRepository.hardDelete(file.id);
+    // OPTIMIZED: Batch delete files from database (single query!)
+    const fileIds = allFiles.map(f => f.id);
+    if (fileIds.length > 0) {
+      await this.fileRepository.batchHardDelete(fileIds);
     }
 
     await this.folderRepository.hardDeleteRecursive(folderId);
@@ -56,5 +72,8 @@ export class PermanentDeleteFolderUseCase {
     await this.userRepository.update(userId, {
       storageUsed: currentStorageUsed,
     });
+    
+    // Update cache
+    this.storageCache?.set(userId, currentStorageUsed);
   }
 }
