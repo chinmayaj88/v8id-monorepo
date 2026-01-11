@@ -4,6 +4,8 @@
  * Represents an upload session for chunked/resumable file uploads.
  */
 
+import { StorageTier } from './file';
+
 export enum UploadMethod {
   DIRECT = 'DIRECT', // Direct upload via PAR (Pre-Authenticated Request)
   BACKEND = 'BACKEND' // Upload through backend server
@@ -26,6 +28,7 @@ export class UploadSession {
     public readonly parId: string | null,
     public readonly ociObjectName: string | null,
     public readonly hash: string | null,
+    public readonly storageTier: StorageTier, // Storage tier for the file being uploaded
     public readonly isCompleted: boolean,
     public readonly expiresAt: Date,
     public readonly createdAt: Date,
