@@ -95,4 +95,31 @@ export class ConsoleEmailService implements IEmailService {
     }
     console.log('📧 ========================================\n');
   }
+
+  async sendSuspiciousActivityAlert(
+    to: string,
+    firstName: string | undefined,
+    activityType: string,
+    details: Record<string, any>,
+    timestamp: Date,
+    ipAddress?: string
+  ): Promise<void> {
+    console.log('\n📧 ========================================');
+    console.log('📧 SUSPICIOUS ACTIVITY ALERT (Development)');
+    console.log('📧 ========================================');
+    console.log(`📧 To: ${to}`);
+    console.log(`📧 Subject: ⚠️ Suspicious Activity Detected - void`);
+    if (firstName) {
+      console.log(`📧 Greeting: Hello ${firstName},`);
+    }
+    console.log(`📧 Activity Type: ${activityType}`);
+    console.log(`📧 Timestamp: ${timestamp.toLocaleString()}`);
+    if (ipAddress) {
+      console.log(`📧 IP Address: ${ipAddress}`);
+    }
+    if (details) {
+      console.log(`📧 Details:`, JSON.stringify(details, null, 2));
+    }
+    console.log('📧 ========================================\n');
+  }
 }
