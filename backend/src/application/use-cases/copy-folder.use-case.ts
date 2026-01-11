@@ -66,27 +66,39 @@ export class CopyFolderUseCase {
     return newFolder;
   }
 
+  /**
+   * Copy folder contents - OPTIMIZED with parallel processing
+   */
   private async copyFolderContents(userId: string, sourceFolderId: string, targetFolderId: string): Promise<void> {
-    const filesResult = await this.fileRepository.findByFolderId(sourceFolderId, userId, {
-      status: undefined,
-    });
+    // Fetch files and folders in parallel
+    const [filesResult, foldersResult] = await Promise.all([
+      this.fileRepository.findByFolderId(sourceFolderId, userId, {
+        status: undefined,
+      }),
+      this.folderRepository.findChildren(sourceFolderId, userId, {
+        includeDeleted: false,
+      }),
+    ]);
 
-    for (const file of filesResult.files) {
-      if (file.isActive()) {
-        try {
-          await this.copyFileUseCase.execute(userId, file.id, {
+    // Copy files in parallel (with concurrency limit to avoid overwhelming)
+    const activeFiles = filesResult.files.filter(f => f.isActive());
+    const concurrencyLimit = 5;
+    
+    for (let i = 0; i < activeFiles.length; i += concurrencyLimit) {
+      const batch = activeFiles.slice(i, i + concurrencyLimit);
+      await Promise.all(
+        batch.map(file =>
+          this.copyFileUseCase.execute(userId, file.id, {
             targetFolderId,
-          });
-        } catch (error) {
-          console.warn(`Failed to copy file ${file.id}:`, error);
-        }
-      }
+          }).catch((error) => {
+            console.warn(`Failed to copy file ${file.id}:`, error);
+          })
+        )
+      );
     }
 
-    const foldersResult = await this.folderRepository.findChildren(sourceFolderId, userId, {
-      includeDeleted: false,
-    });
-
+    // Copy subfolders sequentially (to maintain folder structure)
+    // But process files within each folder in parallel
     for (const subfolder of foldersResult.folders) {
       if (!subfolder.isDeleted) {
         try {
@@ -96,6 +108,7 @@ export class CopyFolderUseCase {
             description: subfolder.description,
             color: subfolder.color,
           });
+          // Recursive call (folders must be sequential to maintain structure)
           await this.copyFolderContents(userId, subfolder.id, copiedSubfolder.id);
         } catch (error) {
           console.warn(`Failed to copy subfolder ${subfolder.id}:`, error);
