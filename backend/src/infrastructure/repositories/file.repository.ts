@@ -303,4 +303,31 @@ export class FileRepository implements IFileRepository {
 
     return count > 0;
   }
+
+  async findByFolderIdRecursive(folderId: string): Promise<File[]> {
+    // Get all files directly in this folder
+    const directFiles = await prisma.file.findMany({
+      where: {
+        folderId,
+      },
+    });
+
+    // Get all subfolders of this folder
+    const subfolders = await prisma.folder.findMany({
+      where: {
+        parentId: folderId,
+      },
+    });
+
+    // Recursively get files from subfolders
+    const subfolderFiles: File[] = [];
+    for (const subfolder of subfolders) {
+      const files = await this.findByFolderIdRecursive(subfolder.id);
+      subfolderFiles.push(...files);
+    }
+
+    // Combine direct files and subfolder files
+    const allFiles = [...directFiles, ...subfolderFiles];
+    return allFiles.map(f => this.toDomain(f));
+  }
 }

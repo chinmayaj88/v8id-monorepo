@@ -235,4 +235,31 @@ export class FolderRepository implements IFolderRepository {
     // Check if the folder being moved is in the path of the new parent
     return newParentPath.some(folder => folder.id === folderId);
   }
+
+  async hardDeleteRecursive(folderId: string): Promise<void> {
+    // Get all subfolders
+    const subfolders = await prisma.folder.findMany({
+      where: {
+        parentId: folderId,
+      },
+    });
+
+    // Recursively delete subfolders
+    for (const subfolder of subfolders) {
+      await this.hardDeleteRecursive(subfolder.id);
+    }
+
+    // Delete the folder itself
+    await prisma.folder.delete({
+      where: { id: folderId },
+    });
+  }
+
+  async hasActiveChildren(folderId: string): Promise<boolean> {
+    return this.hasChildren(folderId);
+  }
+
+  async hasActiveFiles(folderId: string): Promise<boolean> {
+    return this.hasFiles(folderId);
+  }
 }
