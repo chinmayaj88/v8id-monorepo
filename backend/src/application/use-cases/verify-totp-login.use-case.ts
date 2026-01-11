@@ -9,6 +9,8 @@ import { IDeviceSessionRepository } from '../interfaces/device-session-repositor
 import { IEmailService } from '../interfaces/email-service.interface';
 import { ITotpService } from '../interfaces/totp-service.interface';
 import { IJwtService } from '../interfaces/jwt-service.interface';
+import { ISuspiciousActivityService } from '../interfaces/suspicious-activity-service.interface';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface';
 
 export interface VerifyTotpLoginResult {
   accessToken: string;
@@ -35,6 +37,7 @@ export interface VerifyTotpLoginDTO {
   deviceType: 'MOBILE' | 'WEB';
   deviceName: string;
   deviceId: string;
+  rememberMe?: boolean;
 }
 
 export interface VerifyTotpLoginOptions {
@@ -48,7 +51,9 @@ export class VerifyTotpLoginUseCase {
     private deviceSessionRepository: IDeviceSessionRepository,
     private emailService: IEmailService,
     private totpService: ITotpService,
-    private jwtService: IJwtService
+    private jwtService: IJwtService,
+    private suspiciousActivityService: ISuspiciousActivityService,
+    private auditLogService: IAuditLogService
   ) {}
 
   async execute(
@@ -91,13 +96,80 @@ export class VerifyTotpLoginUseCase {
 
     const isTotpValid = this.totpService.verifyTotp(dto.totpCode, totpSecret);
     if (!isTotpValid) {
+      await this.auditLogService.logTotpVerification(user.id, false, {
+        ipAddress: ipAddress,
+        userAgent: userAgent,
+        errorMessage: 'Invalid TOTP code',
+      });
+
+      const suspiciousActivity = await this.suspiciousActivityService.detectFailedTotpPattern(
+        user.id,
+        ipAddress
+      );
+
+      if (suspiciousActivity.isSuspicious && suspiciousActivity.activityType === 'MULTIPLE_FAILED_TOTP') {
+        try {
+          await this.emailService.sendSuspiciousActivityAlert(
+            user.email,
+            user.firstName,
+            suspiciousActivity.activityType,
+            suspiciousActivity.details || {},
+            new Date(),
+            ipAddress
+          );
+        } catch (error) {
+          console.error('Failed to send suspicious activity alert:', error);
+        }
+      }
+
       throw new Error('Invalid TOTP code');
+    }
+
+    await this.auditLogService.logTotpVerification(user.id, true, {
+      ipAddress: ipAddress,
+      userAgent: userAgent,
+    });
+
+    const unusualLocation = await this.suspiciousActivityService.detectUnusualLocation(
+      user.id,
+      ipAddress,
+      undefined
+    );
+
+    if (unusualLocation.isSuspicious && unusualLocation.activityType === 'UNUSUAL_LOCATION') {
+      try {
+        await this.emailService.sendSuspiciousActivityAlert(
+          user.email,
+          user.firstName,
+          unusualLocation.activityType,
+          unusualLocation.details || {},
+          new Date(),
+          ipAddress
+        );
+      } catch (error) {
+        console.error('Failed to send suspicious activity alert:', error);
+      }
     }
 
     if (!user.totpVerified) {
       await this.userRepository.update(user.id, {
         totpVerified: true,
       });
+    }
+
+    const rememberMe = dto.rememberMe ?? false;
+
+    if (rememberMe) {
+      if (dto.deviceType === 'WEB') {
+        throw new Error('Remember Me is only available on mobile devices');
+      }
+
+      if (dto.deviceType === 'MOBILE') {
+        const existingRememberedSession = await this.deviceSessionRepository.findRememberedMobileSession(user.id);
+        if (existingRememberedSession) {
+          throw new Error('Remember Me can only be used on one mobile device. You already have a remembered device. Please revoke it first.');
+        }
+      }
     }
 
     const activeSessions = await this.deviceSessionRepository.findActiveSessionsByUserId(user.id);
@@ -132,7 +204,11 @@ export class VerifyTotpLoginUseCase {
     const expiresIn = this.jwtService.getAccessTokenExpirationSeconds();
 
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    if (rememberMe) {
+      expiresAt.setDate(expiresAt.getDate() + 30);
+    } else {
+      expiresAt.setDate(expiresAt.getDate() + 7);
+    }
 
     const deviceSession = await this.deviceSessionRepository.create({
       userId: user.id,
@@ -145,6 +221,7 @@ export class VerifyTotpLoginUseCase {
       accessToken,
       refreshToken,
       expiresAt,
+      rememberMe,
     });
 
     await this.userRepository.update(user.id, {
