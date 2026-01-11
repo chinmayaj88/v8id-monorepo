@@ -61,3 +61,24 @@ export const listFoldersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
+
+export const initiateUploadSchema = z.object({
+  fileName: z.string().min(1).max(500),
+  fileSize: z.coerce.number().int().positive(),
+  mimeType: z.string().min(1).max(100),
+  folderId: z.string().nullable().optional(),
+  chunkSize: z.coerce.number().int().positive().optional(),
+});
+
+export const chunkUploadSchema = z.object({
+  sessionId: z.string().min(1),
+  chunkNumber: z.coerce.number().int().min(0),
+  isLastChunk: z.union([z.boolean(), z.string()]).transform((val) => val === true || val === 'true'),
+});
+
+export const completeUploadSchema = z.object({
+  name: z.string().max(255).optional(),
+  description: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});

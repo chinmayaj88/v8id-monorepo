@@ -77,6 +77,7 @@ export class ListFilesUseCase {
       description: file.description,
       tags: file.tags,
       metadata: file.metadata,
+      expiresAt: file.expiresAt?.toISOString(),
       createdAt: file.createdAt.toISOString(),
       updatedAt: file.updatedAt.toISOString(),
       deletedAt: file.deletedAt?.toISOString(),

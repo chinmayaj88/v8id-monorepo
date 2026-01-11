@@ -8,6 +8,17 @@ export * from './auth.validator';
 export * from './user.validator';
 export * from './file.validator';
 
+export {
+  createFolderSchema,
+  updateFolderSchema,
+  updateFileSchema,
+  listFilesQuerySchema,
+  listFoldersQuerySchema,
+  initiateUploadSchema,
+  chunkUploadSchema,
+  completeUploadSchema,
+} from './file.validator';
+
 /**
  * Validation middleware factory
  * Creates Express middleware that validates request body against a Zod schema
