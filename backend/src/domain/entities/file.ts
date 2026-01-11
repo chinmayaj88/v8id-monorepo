@@ -21,6 +21,11 @@ export enum FileStatus {
   ARCHIVED = 'ARCHIVED'
 }
 
+export enum StorageTier {
+  STANDARD = 'STANDARD',
+  ARCHIVE = 'ARCHIVE'
+}
+
 export class File {
   constructor(
     public readonly id: string,
@@ -32,8 +37,11 @@ export class File {
     public readonly size: bigint,
     public readonly type: FileType,
     public readonly status: FileStatus,
+    public readonly storageTier: StorageTier, // Storage tier: STANDARD (frequent access) or ARCHIVE (rare access)
     public readonly ociObjectName: string, // OCI Object Storage key
     public readonly hash: string, // SHA-256 hash for deduplication
+    public readonly thumbnailObjectName?: string, // Thumbnail OCI Object Storage key
+    public readonly thumbnailGenerated: boolean = false, // Whether thumbnail has been generated
     public readonly description?: string,
     public readonly tags?: string[],
     public readonly metadata?: Record<string, unknown>,
@@ -185,5 +193,41 @@ export class File {
     const now = new Date();
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     return this.expiresAt <= sevenDaysFromNow && this.expiresAt > now;
+  }
+
+  /**
+   * Check if file has a thumbnail
+   */
+  hasThumbnail(): boolean {
+    return this.thumbnailGenerated && !!this.thumbnailObjectName;
+  }
+
+  /**
+   * Check if file can have a thumbnail generated
+   */
+  canHaveThumbnail(): boolean {
+    return this.isImage() || this.isVideo();
+  }
+
+  /**
+   * Check if file is in standard tier (frequent access)
+   */
+  isStandardTier(): boolean {
+    return this.storageTier === StorageTier.STANDARD;
+  }
+
+  /**
+   * Check if file is in archive tier (rare access)
+   */
+  isArchiveTier(): boolean {
+    return this.storageTier === StorageTier.ARCHIVE;
+  }
+
+  /**
+   * Check if thumbnail should be generated for this file
+   * Archive tier files skip thumbnail generation during upload (lazy generation)
+   */
+  shouldGenerateThumbnailOnUpload(): boolean {
+    return this.isStandardTier() && this.canHaveThumbnail();
   }
 }
