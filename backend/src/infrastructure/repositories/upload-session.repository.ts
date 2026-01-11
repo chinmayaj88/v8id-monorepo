@@ -7,6 +7,7 @@
 import { prisma } from '../database';
 import { IUploadSessionRepository } from '../../application/interfaces/upload-session-repository.interface';
 import { UploadSession, UploadMethod } from '../../domain/entities/upload-session';
+import { StorageTier } from '../../domain/entities/file';
 
 export class UploadSessionRepository implements IUploadSessionRepository {
   private toDomain(prismaSession: any): UploadSession {
@@ -26,6 +27,7 @@ export class UploadSessionRepository implements IUploadSessionRepository {
       prismaSession.parId ?? null,
       prismaSession.ociObjectName ?? null,
       prismaSession.hash ?? null,
+      (prismaSession.storageTier as StorageTier) || StorageTier.STANDARD, // Default to STANDARD for backward compatibility
       prismaSession.isCompleted,
       prismaSession.expiresAt,
       prismaSession.createdAt,
@@ -57,6 +59,7 @@ export class UploadSessionRepository implements IUploadSessionRepository {
     parUrl?: string | null;
     parId?: string | null;
     ociObjectName?: string | null;
+    storageTier?: StorageTier;
     expiresAt: Date;
   }): Promise<UploadSession> {
     const session = await prisma.uploadSession.create({
@@ -74,6 +77,7 @@ export class UploadSessionRepository implements IUploadSessionRepository {
         parUrl: sessionData.parUrl ?? null,
         parId: sessionData.parId ?? null,
         ociObjectName: sessionData.ociObjectName ?? null,
+        storageTier: sessionData.storageTier || StorageTier.STANDARD, // Default to STANDARD
         isCompleted: false,
         expiresAt: sessionData.expiresAt,
       },

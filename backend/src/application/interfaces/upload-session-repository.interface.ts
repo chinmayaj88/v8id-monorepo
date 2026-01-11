@@ -1,4 +1,5 @@
 import { UploadSession, UploadMethod } from '../../domain/entities/upload-session';
+import { StorageTier } from '../../domain/entities/file';
 
 export interface IUploadSessionRepository {
   findById(id: string): Promise<UploadSession | null>;
@@ -15,6 +16,7 @@ export interface IUploadSessionRepository {
     parUrl?: string | null;
     parId?: string | null;
     ociObjectName?: string | null;
+    storageTier?: StorageTier;
     expiresAt: Date;
   }): Promise<UploadSession>;
 
