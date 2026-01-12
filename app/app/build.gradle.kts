@@ -2,16 +2,18 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.kotlin.kapt)
 }
 
 android {
-    namespace = "com.example.v8idcloud"
+    namespace = "com.v8idcloud"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.example.v8idcloud"
+        applicationId = "com.v8idcloud"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -42,14 +44,36 @@ android {
 }
 
 dependencies {
+    // Core modules
+    implementation(project(":core:common"))
+    implementation(project(":core:domain"))
+    implementation(project(":core:data"))
+    implementation(project(":core:ui"))
+    
+    // Feature modules
+    implementation(project(":feature:auth"))
+    
+    // Core Android
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
+    
+    // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    
+    // Navigation
+    implementation(libs.navigation.compose)
+    
+    // Hilt
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
