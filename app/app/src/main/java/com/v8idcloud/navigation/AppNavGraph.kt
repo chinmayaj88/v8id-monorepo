@@ -29,10 +29,6 @@ fun AppNavGraph(
             LoginScreen(navController = navController)
         }
         
-        composable("auth/totp-verify") {
-            TotpVerifyScreen(navController = navController)
-        }
-        
         composable("auth/forgot-password") {
             ForgotPasswordScreen(navController = navController)
         }

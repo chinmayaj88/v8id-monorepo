@@ -1,13 +1,14 @@
 package com.v8idcloud.feature.auth.presentation.ui
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -16,10 +17,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -31,6 +39,8 @@ import androidx.navigation.NavHostController
 import com.v8idcloud.core.ui.theme.V8idColors
 import com.v8idcloud.feature.auth.presentation.viewmodel.LoginViewModel
 import com.v8idcloud.feature.auth.presentation.viewmodel.LoginUiState
+import com.v8idcloud.feature.auth.presentation.viewmodel.TotpViewModel
+import com.v8idcloud.feature.auth.presentation.viewmodel.TotpUiState
 import kotlinx.coroutines.launch
 import com.v8idcloud.feature.auth.R
 
@@ -38,9 +48,11 @@ import com.v8idcloud.feature.auth.R
 @Composable
 fun LoginScreen(
   navController: NavHostController,
-  viewModel: LoginViewModel = hiltViewModel()
+  viewModel: LoginViewModel = hiltViewModel(),
+  totpViewModel: TotpViewModel = hiltViewModel()
 ) {
   val uiState by viewModel.uiState.collectAsState()
+  val totpUiState by totpViewModel.uiState.collectAsState()
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
 
@@ -49,11 +61,16 @@ fun LoginScreen(
   var rememberMe by remember { mutableStateOf(false) }
   var passwordVisible by remember { mutableStateOf(false) }
 
-  // Handle navigation to TOTP screen
-  LaunchedEffect(uiState) {
-    when (uiState) {
-      is LoginUiState.RequiresTotp -> {
-        navController.navigate("auth/totp-verify")
+  // Track if TOTP verification is required
+  val requiresTotp = uiState is LoginUiState.RequiresTotp
+
+  // Handle TOTP success - navigate to home
+  LaunchedEffect(totpUiState) {
+    when (totpUiState) {
+      is TotpUiState.Success -> {
+        navController.navigate("home") {
+          popUpTo("auth/login") { inclusive = true }
+        }
       }
       else -> {}
     }
@@ -69,6 +86,20 @@ fun LoginScreen(
           duration = SnackbarDuration.Short
         )
         viewModel.resetState()
+      }
+    }
+  }
+
+  // Show TOTP error messages
+  LaunchedEffect(totpUiState) {
+    val currentState = totpUiState
+    if (currentState is TotpUiState.Error) {
+      scope.launch {
+        snackbarHostState.showSnackbar(
+          message = currentState.message,
+          duration = SnackbarDuration.Short
+        )
+        totpViewModel.resetState()
       }
     }
   }
@@ -104,37 +135,90 @@ fun LoginScreen(
       Column(
         modifier = Modifier
           .fillMaxSize()
-          .verticalScroll(rememberScrollState())
           .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
       ) {
-        Spacer(modifier = Modifier.height(32.dp))
-
         // Logo Section
         LogoSection()
 
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Login Card
-        LoginCard(
-          email = email,
-          password = password,
-          rememberMe = rememberMe,
-          passwordVisible = passwordVisible,
-          isLoading = uiState is LoginUiState.Loading,
-          onEmailChange = { email = it },
-          onPasswordChange = { password = it },
-          onRememberMeChange = { rememberMe = it },
-          onPasswordVisibilityChange = { passwordVisible = !passwordVisible },
-          onLoginClick = {
-            viewModel.login(email, password)
+        // Animated transition between Login and TOTP
+        AnimatedContent(
+          targetState = requiresTotp,
+          transitionSpec = {
+            if (targetState) {
+              // Slide in from right when showing TOTP
+              slideInHorizontally(
+                initialOffsetX = { fullWidth -> fullWidth },
+                animationSpec = spring(
+                  dampingRatio = Spring.DampingRatioMediumBouncy,
+                  stiffness = Spring.StiffnessMedium
+                )
+              ) + fadeIn(
+                animationSpec = tween(300)
+              ) togetherWith slideOutHorizontally(
+                targetOffsetX = { fullWidth -> -fullWidth },
+                animationSpec = spring(
+                  dampingRatio = Spring.DampingRatioMediumBouncy,
+                  stiffness = Spring.StiffnessMedium
+                )
+              ) + fadeOut(
+                animationSpec = tween(300)
+              )
+            } else {
+              // Slide in from left when showing Login
+              slideInHorizontally(
+                initialOffsetX = { fullWidth -> -fullWidth },
+                animationSpec = spring(
+                  dampingRatio = Spring.DampingRatioMediumBouncy,
+                  stiffness = Spring.StiffnessMedium
+                )
+              ) + fadeIn(
+                animationSpec = tween(300)
+              ) togetherWith slideOutHorizontally(
+                targetOffsetX = { fullWidth -> fullWidth },
+                animationSpec = spring(
+                  dampingRatio = Spring.DampingRatioMediumBouncy,
+                  stiffness = Spring.StiffnessMedium
+                )
+              ) + fadeOut(
+                animationSpec = tween(300)
+              )
+            }
           },
-          onForgotPasswordClick = {
-            navController.navigate("auth/forgot-password")
+          label = "login_totp_transition"
+        ) { showTotp ->
+          if (showTotp) {
+            // TOTP Verification Card
+            TotpVerificationCard(
+              totpViewModel = totpViewModel,
+              isLoading = totpUiState is TotpUiState.Loading,
+              onBackClick = {
+                viewModel.resetState()
+                totpViewModel.resetState()
+              }
+            )
+          } else {
+            // Login Card
+            LoginCard(
+              email = email,
+              password = password,
+              rememberMe = rememberMe,
+              passwordVisible = passwordVisible,
+              isLoading = uiState is LoginUiState.Loading,
+              onEmailChange = { email = it },
+              onPasswordChange = { password = it },
+              onRememberMeChange = { rememberMe = it },
+              onPasswordVisibilityChange = { passwordVisible = !passwordVisible },
+              onLoginClick = {
+                viewModel.login(email, password)
+              },
+              onForgotPasswordClick = {
+                navController.navigate("auth/forgot-password")
+              }
+            )
           }
-        )
-        Spacer(modifier = Modifier.height(32.dp))
+        }
       }
     }
   }
@@ -220,18 +304,18 @@ private fun LogoSection() {
       }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(12.dp))
 
     // Brand Text
     Text(
       text = "V8id Cloud",
-      fontSize = 36.sp,
+      fontSize = 32.sp,
       fontWeight = FontWeight.Bold,
       color = Color.White,
       letterSpacing = (-0.5).sp
     )
 
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(6.dp))
 
     Text(
       text = "Secure Cloud Identity Platform",
@@ -319,11 +403,13 @@ private fun LoginCard(
           unfocusedBorderColor = V8idColors.Purple.VeryLightPurple,
           focusedContainerColor = V8idColors.Purple.SubtlePurpleTint,
           unfocusedContainerColor = V8idColors.Purple.SubtlePurpleTint,
+          focusedTextColor = V8idColors.Purple.DarkNavy,
+          unfocusedTextColor = V8idColors.Purple.DarkNavy,
           cursorColor = V8idColors.Purple.VibrantPurpleAlt
         )
       )
 
-      Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
       // Password Field
       Text(
@@ -369,20 +455,24 @@ private fun LoginCard(
           unfocusedBorderColor = V8idColors.Purple.VeryLightPurple,
           focusedContainerColor = V8idColors.Purple.SubtlePurpleTint,
           unfocusedContainerColor = V8idColors.Purple.SubtlePurpleTint,
+          focusedTextColor = V8idColors.Purple.DarkNavy,
+          unfocusedTextColor = V8idColors.Purple.DarkNavy,
           cursorColor = V8idColors.Purple.VibrantPurpleAlt
         )
       )
 
-      Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.height(12.dp))
 
-      // Remember Me & Forgot Password Row
+      // Remember Me & Forgot Password - Compact side-by-side layout
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
+        // Remember Me
         Row(
-          verticalAlignment = Alignment.CenterVertically
+          verticalAlignment = Alignment.CenterVertically,
+          modifier = Modifier.weight(1f, fill = false)
         ) {
           Switch(
             checked = rememberMe,
@@ -394,28 +484,31 @@ private fun LoginCard(
               uncheckedTrackColor = V8idColors.Purple.VeryLightPurple,
               checkedBorderColor = V8idColors.Purple.VibrantPurpleAlt,
               uncheckedBorderColor = V8idColors.Purple.VeryLightPurple
-
             )
           )
           Spacer(modifier = Modifier.width(8.dp))
           Text(
             text = "Remember me",
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             color = V8idColors.Purple.DeepPurple
           )
         }
 
-        TextButton(onClick = onForgotPasswordClick) {
+        // Forgot Password
+        TextButton(
+          onClick = onForgotPasswordClick,
+          contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+        ) {
           Text(
-            text = "Forgot Password?",
-            fontSize = 13.sp,
+            text = "Forgot?",
+            fontSize = 12.sp,
             color = V8idColors.Purple.Indigo,
             fontWeight = FontWeight.Medium
           )
         }
       }
 
-      Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
       // Login Button
       Button(
@@ -450,19 +543,261 @@ private fun LoginCard(
         }
       }
 
-      Spacer(modifier = Modifier.height(20.dp))
+      Spacer(modifier = Modifier.height(16.dp))
 
       // Privacy Statement
       Text(
         text = "By logging in, you agree to our updated terms and service and privacy policy",
-        fontSize = 11.sp,
+        fontSize = 10.sp,
         color = V8idColors.Purple.Indigo,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth(),
-        lineHeight = 16.sp
+        lineHeight = 14.sp
       )
 
       // Spacer(modifier = Modifier.height(20.dp))
     }
+  }
+}
+
+@Composable
+private fun TotpVerificationCard(
+  totpViewModel: TotpViewModel,
+  isLoading: Boolean,
+  onBackClick: () -> Unit
+) {
+  var totpCode by remember { mutableStateOf("") }
+  var isFocused by remember { mutableStateOf(false) }
+  val focusRequester = remember { FocusRequester() }
+  val focusManager = LocalFocusManager.current
+
+  // Auto-focus on mount
+  LaunchedEffect(Unit) {
+    focusRequester.requestFocus()
+  }
+
+  // Auto-submit when 6 digits entered
+  LaunchedEffect(totpCode) {
+    if (totpCode.length == 6 && totpCode.all { it.isDigit() }) {
+      focusManager.clearFocus()
+      if (!isLoading) {
+        totpViewModel.verifyTotp(totpCode)
+      }
+    }
+  }
+
+  Surface(
+    modifier = Modifier
+      .fillMaxWidth()
+      .wrapContentHeight(),
+    shape = RoundedCornerShape(28.dp),
+    color = Color.White.copy(alpha = 0.95f),
+    shadowElevation = 24.dp
+  ) {
+    Column(
+      modifier = Modifier.padding(28.dp),
+      horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+      // Back Button
+      IconButton(
+        onClick = onBackClick,
+        modifier = Modifier.align(Alignment.Start)
+      ) {
+        Icon(
+          imageVector = Icons.Default.ArrowBack,
+          contentDescription = "Back",
+          tint = V8idColors.Purple.DeepPurple
+        )
+      }
+
+      Spacer(modifier = Modifier.height(8.dp))
+
+      // Title
+      Text(
+        text = "Two-Factor Authentication",
+        fontSize = 26.sp,
+        fontWeight = FontWeight.Bold,
+        color = V8idColors.Purple.DarkNavy
+      )
+
+      Spacer(modifier = Modifier.height(6.dp))
+
+      Text(
+        text = "Enter the 6-digit code from your authenticator app",
+        fontSize = 14.sp,
+        color = V8idColors.Purple.Indigo,
+        textAlign = TextAlign.Center
+      )
+
+      Spacer(modifier = Modifier.height(32.dp))
+
+      // TOTP Code Input
+      TotpCodeInputField(
+        code = totpCode,
+        onCodeChange = { newCode ->
+          // Only allow digits and limit to 6 characters
+          if (newCode.all { it.isDigit() } && newCode.length <= 6) {
+            totpCode = newCode
+          }
+        },
+        isFocused = isFocused,
+        onFocusChanged = { isFocused = it },
+        focusRequester = focusRequester
+      )
+
+      Spacer(modifier = Modifier.height(24.dp))
+
+      // Verify Button
+      Button(
+        onClick = {
+          if (totpCode.length == 6) {
+            totpViewModel.verifyTotp(totpCode)
+          }
+        },
+        modifier = Modifier
+          .fillMaxWidth()
+          .height(54.dp),
+        enabled = !isLoading && totpCode.length == 6,
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+          containerColor = V8idColors.Purple.VibrantPurple,
+          disabledContainerColor = V8idColors.Purple.VeryLightPurple
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+          defaultElevation = 4.dp,
+          pressedElevation = 8.dp
+        )
+      ) {
+        if (isLoading) {
+          CircularProgressIndicator(
+            modifier = Modifier.size(24.dp),
+            color = V8idColors.White,
+            strokeWidth = 2.dp
+          )
+        } else {
+          Text(
+            text = "Verify",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = V8idColors.White
+          )
+        }
+      }
+    }
+  }
+}
+
+@Composable
+private fun TotpCodeInputField(
+  code: String,
+  onCodeChange: (String) -> Unit,
+  isFocused: Boolean,
+  onFocusChanged: (Boolean) -> Unit,
+  focusRequester: FocusRequester
+) {
+  val focusManager = LocalFocusManager.current
+  val scale by animateFloatAsState(
+    targetValue = if (isFocused) 1.02f else 1f,
+    animationSpec = spring(
+      dampingRatio = Spring.DampingRatioMediumBouncy,
+      stiffness = Spring.StiffnessMedium
+    ),
+    label = "totp_scale"
+  )
+
+  Box(
+    modifier = Modifier
+      .fillMaxWidth()
+      .height(80.dp)
+      .scale(scale)
+      .clip(RoundedCornerShape(16.dp))
+      .background(
+        color = V8idColors.Purple.SubtlePurpleTint,
+        shape = RoundedCornerShape(16.dp)
+      )
+      .border(
+        width = if (isFocused) 2.dp else 1.dp,
+        color = if (isFocused) V8idColors.Purple.VibrantPurpleAlt else V8idColors.Purple.VeryLightPurple,
+        shape = RoundedCornerShape(16.dp)
+      ),
+    contentAlignment = Alignment.Center
+  ) {
+    Row(
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(80.dp)
+        .padding(horizontal = 16.dp),
+      horizontalArrangement = Arrangement.SpaceEvenly,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      repeat(6) { index ->
+        val digit = code.getOrNull(index)?.toString() ?: ""
+        val isFilled = digit.isNotEmpty()
+        val isCurrent = index == code.length && isFocused
+
+        Box(
+          modifier = Modifier
+            .size(48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+              color = if (isFilled) {
+                V8idColors.Purple.VibrantPurpleAlt.copy(alpha = 0.1f)
+              } else {
+                V8idColors.Purple.VeryLightPurple
+              }
+            )
+            .border(
+              width = if (isCurrent) 2.dp else 0.dp,
+              color = V8idColors.Purple.VibrantPurpleAlt,
+              shape = RoundedCornerShape(12.dp)
+            ),
+          contentAlignment = Alignment.Center
+        ) {
+          if (isFilled) {
+            Text(
+              text = digit,
+              fontSize = 24.sp,
+              fontWeight = FontWeight.Bold,
+              color = V8idColors.Purple.DarkNavy
+            )
+          } else if (isCurrent) {
+            // Cursor indicator
+            Box(
+              modifier = Modifier
+                .width(2.dp)
+                .height(24.dp)
+                .background(V8idColors.Purple.VibrantPurpleAlt)
+            )
+          }
+        }
+      }
+    }
+
+    // Hidden text field for input
+    androidx.compose.foundation.text.BasicTextField(
+      value = code,
+      onValueChange = onCodeChange,
+      textStyle = androidx.compose.ui.text.TextStyle(
+        color = Color.Transparent,
+        fontSize = 24.sp,
+        fontWeight = FontWeight.Bold
+      ),
+      keyboardOptions = KeyboardOptions(
+        keyboardType = KeyboardType.NumberPassword,
+        imeAction = ImeAction.Done
+      ),
+      keyboardActions = KeyboardActions(
+        onDone = { focusManager.clearFocus() }
+      ),
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(80.dp)
+        .focusRequester(focusRequester)
+        .onFocusChanged { focusState ->
+          onFocusChanged(focusState.isFocused)
+        },
+      singleLine = true,
+      cursorBrush = androidx.compose.ui.graphics.SolidColor(V8idColors.Purple.VibrantPurpleAlt)
+    )
   }
 }
