@@ -1,0 +1,21 @@
+# Local Properties File
+# Copy this file to local.properties and fill in your values
+# local.properties is gitignored and should NOT be committed
+
+# API Configuration (optional - override BuildConfig)
+# For Android Emulator: use 10.0.2.2 (maps to localhost)
+# BASE_URL=http://10.0.2.2:4000/api/
+# For Physical Device: use your computer's local IP address (run: ipconfig on Windows, ifconfig on Mac/Linux)
+# Find your Wi-Fi IPv4 Address (e.g., 172.29.87.213) and use it here:
+# BASE_URL=http://172.29.87.213:4000/api/
+
+# API Keys (if needed)
+# API_KEY=your_api_key_here
+
+# OCI Configuration (if using Oracle Cloud)
+# OCI_REGION=us-ashburn-1
+# OCI_NAMESPACE=your_namespace
+
+# Database (if needed locally)
+# DB_HOST=localhost
+# DB_PORT=3306

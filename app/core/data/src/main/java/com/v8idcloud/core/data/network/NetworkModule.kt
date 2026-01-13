@@ -1,5 +1,6 @@
 package com.v8idcloud.core.data.network
 
+import com.v8idcloud.core.common.ConfigProvider
 import com.v8idcloud.core.common.Constants
 import dagger.Module
 import dagger.Provides
@@ -33,11 +34,21 @@ object NetworkModule {
     
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(Constants.BASE_URL)
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
+    fun provideRetrofit(
+        okHttpClient: OkHttpClient,
+        configProvider: ConfigProvider
+    ): Retrofit = Retrofit.Builder()
+        .baseUrl(configProvider.baseUrl)
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    
+    /**
+     * Provide AuthApiService
+     * Similar to: const api = axios.create({ baseURL: '...' })
+     */
+    @Provides
+    @Singleton
+    fun provideAuthApiService(retrofit: Retrofit): AuthApiService =
+        retrofit.create(AuthApiService::class.java)
 }

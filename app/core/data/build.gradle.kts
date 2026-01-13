@@ -42,4 +42,7 @@ dependencies {
     
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+    
+    // DataStore for storage (like AsyncStorage)
+    implementation(libs.androidx.datastore.preferences)
 }

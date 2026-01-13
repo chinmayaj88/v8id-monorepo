@@ -1,5 +1,7 @@
 package com.v8idcloud.core.common
 
+import android.util.Patterns
+
 /**
  * Common extension functions used across the app
  */
@@ -7,13 +9,11 @@ package com.v8idcloud.core.common
 /**
  * Check if string is a valid email format
  */
-fun String.isValidEmail(): Boolean {
-    return android.util.Patterns.EMAIL_ADDRESS.matcher(this).matches()
-}
+fun String.isValidEmail(): Boolean = Patterns.EMAIL_ADDRESS.matcher(this).matches()
 
 /**
  * Check if string is not blank and not empty
+ * Note: This is redundant as isNotBlank() already checks for empty
  */
-fun String.isNotBlankOrEmpty(): Boolean {
-    return this.isNotBlank() && this.isNotEmpty()
-}
+@Deprecated("Use isNotBlank() instead", ReplaceWith("isNotBlank()"))
+fun String.isNotBlankOrEmpty(): Boolean = isNotBlank()

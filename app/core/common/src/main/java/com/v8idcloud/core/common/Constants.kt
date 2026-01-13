@@ -2,10 +2,10 @@ package com.v8idcloud.core.common
 
 /**
  * Application-wide constants
+ * Note: BASE_URL and ENVIRONMENT are now provided via ConfigProvider (dependency injection)
+ * See: app/src/main/java/com/v8idcloud/config/AppConfigProvider.kt
  */
 object Constants {
-    // API Configuration
-    const val BASE_URL = "https://api.v8idcloud.com/"
     const val API_TIMEOUT_SECONDS = 30L
     
     // SharedPreferences Keys

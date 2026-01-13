@@ -1,14 +1,12 @@
 package com.v8idcloud.core.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
 /**
  * v8id Cloud Theme
- * Enterprise theme system with automatic dark mode support
+ * Enterprise theme system with dark mode support
  * Follows Material Design 3 guidelines
  */
 private val DarkColorScheme = darkColorScheme(
@@ -32,19 +30,11 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant = V8idColors.LightGray.copy(alpha = 0.1f)
 )
 
-// Using dark scheme as default (matching image design)
-private val LightColorScheme = DarkColorScheme
-
 @Composable
 fun V8idTheme(
-    darkTheme: Boolean = true, // Default to dark theme matching design
     content: @Composable () -> Unit
-) {
-    val colorScheme = DarkColorScheme // Always use dark theme matching image design
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = V8idTypography,
-        content = content
-    )
-}
+) = MaterialTheme(
+    colorScheme = DarkColorScheme,
+    typography = V8idTypography,
+    content = content
+)

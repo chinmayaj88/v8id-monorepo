@@ -1,9 +1,24 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.kapt)
+}
+
+// Load local.properties file (in app/ directory)
+val localPropertiesFile = file("local.properties")
+val baseUrl = if (localPropertiesFile.exists()) {
+    val properties = Properties()
+    FileInputStream(localPropertiesFile).use { properties.load(it) }
+    val url = properties.getProperty("BASE_URL") ?: "http://10.0.2.2:4000/api/"
+    // Ensure proper format with trailing slash
+    url.trim().let { if (it.endsWith("/")) it else "$it/" }
+} else {
+    "http://10.0.2.2:4000/api/"
 }
 
 android {
@@ -23,7 +38,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Backend runs on port 4000, API routes start with /api/
+            // BASE_URL can be set in local.properties file
+            // For Emulator: BASE_URL=http://10.0.2.2:4000/api/
+            // For Physical Device: BASE_URL=http://YOUR_PC_IP:4000/api/
+            buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+            buildConfigField("String", "ENVIRONMENT", "\"development\"")
+            isDebuggable = true
+        }
         release {
+            buildConfigField("String", "BASE_URL", "\"https://api.v8idcloud.com/api/\"")
+            buildConfigField("String", "ENVIRONMENT", "\"production\"")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -40,6 +66,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

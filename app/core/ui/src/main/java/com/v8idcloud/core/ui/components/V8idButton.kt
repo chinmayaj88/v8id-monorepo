@@ -36,10 +36,9 @@ fun V8idButton(
         ),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 16.dp)
     ) {
-        if (isLoading) {
-            Text("Loading...")
-        } else {
-            Text(
+        when {
+            isLoading -> Text("Loading...")
+            else -> Text(
                 text = text,
                 style = MaterialTheme.typography.labelLarge
             )

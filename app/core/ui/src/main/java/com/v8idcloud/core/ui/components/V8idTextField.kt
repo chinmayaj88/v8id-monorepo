@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation.Companion.None
 import androidx.compose.ui.unit.dp
 
 /**
@@ -23,7 +24,7 @@ fun V8idTextField(
     placeholder: String = "",
     isError: Boolean = false,
     errorMessage: String? = null,
-    visualTransformation: VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+    visualTransformation: VisualTransformation = None,
     leadingIcon: @Composable (() -> Unit)? = null,
     trailingIcon: @Composable (() -> Unit)? = null,
     singleLine: Boolean = true
@@ -32,11 +33,9 @@ fun V8idTextField(
         value = value,
         onValueChange = onValueChange,
         label = { Text(label) },
-        placeholder = if (placeholder.isNotEmpty()) { { Text(placeholder) } } else null,
+        placeholder = placeholder.takeIf { it.isNotEmpty() }?.let { { Text(it) } },
         isError = isError,
-        supportingText = if (isError && errorMessage != null) {
-            { Text(errorMessage) }
-        } else null,
+        supportingText = if (isError) errorMessage?.let { { Text(it) } } else null,
         visualTransformation = visualTransformation,
         leadingIcon = leadingIcon,
         trailingIcon = trailingIcon,
