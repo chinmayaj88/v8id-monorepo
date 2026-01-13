@@ -1,3 +1,19 @@
+Color Palette Applied (from your background):
+Primary Colors:
+
+#7C3AED & #8B5CF6 - Vibrant purple (main accent, buttons, icons)
+#6366F1 - Indigo (links, secondary text)
+#4C1D95 - Deep purple (labels, primary text)
+#1E1B4B - Dark navy (headings)
+
+Light Variants:
+
+#A78BFA - Light purple (placeholders)
+#DDD6FE - Very light purple (borders, disabled states)
+#FAF5FF - Subtle purple tint (input backgrounds)
+
+
+
 .\gradlew assembleDebug
 .\gradlew assembleDebug
 adb install -r app\build\outputs\apk\debug\app-debug.apk
