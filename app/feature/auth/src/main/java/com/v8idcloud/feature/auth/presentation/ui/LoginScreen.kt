@@ -33,6 +33,8 @@ import com.v8idcloud.feature.auth.presentation.viewmodel.LoginViewModel
 import com.v8idcloud.feature.auth.presentation.viewmodel.LoginUiState
 import kotlinx.coroutines.launch
 import com.v8idcloud.feature.auth.R
+
+
 @Composable
 fun LoginScreen(
   navController: NavHostController,
@@ -130,12 +132,8 @@ fun LoginScreen(
           },
           onForgotPasswordClick = {
             navController.navigate("auth/forgot-password")
-          },
-          onSignUpClick = {
-            navController.navigate("auth/signup")
           }
         )
-
         Spacer(modifier = Modifier.height(32.dp))
       }
     }
@@ -175,7 +173,7 @@ private fun FloatingOrbs() {
         .alpha(orb1Alpha)
         .blur(80.dp)
         .background(
-          color = Color(0xFFA78BFA),
+          color = V8idColors.Purple.LightPurple,
           shape = RoundedCornerShape(50)
         )
     )
@@ -189,7 +187,7 @@ private fun FloatingOrbs() {
         .alpha(orb2Alpha)
         .blur(80.dp)
         .background(
-          color = Color(0xFF60A5FA),
+          color = V8idColors.Purple.Indigo,
           shape = RoundedCornerShape(50)
         )
     )
@@ -238,7 +236,7 @@ private fun LogoSection() {
     Text(
       text = "Secure Cloud Identity Platform",
       fontSize = 13.sp,
-      color = Color(0xFFD8B4FE),
+      color = V8idColors.Purple.LightPurple,
       fontWeight = FontWeight.Light
     )
   }
@@ -257,7 +255,6 @@ private fun LoginCard(
   onPasswordVisibilityChange: () -> Unit,
   onLoginClick: () -> Unit,
   onForgotPasswordClick: () -> Unit,
-  onSignUpClick: () -> Unit
 ) {
   Surface(
     modifier = Modifier
@@ -275,7 +272,7 @@ private fun LoginCard(
         text = "Welcome back",
         fontSize = 26.sp,
         fontWeight = FontWeight.Bold,
-        color = Color(0xFF1E1B4B) // Dark navy matching the background
+        color = V8idColors.Purple.DarkNavy
       )
 
       Spacer(modifier = Modifier.height(6.dp))
@@ -283,7 +280,7 @@ private fun LoginCard(
       Text(
         text = "Sign in to continue to your account",
         fontSize = 14.sp,
-        color = Color(0xFF6366F1) // Indigo matching the purple theme
+        color = V8idColors.Purple.Indigo
       )
 
       Spacer(modifier = Modifier.height(28.dp))
@@ -293,7 +290,7 @@ private fun LoginCard(
         text = "Email Address",
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
-        color = Color(0xFF4C1D95), // Deep purple from background
+        color = V8idColors.Purple.DeepPurple,
         modifier = Modifier.padding(bottom = 8.dp)
       )
 
@@ -304,25 +301,25 @@ private fun LoginCard(
         placeholder = {
           Text(
             "you@example.com",
-            color = Color(0xFFA78BFA) // Light purple
+            color = V8idColors.Purple.LightPurple
           )
         },
         leadingIcon = {
           Icon(
             imageVector = Icons.Default.Email,
             contentDescription = "Email",
-            tint = Color(0xFF8B5CF6) // Purple from background
+            tint = V8idColors.Purple.VibrantPurpleAlt
           )
         },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
         singleLine = true,
         shape = RoundedCornerShape(14.dp),
         colors = OutlinedTextFieldDefaults.colors(
-          focusedBorderColor = Color(0xFF8B5CF6), // Purple
-          unfocusedBorderColor = Color(0xFFDDD6FE), // Very light purple
-          focusedContainerColor = Color(0xFFFAF5FF), // Very light purple tint
-          unfocusedContainerColor = Color(0xFFFAF5FF),
-          cursorColor = Color(0xFF8B5CF6) // Purple cursor
+          focusedBorderColor = V8idColors.Purple.VibrantPurpleAlt,
+          unfocusedBorderColor = V8idColors.Purple.VeryLightPurple,
+          focusedContainerColor = V8idColors.Purple.SubtlePurpleTint,
+          unfocusedContainerColor = V8idColors.Purple.SubtlePurpleTint,
+          cursorColor = V8idColors.Purple.VibrantPurpleAlt
         )
       )
 
@@ -333,7 +330,7 @@ private fun LoginCard(
         text = "Password",
         fontSize = 13.sp,
         fontWeight = FontWeight.Medium,
-        color = Color(0xFF4C1D95), // Deep purple from background
+        color = V8idColors.Purple.DeepPurple,
         modifier = Modifier.padding(bottom = 8.dp)
       )
 
@@ -343,15 +340,15 @@ private fun LoginCard(
         modifier = Modifier.fillMaxWidth(),
         placeholder = {
           Text(
-            "Enter your password",
-            color = Color(0xFFA78BFA) // Light purple
+            "Password",
+            color = V8idColors.Purple.LightPurple
           )
         },
         leadingIcon = {
           Icon(
             imageVector = Icons.Default.Lock,
             contentDescription = "Password",
-            tint = Color(0xFF8B5CF6) // Purple from background
+            tint = V8idColors.Purple.VibrantPurpleAlt
           )
         },
         trailingIcon = {
@@ -359,7 +356,7 @@ private fun LoginCard(
             Icon(
               imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
               contentDescription = if (passwordVisible) "Hide password" else "Show password",
-              tint = Color(0xFF8B5CF6) // Purple
+              tint = V8idColors.Purple.VibrantPurpleAlt
             )
           }
         },
@@ -368,11 +365,11 @@ private fun LoginCard(
         singleLine = true,
         shape = RoundedCornerShape(14.dp),
         colors = OutlinedTextFieldDefaults.colors(
-          focusedBorderColor = Color(0xFF8B5CF6), // Purple
-          unfocusedBorderColor = Color(0xFFDDD6FE), // Very light purple
-          focusedContainerColor = Color(0xFFFAF5FF), // Very light purple tint
-          unfocusedContainerColor = Color(0xFFFAF5FF),
-          cursorColor = Color(0xFF8B5CF6) // Purple cursor
+          focusedBorderColor = V8idColors.Purple.VibrantPurpleAlt,
+          unfocusedBorderColor = V8idColors.Purple.VeryLightPurple,
+          focusedContainerColor = V8idColors.Purple.SubtlePurpleTint,
+          unfocusedContainerColor = V8idColors.Purple.SubtlePurpleTint,
+          cursorColor = V8idColors.Purple.VibrantPurpleAlt
         )
       )
 
@@ -391,19 +388,20 @@ private fun LoginCard(
             checked = rememberMe,
             onCheckedChange = onRememberMeChange,
             colors = SwitchDefaults.colors(
-              checkedThumbColor = Color.White,
-              checkedTrackColor = Color(0xFF8B5CF6), // Purple
-              uncheckedThumbColor = Color.White,
-              uncheckedTrackColor = Color(0xFFDDD6FE), // Light purple
-              checkedBorderColor = Color(0xFF8B5CF6),
-              uncheckedBorderColor = Color(0xFFDDD6FE)
+              checkedThumbColor = V8idColors.White,
+              checkedTrackColor = V8idColors.Purple.VibrantPurpleAlt,
+              uncheckedThumbColor = V8idColors.White,
+              uncheckedTrackColor = V8idColors.Purple.VeryLightPurple,
+              checkedBorderColor = V8idColors.Purple.VibrantPurpleAlt,
+              uncheckedBorderColor = V8idColors.Purple.VeryLightPurple
+
             )
           )
           Spacer(modifier = Modifier.width(8.dp))
           Text(
             text = "Remember me",
             fontSize = 13.sp,
-            color = Color(0xFF4C1D95) // Deep purple
+            color = V8idColors.Purple.DeepPurple
           )
         }
 
@@ -411,7 +409,7 @@ private fun LoginCard(
           Text(
             text = "Forgot Password?",
             fontSize = 13.sp,
-            color = Color(0xFF6366F1), // Indigo
+            color = V8idColors.Purple.Indigo,
             fontWeight = FontWeight.Medium
           )
         }
@@ -428,8 +426,8 @@ private fun LoginCard(
         enabled = !isLoading && email.isNotBlank() && password.isNotBlank(),
         shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
-          containerColor = Color(0xFF7C3AED), // Vibrant purple gradient style
-          disabledContainerColor = Color(0xFFDDD6FE) // Light purple
+          containerColor = V8idColors.Purple.VibrantPurple,
+          disabledContainerColor = V8idColors.Purple.VeryLightPurple
         ),
         elevation = ButtonDefaults.buttonElevation(
           defaultElevation = 4.dp,
@@ -439,7 +437,7 @@ private fun LoginCard(
         if (isLoading) {
           CircularProgressIndicator(
             modifier = Modifier.size(24.dp),
-            color = Color.White,
+            color = V8idColors.White,
             strokeWidth = 2.dp
           )
         } else {
@@ -447,7 +445,7 @@ private fun LoginCard(
             text = "Log in",
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
-            color = Color.White
+            color = V8idColors.White
           )
         }
       }
@@ -458,36 +456,13 @@ private fun LoginCard(
       Text(
         text = "By logging in, you agree to our updated terms and service and privacy policy",
         fontSize = 11.sp,
-        color = Color(0xFF6366F1), // Indigo matching the theme
+        color = V8idColors.Purple.Indigo,
         textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth(),
         lineHeight = 16.sp
       )
 
-      Spacer(modifier = Modifier.height(20.dp))
-
-      // Sign Up Link
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
-      ) {
-        Text(
-          text = "Don't have an account? ",
-          fontSize = 13.sp,
-          color = Color(0xFF4C1D95) // Deep purple
-        )
-        TextButton(
-          onClick = onSignUpClick,
-          contentPadding = PaddingValues(0.dp)
-        ) {
-          Text(
-            text = "Sign up here",
-            fontSize = 13.sp,
-            color = Color(0xFF7C3AED), // Vibrant purple
-            fontWeight = FontWeight.SemiBold
-          )
-        }
-      }
+      // Spacer(modifier = Modifier.height(20.dp))
     }
   }
 }
