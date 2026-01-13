@@ -104,6 +104,18 @@ class StorageManager @Inject constructor(
         }
     }
     
+    fun getUserEmail(): Flow<String?> = dataStore.data.map { it[USER_EMAIL] }
+    
+    suspend fun getUserEmailSync(): String? = getUserEmail().first()
+    
+    fun getUserFirstName(): Flow<String?> = dataStore.data.map { it[USER_FIRST_NAME] }
+    
+    suspend fun getUserFirstNameSync(): String? = getUserFirstName().first()
+    
+    fun getUserLastName(): Flow<String?> = dataStore.data.map { it[USER_LAST_NAME] }
+    
+    suspend fun getUserLastNameSync(): String? = getUserLastName().first()
+    
     suspend fun saveUserFirstName(firstName: String?) {
         dataStore.edit { preferences ->
             if (firstName != null) {
