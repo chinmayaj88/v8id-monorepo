@@ -1,4 +1,4 @@
-package com.v8idcloud.feature.auth.presentation.ui
+package com.v8idcloud.feature.user.presentation.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,8 +22,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.v8idcloud.core.ui.theme.V8idColors
-import com.v8idcloud.feature.auth.R
 import com.v8idcloud.feature.auth.presentation.viewmodel.HomeViewModel
+import com.v8idcloud.core.ui.R
 
 @Composable
 fun UserScreen(

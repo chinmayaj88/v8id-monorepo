@@ -32,3 +32,7 @@ include(":core:ui")
 
 // Feature modules
 include(":feature:auth")
+include(":feature:home")
+include(":feature:folders")
+include(":feature:user")
+include(":feature:vault")

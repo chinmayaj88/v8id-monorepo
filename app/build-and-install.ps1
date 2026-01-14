@@ -29,6 +29,10 @@ $buildDirs = @(
     "core\data\build",
     "core\common\build",
     "feature\auth\build",
+    "feature\home\build",
+    "feature\folders\build",
+    "feature\user\build",
+    "feature\vault\build",
     "app\build"
 )
 

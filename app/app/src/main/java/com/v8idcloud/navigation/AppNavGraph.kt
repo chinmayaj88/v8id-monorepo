@@ -12,6 +12,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.v8idcloud.MainScreen
 import com.v8idcloud.feature.auth.presentation.ui.*
 import com.v8idcloud.feature.auth.presentation.viewmodel.HomeViewModel
+import com.v8idcloud.feature.home.presentation.ui.HomeScreen
+import com.v8idcloud.feature.folders.presentation.ui.FoldersScreen
+import com.v8idcloud.feature.user.presentation.ui.UserScreen
+import com.v8idcloud.feature.vault.presentation.ui.VaultScreen
 
 /**
  * App Navigation Graph

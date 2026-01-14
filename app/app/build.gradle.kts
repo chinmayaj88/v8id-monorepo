@@ -82,6 +82,10 @@ dependencies {
     
     // Feature modules
     implementation(project(":feature:auth"))
+    implementation(project(":feature:home"))
+    implementation(project(":feature:folders"))
+    implementation(project(":feature:user"))
+    implementation(project(":feature:vault"))
     
     // Core Android
     implementation(libs.androidx.core.ktx)

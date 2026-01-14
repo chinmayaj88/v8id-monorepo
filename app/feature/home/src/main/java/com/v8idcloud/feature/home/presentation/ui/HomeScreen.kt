@@ -1,4 +1,4 @@
-package com.v8idcloud.feature.auth.presentation.ui
+package com.v8idcloud.feature.home.presentation.ui
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
@@ -15,29 +15,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.v8idcloud.core.ui.theme.V8idColors
-import com.v8idcloud.feature.auth.R
 import com.v8idcloud.feature.auth.presentation.viewmodel.HomeViewModel
-import com.v8idcloud.feature.auth.presentation.viewmodel.HomeUiState
-import kotlinx.coroutines.launch
+import com.v8idcloud.core.ui.R
 
 @Composable
 fun HomeScreen(
     navController: NavHostController,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val userEmailFlow by viewModel.userEmail.collectAsState()
     val userFirstNameFlow by viewModel.userFirstName.collectAsState()
     val userLastNameFlow by viewModel.userLastName.collectAsState()

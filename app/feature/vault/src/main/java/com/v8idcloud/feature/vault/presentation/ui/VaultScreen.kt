@@ -1,4 +1,4 @@
-package com.v8idcloud.feature.auth.presentation.ui
+package com.v8idcloud.feature.vault.presentation.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.v8idcloud.core.ui.theme.V8idColors
-import com.v8idcloud.feature.auth.R
+import com.v8idcloud.core.ui.R
 
 @Composable
 fun VaultScreen(navController: NavHostController) {
