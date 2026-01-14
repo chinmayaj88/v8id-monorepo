@@ -42,6 +42,7 @@ COPY backend/src ./backend/src/
 # -------------------------
 WORKDIR /app/backend
 
+ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
 RUN pnpm prisma generate
 RUN pnpm build
 
