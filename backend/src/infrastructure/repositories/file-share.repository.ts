@@ -7,9 +7,10 @@
 import { prisma } from '../database';
 import { IFileShareRepository } from '../../application/interfaces/file-share-repository.interface';
 import { FileShare, SharePermission } from '../../domain/entities/file-share';
+import type { PrismaFileShare, PrismaFileShareUpdateInput } from './types';
 
 export class FileShareRepository implements IFileShareRepository {
-  private toDomain(prismaShare: any): FileShare {
+  private toDomain(prismaShare: PrismaFileShare): FileShare {
     return new FileShare(
       prismaShare.id,
       prismaShare.fileId ?? null,
@@ -57,7 +58,7 @@ export class FileShareRepository implements IFileShareRepository {
   async update(id: string, data: Partial<{
     permission: SharePermission;
   }>): Promise<FileShare> {
-    const updateData: any = {};
+    const updateData: PrismaFileShareUpdateInput = {};
     if (data.permission !== undefined) updateData.permission = data.permission;
 
     const share = await prisma.fileShare.update({

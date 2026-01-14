@@ -6,10 +6,11 @@
 
 import jwt from 'jsonwebtoken';
 import { IJwtService, TokenPayload } from '../../application/interfaces/jwt-service.interface';
+import { validateJwtSecret } from '../config/env-validator';
 
 export class JwtService implements IJwtService {
   constructor(
-    private jwtSecret: string = process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+    private jwtSecret: string = validateJwtSecret(),
     private accessTokenExpiresIn: string = process.env.JWT_ACCESS_EXPIRES_IN || '15m',
     private refreshTokenExpiresIn: string = process.env.JWT_REFRESH_EXPIRES_IN || '7d'
   ) {}

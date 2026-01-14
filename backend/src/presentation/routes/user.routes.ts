@@ -12,7 +12,6 @@ import { UserRepository } from '../../infrastructure/repositories/user.repositor
 import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
 import { TotpBackupCodeRepository } from '../../infrastructure/repositories/totp-backup-code.repository';
 import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository';
-import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service';
 import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory';
 import { PasswordService } from '../../infrastructure/services/password.service';

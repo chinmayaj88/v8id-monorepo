@@ -8,12 +8,13 @@ import { prisma } from '../database';
 import { IUserRepository } from '../../application/interfaces/user-repository.interface';
 import { User } from '../../domain/entities/user';
 import { UserRole } from '../../domain/entities/user-role';
+import type { PrismaUser } from './types';
 
 export class UserRepository implements IUserRepository {
   /**
    * Map Prisma user to domain User entity
    */
-  private toDomain(prismaUser: any): User {
+  private toDomain(prismaUser: PrismaUser): User {
     return new User(
       prismaUser.id,
       prismaUser.email,

@@ -13,6 +13,7 @@ import { ITotpService } from '../interfaces/totp-service.interface';
 import { CreateUserDTO } from '../dtos/auth.dto';
 import { Email } from '../../domain/value-objects/email';
 import { Password } from '../../domain/value-objects/password';
+import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator';
 
 export interface CreateUserResult {
   id: string;
@@ -59,7 +60,7 @@ export class CreateUserUseCase {
 
     const totpSetup = await this.totpService.generateTotpSetup(email.getValue());
 
-    const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
+    const encryptionKey = getTotpEncryptionKey();
     const encryptedSecret = this.totpService.encryptSecret(totpSetup.secret, encryptionKey);
 
     const hashedBackupCodes = await Promise.all(

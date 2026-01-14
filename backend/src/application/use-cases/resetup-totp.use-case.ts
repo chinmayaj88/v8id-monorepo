@@ -12,6 +12,7 @@ import { IPasswordService } from '../interfaces/password-service.interface';
 import { ITotpService } from '../interfaces/totp-service.interface';
 import { IAuditLogService } from '../interfaces/audit-log-service.interface';
 import { Email } from '../../domain/value-objects/email';
+import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator';
 
 export interface ResetupTotpDTO {
   password: string;
@@ -68,7 +69,7 @@ export class ResetupTotpUseCase {
     const email = new Email(user.email);
     const totpSetup = await this.totpService.generateTotpSetup(email.getValue());
 
-    const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
+    const encryptionKey = getTotpEncryptionKey();
     const encryptedSecret = this.totpService.encryptSecret(totpSetup.secret, encryptionKey);
 
     const hashedBackupCodes = await Promise.all(

@@ -7,12 +7,14 @@
 import { prisma } from '../database';
 import { IFileRepository } from '../../application/interfaces/file-repository.interface';
 import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file';
+import type { PrismaFile, PrismaFileWhereInput, PrismaFileOrderByInput } from './types';
+import type { Prisma } from '../../../generated/prisma/client';
 
 export class FileRepository implements IFileRepository {
   /**
    * Map Prisma file to domain File entity
    */
-  private toDomain(prismaFile: any): File {
+  private toDomain(prismaFile: PrismaFile): File {
     return new File(
       prismaFile.id,
       prismaFile.userId,
@@ -29,7 +31,7 @@ export class FileRepository implements IFileRepository {
       prismaFile.thumbnailObjectName ?? undefined,
       prismaFile.thumbnailGenerated ?? false,
       prismaFile.description ?? undefined,
-      prismaFile.tags ? (Array.isArray(prismaFile.tags) ? prismaFile.tags : []) : undefined,
+      prismaFile.tags ? (Array.isArray(prismaFile.tags) ? (prismaFile.tags as string[]) : []) : undefined,
       prismaFile.metadata ? (typeof prismaFile.metadata === 'object' ? prismaFile.metadata as Record<string, unknown> : undefined) : undefined,
       prismaFile.expiresAt ?? undefined,
       prismaFile.createdAt,
@@ -115,8 +117,8 @@ export class FileRepository implements IFileRepository {
         thumbnailObjectName: fileData.thumbnailObjectName ?? null,
         thumbnailGenerated: fileData.thumbnailGenerated ?? false,
         description: fileData.description ?? null,
-        ...(fileData.tags !== undefined && { tags: fileData.tags as any }),
-        ...(fileData.metadata !== undefined && { metadata: fileData.metadata as any }),
+        ...(fileData.tags !== undefined && { tags: fileData.tags as Prisma.InputJsonValue }),
+        ...(fileData.metadata !== undefined && { metadata: fileData.metadata as Prisma.InputJsonValue }),
       },
     });
 
@@ -135,19 +137,21 @@ export class FileRepository implements IFileRepository {
     thumbnailObjectName?: string | null;
     thumbnailGenerated?: boolean;
   }>): Promise<File> {
-    const updateData: any = {};
+    const updateData: Prisma.FileUpdateInput = {};
     
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.folderId !== undefined) updateData.folderId = data.folderId ?? null;
+    if (data.folderId !== undefined) {
+      updateData.folder = data.folderId ? { connect: { id: data.folderId } } : { disconnect: true };
+    }
     if (data.description !== undefined) {
       updateData.description = data.description ?? null;
     }
     if (data.tags !== undefined) {
-      // For JSON fields, cast to any to handle Prisma's InputJsonValue type
-      updateData.tags = (data.tags ?? null) as any;
+      // For JSON fields, use Prisma's InputJsonValue type
+      updateData.tags = (data.tags ?? null) as Prisma.InputJsonValue;
     }
     if (data.metadata !== undefined) {
-      updateData.metadata = (data.metadata ?? null) as any;
+      updateData.metadata = (data.metadata ?? null) as Prisma.InputJsonValue;
     }
     if (data.status !== undefined) updateData.status = data.status;
     if (data.deletedAt !== undefined) updateData.deletedAt = data.deletedAt ?? null;
@@ -223,21 +227,21 @@ export class FileRepository implements IFileRepository {
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: PrismaFileWhereInput = {
       userId,
       ...(options?.folderId !== undefined && { folderId: options.folderId ?? null }),
       ...(options?.status !== undefined && { status: options.status }),
       ...(options?.type !== undefined && { type: options.type }),
       ...(options?.search && {
         OR: [
-          { name: { contains: options.search, mode: 'insensitive' as const } },
-          { originalName: { contains: options.search, mode: 'insensitive' as const } },
-          { description: { contains: options.search, mode: 'insensitive' as const } },
+          { name: { contains: options.search } },
+          { originalName: { contains: options.search } },
+          { description: { contains: options.search } },
         ],
       }),
     };
 
-    const orderBy: any = {};
+    const orderBy: PrismaFileOrderByInput = {};
     if (options?.orderBy) {
       orderBy[options.orderBy] = options.orderDirection || 'desc';
     } else {

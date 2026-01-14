@@ -12,6 +12,7 @@ import { IPasswordService } from '../interfaces/password-service.interface';
 import { IAuditLogService } from '../interfaces/audit-log-service.interface';
 import { ITotpService } from '../interfaces/totp-service.interface';
 import { Password } from '../../domain/value-objects/password';
+import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator';
 
 export interface ChangePasswordDTO {
   currentPassword: string;
@@ -63,7 +64,7 @@ export class ChangePasswordUseCase {
       throw new Error('TOTP is required for password change');
     }
 
-    const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
+    const encryptionKey = getTotpEncryptionKey();
     let totpSecret: string;
     try {
       totpSecret = this.totpService.decryptSecret(user.totpSecret, encryptionKey);

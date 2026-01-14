@@ -4,5 +4,4 @@
  * Oracle Cloud Infrastructure (OCI) integrations.
  */
 
-export { OciStorageService } from './storage.service';
 export { TierAwareStorageService } from './tier-aware-storage.service';

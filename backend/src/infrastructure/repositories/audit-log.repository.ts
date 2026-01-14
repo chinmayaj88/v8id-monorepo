@@ -9,14 +9,15 @@ import {
   IAuditLogRepository,
   AuditLog,
 } from '../../application/interfaces/audit-log-repository.interface';
+import type { PrismaAuditLog, PrismaAuditLogWhereInput } from './types';
 
 export class AuditLogRepository implements IAuditLogRepository {
-  private toDomain(prismaLog: any): AuditLog {
+  private toDomain(prismaLog: PrismaAuditLog): AuditLog {
     return {
       id: prismaLog.id,
       userId: prismaLog.userId ?? undefined,
       eventType: prismaLog.eventType,
-      eventData: prismaLog.eventData ? (prismaLog.eventData as Record<string, any>) : undefined,
+      eventData: prismaLog.eventData ? (prismaLog.eventData as Record<string, unknown>) : undefined,
       ipAddress: prismaLog.ipAddress ?? undefined,
       userAgent: prismaLog.userAgent ?? undefined,
       success: prismaLog.success,
@@ -28,7 +29,7 @@ export class AuditLogRepository implements IAuditLogRepository {
   async create(data: {
     userId?: string;
     eventType: string;
-    eventData?: Record<string, any>;
+    eventData?: Record<string, unknown>;
     ipAddress?: string;
     userAgent?: string;
     success?: boolean;
@@ -64,7 +65,7 @@ export class AuditLogRepository implements IAuditLogRepository {
     const limit = options?.limit ?? 50;
     const skip = (page - 1) * limit;
 
-    const where: any = { userId };
+    const where: PrismaAuditLogWhereInput = { userId };
     if (options?.eventType) {
       where.eventType = options.eventType;
     }
@@ -115,7 +116,7 @@ export class AuditLogRepository implements IAuditLogRepository {
   }
 
   async findFailedLoginAttempts(userId: string, since?: Date): Promise<AuditLog[]> {
-    const where: any = {
+    const where: PrismaAuditLogWhereInput = {
       userId,
       eventType: 'LOGIN_FAILED',
       success: false,
@@ -139,7 +140,7 @@ export class AuditLogRepository implements IAuditLogRepository {
     eventType: string,
     since?: Date
   ): Promise<AuditLog[]> {
-    const where: any = {
+    const where: PrismaAuditLogWhereInput = {
       userId,
       eventType,
     };

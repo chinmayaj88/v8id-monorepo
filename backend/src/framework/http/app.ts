@@ -37,11 +37,20 @@ export async function createApp(): Promise<Express> {
     })
   );
 
-  // Middleware
+  // CORS configuration
+  const corsOrigin = process.env.CORS_ORIGIN;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  if (isProduction && !corsOrigin) {
+    console.warn('⚠️  WARNING: CORS_ORIGIN not set in production. Defaulting to no CORS (most secure).');
+  }
+  
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN || '*', // Allow all origins for development (emulator, physical devices)
+      origin: corsOrigin || (isProduction ? false : '*'), // Allow all in dev, restrict in prod
       credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
     })
   );
 

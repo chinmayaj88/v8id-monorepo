@@ -9,9 +9,10 @@ import {
   IDeviceSessionRepository,
   DeviceSession,
 } from '../../application/interfaces/device-session-repository.interface';
+import type { PrismaDeviceSession } from './types';
 
 export class DeviceSessionRepository implements IDeviceSessionRepository {
-  private toDomain(prismaSession: any): DeviceSession {
+  private toDomain(prismaSession: PrismaDeviceSession): DeviceSession {
     return {
       id: prismaSession.id,
       userId: prismaSession.userId,
@@ -90,7 +91,7 @@ export class DeviceSessionRepository implements IDeviceSessionRepository {
       orderBy: { lastActiveAt: 'desc' },
     });
 
-    return sessions.map((session: any) => this.toDomain(session));
+    return sessions.map((session) => this.toDomain(session));
   }
 
   async findRememberedMobileSession(userId: string): Promise<DeviceSession | null> {

@@ -11,6 +11,7 @@ import { ITotpService } from '../interfaces/totp-service.interface';
 import { IJwtService } from '../interfaces/jwt-service.interface';
 import { ISuspiciousActivityService } from '../interfaces/suspicious-activity-service.interface';
 import { IAuditLogService } from '../interfaces/audit-log-service.interface';
+import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator';
 
 export interface VerifyTotpLoginResult {
   accessToken: string;
@@ -86,7 +87,7 @@ export class VerifyTotpLoginUseCase {
       throw new Error('TOTP is not set up for this account');
     }
 
-    const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
+    const encryptionKey = getTotpEncryptionKey();
     let totpSecret: string;
     try {
       totpSecret = this.totpService.decryptSecret(user.totpSecret, encryptionKey);

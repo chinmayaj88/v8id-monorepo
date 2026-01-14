@@ -8,9 +8,10 @@ import { prisma } from '../database';
 import { IUploadSessionRepository } from '../../application/interfaces/upload-session-repository.interface';
 import { UploadSession, UploadMethod } from '../../domain/entities/upload-session';
 import { StorageTier } from '../../domain/entities/file';
+import type { PrismaUploadSession, PrismaUploadSessionWhereInput, PrismaUploadSessionUpdateInput } from './types';
 
 export class UploadSessionRepository implements IUploadSessionRepository {
-  private toDomain(prismaSession: any): UploadSession {
+  private toDomain(prismaSession: PrismaUploadSession): UploadSession {
     return new UploadSession(
       prismaSession.id,
       prismaSession.userId,
@@ -93,7 +94,7 @@ export class UploadSessionRepository implements IUploadSessionRepository {
     isCompleted?: boolean;
     ociObjectName?: string | null;
   }>): Promise<UploadSession> {
-    const updateData: any = {};
+    const updateData: PrismaUploadSessionUpdateInput = {};
     
     if (data.uploadedChunks !== undefined) updateData.uploadedChunks = data.uploadedChunks;
     if (data.uploadedBytes !== undefined) updateData.uploadedBytes = data.uploadedBytes;
@@ -120,7 +121,7 @@ export class UploadSessionRepository implements IUploadSessionRepository {
     includeExpired?: boolean;
   }): Promise<UploadSession[]> {
     const now = new Date();
-    const where: any = {
+    const where: PrismaUploadSessionWhereInput = {
       userId,
       ...(options?.isCompleted !== undefined && { isCompleted: options.isCompleted }),
       ...(options?.includeExpired === false && { expiresAt: { gt: now } }),

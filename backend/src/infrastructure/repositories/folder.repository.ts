@@ -7,12 +7,13 @@
 import { prisma } from '../database';
 import { IFolderRepository } from '../../application/interfaces/folder-repository.interface';
 import { Folder } from '../../domain/entities/folder';
+import type { PrismaFolder, PrismaFolderWhereInput } from './types';
 
 export class FolderRepository implements IFolderRepository {
   /**
    * Map Prisma folder to domain Folder entity
    */
-  private toDomain(prismaFolder: any): Folder {
+  private toDomain(prismaFolder: PrismaFolder): Folder {
     return new Folder(
       prismaFolder.id,
       prismaFolder.userId,
@@ -114,7 +115,7 @@ export class FolderRepository implements IFolderRepository {
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {
+    const where: PrismaFolderWhereInput = {
       userId,
       ...(options?.parentId !== undefined && { parentId: options.parentId ?? null }),
       ...(options?.includeDeleted === false && { isDeleted: false }),
@@ -171,7 +172,7 @@ export class FolderRepository implements IFolderRepository {
     const path: Folder[] = [];
     let currentId: string | null = folderId;
     const visitedIds = new Set<string>(); // Prevent infinite loops
-    const folderMap = new Map<string, any>(); // Cache fetched folders
+    const folderMap = new Map<string, PrismaFolder>(); // Cache fetched folders
 
     // Collect folder IDs and fetch them efficiently
     while (currentId && !visitedIds.has(currentId)) {
@@ -228,7 +229,7 @@ export class FolderRepository implements IFolderRepository {
     const count = await prisma.file.count({
       where: {
         folderId,
-        status: 'ACTIVE' as any,
+        status: 'ACTIVE',
       },
     });
 

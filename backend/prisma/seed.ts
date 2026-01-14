@@ -96,6 +96,7 @@ async function main() {
   // Generate TOTP setup (mandatory)
   console.log('🔑 Generating TOTP setup...');
   const totpSetup = await totpService.generateTotpSetup(adminEmail);
+  // For seed script, allow default key in development
   const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
   
   if (encryptionKey === 'default-key-change-in-production') {

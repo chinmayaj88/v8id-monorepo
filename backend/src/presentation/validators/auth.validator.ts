@@ -13,7 +13,7 @@ const emailSchema = z.string().email('Invalid email format').toLowerCase().trim(
 
 /**
  * Password validation schema
- * - Minimum 8 characters
+ * - Minimum 12 characters (matches domain requirement)
  * - At least one uppercase letter
  * - At least one lowercase letter
  * - At least one number
@@ -21,7 +21,7 @@ const emailSchema = z.string().email('Invalid email format').toLowerCase().trim(
  */
 const passwordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters long')
+  .min(12, 'Password must be at least 12 characters long')
   .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
   .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
   .regex(/[0-9]/, 'Password must contain at least one number')
