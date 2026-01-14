@@ -42,7 +42,10 @@ jobs:
       # -------------------------
       - name: Deploy to OCI Compute
         run: |
-          ssh -o StrictHostKeyChecking=no \
+          ssh -tt \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=3 \
             ${{ secrets.OCI_COMPUTE_SSH_USER }}@${{ secrets.OCI_COMPUTE_IP }} << 'EOF'
             set -e
 
