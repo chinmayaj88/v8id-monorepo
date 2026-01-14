@@ -69,11 +69,11 @@ jobs:
             docker stop v8id-backend || true
             docker rm v8id-backend || true
 
-            echo "[INFO] Running Prisma migrations"
+            echo "[INFO] Running Prisma migrations (one-off)"
             docker run --rm \
               --env-file "$ENV_FILE" \
               "$IMAGE" \
-              pnpm prisma migrate deploy
+              prisma migrate deploy
 
             echo "[INFO] Starting backend container"
             docker run -d \

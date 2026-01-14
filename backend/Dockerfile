@@ -53,8 +53,9 @@ RUN pnpm build
 # =========================
 FROM node:22-alpine AS production
 
-# Install pnpm and create non-root user
+# Install pnpm, Prisma CLI, and create non-root user
 RUN npm install -g pnpm@9 && \
+    pnpm add -g prisma && \
     addgroup -S nodejs && \
     adduser -S nodejs -G nodejs
 
