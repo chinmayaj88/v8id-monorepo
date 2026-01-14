@@ -14,7 +14,6 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
 
-
 # -------------------------
 # Copy backend manifests
 # -------------------------
@@ -23,7 +22,7 @@ COPY backend/tsconfig.json ./backend/
 COPY backend/prisma.config.ts ./backend/
 
 # -------------------------
-# Copy Prisma files
+# Copy Prisma schema
 # -------------------------
 COPY backend/prisma ./backend/prisma/
 
@@ -42,7 +41,9 @@ COPY backend/src ./backend/src/
 # -------------------------
 WORKDIR /app/backend
 
+# Dummy DB URL only for Prisma generate at build time
 ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
+
 RUN pnpm prisma generate
 RUN pnpm build
 
@@ -54,8 +55,8 @@ FROM node:22-alpine AS production
 
 # Install pnpm and create non-root user
 RUN npm install -g pnpm@9 && \
-  addgroup -S nodejs && \
-  adduser -S nodejs -G nodejs
+    addgroup -S nodejs && \
+    adduser -S nodejs -G nodejs
 
 WORKDIR /app
 
@@ -64,7 +65,6 @@ WORKDIR /app
 # -------------------------
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-
 # -------------------------
 # Copy backend manifests
 # -------------------------
@@ -72,27 +72,16 @@ COPY backend/package.json ./backend/
 COPY backend/prisma.config.ts ./backend/
 
 # -------------------------
-# Copy Prisma schema + migrations
+# Install production dependencies only
 # -------------------------
-COPY --from=builder /app/backend/prisma ./backend/prisma
+RUN pnpm install --frozen-lockfile --prod
 
 # -------------------------
-# Install dependencies
-# Prisma CLI is required at runtime
-# -------------------------
-RUN pnpm install --frozen-lockfile --prod=false
-
-# -------------------------
-# Generate Prisma client
-# -------------------------
-WORKDIR /app/backend
-RUN pnpm prisma generate
-
-# -------------------------
-# Copy built artifacts
+# Copy built artifacts & Prisma client
 # -------------------------
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/generated ./backend/generated
+COPY --from=builder /app/backend/prisma ./backend/prisma
 
 # -------------------------
 # Permissions
