@@ -708,7 +708,7 @@ private fun TotpCodeInputField(
   Box(
     modifier = Modifier
       .fillMaxWidth()
-      .height(80.dp)
+      .height(72.dp)
       .scale(scale)
       .clip(RoundedCornerShape(16.dp))
       .background(
@@ -725,9 +725,9 @@ private fun TotpCodeInputField(
     Row(
       modifier = Modifier
         .fillMaxWidth()
-        .height(80.dp)
-        .padding(horizontal = 16.dp),
-      horizontalArrangement = Arrangement.SpaceEvenly,
+        .height(72.dp)
+        .padding(horizontal = 12.dp),
+      horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
       verticalAlignment = Alignment.CenterVertically
     ) {
       repeat(6) { index ->
@@ -737,7 +737,9 @@ private fun TotpCodeInputField(
 
         Box(
           modifier = Modifier
-            .size(48.dp)
+            .weight(1f, fill = false)
+            .aspectRatio(1f)
+            .height(48.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(
               color = if (isFilled) {
@@ -747,8 +749,14 @@ private fun TotpCodeInputField(
               }
             )
             .border(
-              width = if (isCurrent) 2.dp else 0.dp,
-              color = V8idColors.Purple.VibrantPurpleAlt,
+              width = if (isCurrent) 2.dp else 1.dp,
+              color = if (isCurrent) {
+                V8idColors.Purple.VibrantPurpleAlt
+              } else if (isFilled) {
+                V8idColors.Purple.VibrantPurpleAlt.copy(alpha = 0.3f)
+              } else {
+                V8idColors.Purple.VeryLightPurple
+              },
               shape = RoundedCornerShape(12.dp)
             ),
           contentAlignment = Alignment.Center
@@ -756,7 +764,7 @@ private fun TotpCodeInputField(
           if (isFilled) {
             Text(
               text = digit,
-              fontSize = 24.sp,
+              fontSize = 22.sp,
               fontWeight = FontWeight.Bold,
               color = V8idColors.Purple.DarkNavy
             )
@@ -765,7 +773,7 @@ private fun TotpCodeInputField(
             Box(
               modifier = Modifier
                 .width(2.dp)
-                .height(24.dp)
+                .height(20.dp)
                 .background(V8idColors.Purple.VibrantPurpleAlt)
             )
           }
@@ -791,7 +799,7 @@ private fun TotpCodeInputField(
       ),
       modifier = Modifier
         .fillMaxWidth()
-        .height(80.dp)
+        .height(72.dp)
         .focusRequester(focusRequester)
         .onFocusChanged { focusState ->
           onFocusChanged(focusState.isFocused)

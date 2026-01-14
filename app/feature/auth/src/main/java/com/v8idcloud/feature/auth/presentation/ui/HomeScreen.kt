@@ -4,6 +4,9 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -37,8 +41,6 @@ fun HomeScreen(
     val userEmailFlow by viewModel.userEmail.collectAsState()
     val userFirstNameFlow by viewModel.userFirstName.collectAsState()
     val userLastNameFlow by viewModel.userLastName.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
 
     // Compute user name
     val userEmail = userEmailFlow ?: ""
@@ -52,288 +54,322 @@ fun HomeScreen(
         }.takeIf { it.isNotBlank() } ?: userEmail
     }
 
-    // Handle logout success
-    LaunchedEffect(uiState) {
-        if (uiState is HomeUiState.LoggedOut) {
-            navController.navigate("auth/login") {
-                popUpTo("auth/login") { inclusive = true }
-            }
-        }
+    // Mock data for cloud storage
+    val storageUsed = 12.5f // GB
+    val storageTotal = 50f // GB
+    val storagePercentage = (storageUsed / storageTotal) * 100f
+
+    val recentFiles = remember {
+        listOf(
+            FileItem("Document.pdf", "2.5 MB", "2 hours ago", Icons.Default.Description),
+            FileItem("Photo.jpg", "5.1 MB", "1 day ago", Icons.Default.Image),
+            FileItem("Spreadsheet.xlsx", "1.2 MB", "3 days ago", Icons.Default.TableChart),
+            FileItem("Video.mp4", "250 MB", "1 week ago", Icons.Default.VideoFile)
+        )
     }
 
-    // Show logout success message
-    LaunchedEffect(uiState) {
-        if (uiState is HomeUiState.LoggedOut) {
-            scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = "Logged out successfully",
-                    duration = SnackbarDuration.Short
-                )
-            }
-        }
+    val folders = remember {
+        listOf(
+            FolderItem("Documents", 15, Icons.Default.Folder),
+            FolderItem("Photos", 42, Icons.Default.PhotoLibrary),
+            FolderItem("Videos", 8, Icons.Default.VideoLibrary),
+            FolderItem("Music", 23, Icons.Default.LibraryMusic)
+        )
     }
 
-    Scaffold(
-        snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState) { snackbarData ->
-                Snackbar(
-                    snackbarData = snackbarData,
-                    containerColor = V8idColors.SuccessGreen,
-                    contentColor = V8idColors.White
-                )
-            }
-        }
-    ) { paddingValues ->
-        Box(
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+        // Background Image
+        Image(
+            painter = painterResource(id = R.drawable.bg1),
+            contentDescription = "Background",
+            contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .alpha(0.1f)
+        )
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            contentPadding = PaddingValues(vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Background Image
-            Image(
-                painter = painterResource(id = R.drawable.bg1),
-                contentDescription = "Background",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            // Header Section
+            item {
+                HomeHeader(userName = userName, userEmail = userEmail)
+            }
 
-            // Floating Orbs
-            HomeFloatingOrbs()
-
-            // Content
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
-            ) {
-                // Logo Section
-                HomeLogoSection()
-
-                // Welcome Card
-                WelcomeCard(
-                    userName = userName,
-                    userEmail = userEmail,
-                    isLoading = uiState is HomeUiState.LoggingOut,
-                    onLogoutClick = {
-                        viewModel.logout {}
-                    }
+            // Storage Usage Card
+            item {
+                StorageUsageCard(
+                    used = storageUsed,
+                    total = storageTotal,
+                    percentage = storagePercentage
                 )
+            }
+
+            // Quick Access Folders
+            item {
+                Text(
+                    text = "Quick Access",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = V8idColors.Purple.DarkNavy,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            item {
+                FoldersGrid(folders = folders)
+            }
+
+            // Recent Files
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Recent Files",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = V8idColors.Purple.DarkNavy
+                    )
+                    TextButton(onClick = { /* Navigate to all files */ }) {
+                        Text(
+                            text = "View All",
+                            color = V8idColors.Purple.VibrantPurple,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            items(recentFiles) { file ->
+                FileItemCard(file = file)
             }
         }
     }
 }
 
 @Composable
-private fun HomeFloatingOrbs() {
-    val infiniteTransition = rememberInfiniteTransition(label = "orb_animation")
-
-    val orb1Alpha by infiniteTransition.animateFloat(
-        initialValue = 0.15f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "orb1_alpha"
-    )
-
-    val orb2Alpha by infiniteTransition.animateFloat(
-        initialValue = 0.1f,
-        targetValue = 0.25f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "orb2_alpha"
-    )
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Orb 1 - Subtle overlay
-        Box(
-            modifier = Modifier
-                .offset(x = 60.dp, y = 100.dp)
-                .size(250.dp)
-                .alpha(orb1Alpha)
-                .blur(80.dp)
-                .background(
-                    color = V8idColors.Purple.LightPurple,
-                    shape = RoundedCornerShape(50)
-                )
-        )
-
-        // Orb 2 - Subtle overlay
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .offset(x = (-40).dp, y = (-100).dp)
-                .size(350.dp)
-                .alpha(orb2Alpha)
-                .blur(80.dp)
-                .background(
-                    color = V8idColors.Purple.Indigo,
-                    shape = RoundedCornerShape(50)
-                )
-        )
-    }
-}
-
-@Composable
-private fun HomeLogoSection() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(vertical = 16.dp)
+private fun HomeHeader(userName: String, userEmail: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Logo Container
+        Column {
+            Text(
+                text = "Welcome back,",
+                fontSize = 16.sp,
+                color = V8idColors.Purple.Indigo
+            )
+            Text(
+                text = userName,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = V8idColors.Purple.DarkNavy
+            )
+        }
+
+        // Profile Avatar
         Surface(
-            modifier = Modifier.size(80.dp),
-            shape = RoundedCornerShape(24.dp),
-            color = Color.White.copy(alpha = 0.15f),
-            shadowElevation = 20.dp
+            modifier = Modifier.size(56.dp),
+            shape = CircleShape,
+            color = V8idColors.Purple.VibrantPurpleAlt,
+            shadowElevation = 8.dp
         ) {
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.fillMaxSize()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Cloud,
-                    contentDescription = "V8id Cloud Logo",
-                    tint = Color.White,
-                    modifier = Modifier.size(42.dp)
+                Text(
+                    text = userName.take(1).uppercase(),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = V8idColors.White
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Brand Text
-        Text(
-            text = "V8id Cloud",
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            letterSpacing = (-0.5).sp
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Text(
-            text = "Secure Cloud Identity Platform",
-            fontSize = 13.sp,
-            color = V8idColors.Purple.LightPurple,
-            fontWeight = FontWeight.Light
-        )
     }
 }
 
 @Composable
-private fun WelcomeCard(
-    userName: String,
-    userEmail: String,
-    isLoading: Boolean,
-    onLogoutClick: () -> Unit
-) {
+private fun StorageUsageCard(used: Float, total: Float, percentage: Float) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight(),
-        shape = RoundedCornerShape(28.dp),
-        color = Color.White.copy(alpha = 0.95f),
-        shadowElevation = 24.dp
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = V8idColors.Purple.SubtlePurpleTint,
+        shadowElevation = 8.dp
     ) {
         Column(
-            modifier = Modifier.padding(28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.padding(20.dp)
         ) {
-            // Success Icon
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = "Success",
-                tint = V8idColors.SuccessGreen,
-                modifier = Modifier.size(64.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Welcome Text
-            Text(
-                text = "Welcome back!",
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                color = V8idColors.Purple.DarkNavy
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (userName.isNotBlank()) {
-                Text(
-                    text = userName,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = V8idColors.Purple.DeepPurple
-                )
-            }
-
-            if (userEmail.isNotBlank()) {
-                Text(
-                    text = userEmail,
-                    fontSize = 14.sp,
-                    color = V8idColors.Purple.Indigo
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Info Text
-            Text(
-                text = "You have successfully logged in to V8id Cloud",
-                fontSize = 14.sp,
-                color = V8idColors.Purple.Indigo,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Logout Button
-            Button(
-                onClick = onLogoutClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                enabled = !isLoading,
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = V8idColors.Semantic.Error,
-                    disabledContainerColor = V8idColors.Semantic.Error.copy(alpha = 0.5f)
-                ),
-                elevation = ButtonDefaults.buttonElevation(
-                    defaultElevation = 4.dp,
-                    pressedElevation = 8.dp
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = V8idColors.White,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Logout,
-                        contentDescription = "Logout",
-                        tint = V8idColors.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
+                Column {
                     Text(
-                        text = "Logout",
+                        text = "Storage",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = V8idColors.White
+                        color = V8idColors.Purple.DarkNavy
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${String.format("%.1f", used)} GB / ${String.format("%.0f", total)} GB",
+                        fontSize = 14.sp,
+                        color = V8idColors.Purple.Indigo
+                    )
+                }
+                Text(
+                    text = "${String.format("%.0f", percentage)}%",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = V8idColors.Purple.VibrantPurple
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Progress Bar
+            LinearProgressIndicator(
+                progress = { percentage / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = V8idColors.Purple.VibrantPurple,
+                trackColor = V8idColors.Purple.VeryLightPurple
+            )
+        }
+    }
+}
+
+@Composable
+private fun FoldersGrid(folders: List<FolderItem>) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        folders.chunked(2).forEach { rowFolders ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                rowFolders.forEach { folder ->
+                    FolderCard(
+                        folder = folder,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                // Add empty space if odd number
+                if (rowFolders.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
     }
 }
+
+@Composable
+private fun FolderCard(folder: FolderItem, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        shadowElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = folder.icon,
+                contentDescription = folder.name,
+                modifier = Modifier.size(40.dp),
+                tint = V8idColors.Purple.VibrantPurple
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = folder.name,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = V8idColors.Purple.DarkNavy
+            )
+            Text(
+                text = "${folder.itemCount} items",
+                fontSize = 12.sp,
+                color = V8idColors.Purple.Indigo
+            )
+        }
+    }
+}
+
+@Composable
+private fun FileItemCard(file: FileItem) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.White,
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = file.icon,
+                contentDescription = file.name,
+                modifier = Modifier.size(40.dp),
+                tint = V8idColors.Purple.VibrantPurpleAlt
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = file.name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = V8idColors.Purple.DarkNavy
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${file.size} • ${file.timeAgo}",
+                    fontSize = 12.sp,
+                    color = V8idColors.Purple.Indigo
+                )
+            }
+            IconButton(onClick = { /* More options */ }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More",
+                    tint = V8idColors.Purple.Indigo
+                )
+            }
+        }
+    }
+}
+
+data class FileItem(
+    val name: String,
+    val size: String,
+    val timeAgo: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
+
+data class FolderItem(
+    val name: String,
+    val itemCount: Int,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
