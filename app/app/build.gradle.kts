@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import java.io.File
 
 plugins {
     alias(libs.plugins.android.application)
@@ -9,8 +10,10 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
 }
 
-// Load local.properties file (in app/ directory)
-val localPropertiesFile = file("local.properties")
+// Load local.properties file from project root (standard Android location)
+// In standard Android projects, local.properties is at the root where settings.gradle.kts and gradlew are
+// rootProject.projectDir points to the root where settings.gradle.kts is located
+val localPropertiesFile = File(rootProject.projectDir, "local.properties")
 val baseUrl = if (localPropertiesFile.exists()) {
     val properties = Properties()
     FileInputStream(localPropertiesFile).use { properties.load(it) }
