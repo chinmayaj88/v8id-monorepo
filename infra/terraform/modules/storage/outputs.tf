@@ -8,6 +8,11 @@ output "archive_bucket_name" {
   value       = oci_objectstorage_bucket.archive.name
 }
 
+output "terraform_state_bucket_name" {
+  description = "Terraform state bucket name"
+  value       = oci_objectstorage_bucket.terraform_state.name
+}
+
 output "standard_bucket_namespace" {
   description = "Object Storage namespace"
   value       = var.namespace

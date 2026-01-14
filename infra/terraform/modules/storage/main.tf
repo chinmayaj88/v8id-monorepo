@@ -22,3 +22,16 @@ resource "oci_objectstorage_bucket" "archive" {
     Tier = "ARCHIVE"
   })
 }
+
+# Terraform State Bucket (for remote state storage)
+resource "oci_objectstorage_bucket" "terraform_state" {
+  compartment_id = var.compartment_id
+  namespace      = var.namespace
+  name           = "${var.project_name}-terraform-state"
+  access_type    = "NoPublicAccess"
+  versioning     = "Enabled"  # Enable versioning for state file safety
+
+  freeform_tags = merge(var.tags, {
+    Purpose = "TERRAFORM_STATE"
+  })
+}

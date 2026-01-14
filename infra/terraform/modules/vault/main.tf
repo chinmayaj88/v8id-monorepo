@@ -1,5 +1,5 @@
 # Vault
-resource "oci_vault_vault" "v8id_vault" {
+resource "oci_kms_vault" "v8id_vault" {
   compartment_id = var.compartment_id
   display_name   = "${var.project_name}-vault"
   vault_type     = "DEFAULT"
@@ -11,7 +11,7 @@ resource "oci_vault_vault" "v8id_vault" {
 resource "oci_kms_key" "v8id_master_key" {
   compartment_id      = var.compartment_id
   display_name        = "${var.project_name}-master-key"
-  management_endpoint = oci_vault_vault.v8id_vault.management_endpoint
+  management_endpoint = oci_kms_vault.v8id_vault.management_endpoint
   key_shape {
     algorithm = "AES"
     length    = 32
@@ -24,7 +24,7 @@ resource "oci_kms_key" "v8id_master_key" {
 resource "oci_vault_secret" "database_credentials" {
   compartment_id = var.compartment_id
   secret_name    = "${var.project_name}-database-credentials"
-  vault_id       = oci_vault_vault.v8id_vault.id
+  vault_id       = oci_kms_vault.v8id_vault.id
   key_id         = oci_kms_key.v8id_master_key.id
 
   secret_content {

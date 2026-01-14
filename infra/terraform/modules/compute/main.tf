@@ -1,9 +1,10 @@
-# Get latest Ubuntu 22.04 Minimal image
-data "oci_core_images" "ubuntu" {
+# Get latest Ubuntu 22.04 Minimal image compatible with the shape
+# For E2.1.Micro (x86_64), we need to filter by shape to get compatible images
+data "oci_core_images" "ubuntu_minimal" {
   compartment_id           = var.compartment_id
   operating_system         = "Canonical Ubuntu"
   operating_system_version = "22.04"
-  shape                    = var.compute_shape
+  shape                    = var.compute_shape  # Filter by shape to get compatible architecture
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
   
@@ -13,6 +14,24 @@ data "oci_core_images" "ubuntu" {
     values = ["Canonical-Ubuntu-22.04-Minimal-*"]
     regex  = true
   }
+}
+
+# Fallback: Get any Ubuntu 22.04 image if Minimal not available
+data "oci_core_images" "ubuntu_any" {
+  count = length(data.oci_core_images.ubuntu_minimal.images) == 0 ? 1 : 0
+
+  compartment_id           = var.compartment_id
+  operating_system         = "Canonical Ubuntu"
+  operating_system_version = "22.04"
+  shape                    = var.compute_shape  # Filter by shape to get compatible architecture
+  sort_by                  = "TIMECREATED"
+  sort_order               = "DESC"
+}
+
+locals {
+  # Use Minimal if available, otherwise use any Ubuntu 22.04
+  ubuntu_images = length(data.oci_core_images.ubuntu_minimal.images) > 0 ? data.oci_core_images.ubuntu_minimal.images : (length(data.oci_core_images.ubuntu_any) > 0 && length(data.oci_core_images.ubuntu_any[0].images) > 0 ? data.oci_core_images.ubuntu_any[0].images : [])
+  ubuntu_image_id = length(local.ubuntu_images) > 0 ? local.ubuntu_images[0].id : ""
 }
 
 # Get availability domain
@@ -45,11 +64,11 @@ resource "oci_core_instance" "backend" {
 
   source_details {
     source_type = "image"
-    source_id   = var.compute_image_id != "" ? var.compute_image_id : data.oci_core_images.ubuntu.images[0].id
+    source_id   = var.compute_image_id != "" ? var.compute_image_id : local.ubuntu_image_id
   }
 
   metadata = {
-    ssh_authorized_keys = var.ssh_public_key
+    ssh_authorized_keys = trimspace(var.ssh_public_key)
     user_data = base64encode(<<-EOF
 #!/bin/bash
 # Cloud-init script for v8id-cloud backend (Ubuntu)

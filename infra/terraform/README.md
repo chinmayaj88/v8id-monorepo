@@ -76,6 +76,213 @@ terraform plan
 terraform apply
 ```
 
+### 6. Enable Remote State (One-time setup)
+
+After initial deployment, migrate to remote state storage:
+
+```bash
+# 1. Uncomment the backend block in versions.tf:
+#    backend "oci" {
+#      region    = "ap-mumbai-1"
+#      bucket    = "v8id-cloud-terraform-state"
+#      key       = "terraform.tfstate"
+#      namespace = "bmzcke8ke5xv"
+#    }
+
+# 2. Migrate local state to remote
+terraform init -migrate-state
+
+# 3. Type 'yes' when prompted to confirm migration
+```
+
+**Benefits of Remote State:**
+- ✅ State backup in OCI Object Storage
+- ✅ Team collaboration (shared state)
+- ✅ Encrypted at rest
+- ✅ Version history
+- ✅ No local state file to lose
+
+## Updating Infrastructure
+
+When you need to make changes to your infrastructure:
+
+### Step 1: Review Current State
+
+```bash
+# Check current infrastructure state
+terraform show
+
+# List all resources
+terraform state list
+```
+
+### Step 2: Make Changes
+
+Edit Terraform configuration files:
+- `main.tf` - Provider and data sources
+- `compute.tf` - Compute instance settings
+- `modules/*/main.tf` - Module-specific resources
+- `variables.tf` - Variable definitions
+- `terraform.tfvars` - Variable values
+
+### Step 3: Plan Changes
+
+```bash
+# Review what will change (always do this first!)
+terraform plan
+
+# Save plan to file for review
+terraform plan -out=tfplan
+
+# Review saved plan
+terraform show tfplan
+```
+
+**Important:** Always review the plan carefully before applying!
+
+### Step 4: Apply Changes
+
+```bash
+# Apply changes
+terraform apply
+
+# Or use saved plan
+terraform apply tfplan
+
+# Auto-approve (use with caution!)
+terraform apply -auto-approve
+```
+
+### Step 5: Verify Changes
+
+```bash
+# Check outputs
+terraform output
+
+# Verify specific resource
+terraform state show <resource_address>
+
+# Example: Check compute instance
+terraform state show module.compute.oci_core_instance.backend
+```
+
+## Common Update Scenarios
+
+### Update Compute Instance Shape
+
+```bash
+# 1. Edit terraform.tfvars
+compute_shape = "VM.Standard.A1.Flex"  # Change from E2.1.Micro
+
+# 2. Plan and review
+terraform plan
+
+# 3. Apply (this will recreate the instance!)
+terraform apply
+```
+
+**Warning:** Changing instance shape will recreate the instance and may cause downtime.
+
+### Update SSH Key
+
+```bash
+# 1. Edit terraform.tfvars
+ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2E..."
+
+# 2. Plan and apply
+terraform plan
+terraform apply
+```
+
+### Add New Resources
+
+```bash
+# 1. Add resource definition in appropriate .tf file
+# 2. Plan to see what will be created
+terraform plan
+
+# 3. Apply
+terraform apply
+```
+
+### Update Network Configuration
+
+```bash
+# 1. Edit network module files or variables
+# 2. Plan carefully (network changes can be disruptive)
+terraform plan
+
+# 3. Apply
+terraform apply
+```
+
+## Remote State Workflow
+
+With remote state enabled, your workflow is:
+
+```bash
+# 1. Pull latest state (if working in team)
+terraform init  # Reinitializes and pulls state
+
+# 2. Make changes to .tf files
+
+# 3. Plan changes
+terraform plan
+
+# 4. Apply changes (state is automatically saved to OCI)
+terraform apply
+
+# 5. State is automatically synced to remote backend
+```
+
+**Note:** With remote state, you don't need to manually sync state files. Terraform handles it automatically.
+
+## Best Practices
+
+### Before Making Changes
+
+1. ✅ **Always run `terraform plan` first** - Review all changes
+2. ✅ **Backup important data** - Some changes recreate resources
+3. ✅ **Test in non-production first** - If possible
+4. ✅ **Review Terraform documentation** - Understand resource behavior
+
+### During Updates
+
+1. ✅ **Use `terraform plan`** - Never apply blindly
+2. ✅ **Save plans** - `terraform plan -out=tfplan` for review
+3. ✅ **Apply during maintenance windows** - For production changes
+4. ✅ **Monitor apply progress** - Watch for errors
+
+### After Updates
+
+1. ✅ **Verify outputs** - `terraform output`
+2. ✅ **Test functionality** - Ensure services work
+3. ✅ **Check logs** - Review any errors
+4. ✅ **Update documentation** - Document changes made
+
+## Rollback Strategy
+
+If something goes wrong:
+
+```bash
+# 1. Check state history (if using versioned state)
+#    View previous state in OCI Object Storage
+
+# 2. Revert code changes
+git checkout <previous-commit>
+
+# 3. Reinitialize and pull state
+terraform init
+
+# 4. Plan to see what needs to be reverted
+terraform plan
+
+# 5. Apply to restore previous state
+terraform apply
+```
+
+**Note:** Some changes cannot be rolled back (e.g., deleted resources). Always plan carefully!
+
 ## Module Structure
 
 Following clean architecture principles:

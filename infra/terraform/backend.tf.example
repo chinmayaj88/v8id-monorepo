@@ -1,0 +1,19 @@
+# Example backend configuration
+# Copy this to backend.tf and uncomment after creating the state bucket
+# 
+# IMPORTANT: Create the state bucket first, then configure backend:
+# 1. Run terraform apply once to create the state bucket
+# 2. Copy this file to backend.tf
+# 3. Uncomment the backend block
+# 4. Run terraform init -migrate-state to migrate local state to remote
+
+terraform {
+  backend "s3" {
+    bucket                      = "v8id-cloud-terraform-state"
+    key                         = "terraform.tfstate"
+    region                      = "ap-mumbai-1"
+    endpoint                    = "https://bmzcke8ke5xv.compat.objectstorage.ap-mumbai-1.oraclecloud.com"
+    skip_region_validation      = true
+    skip_credentials_validation = true
+  }
+}

@@ -19,8 +19,8 @@ output "private_subnet_id" {
 }
 
 output "nat_gateway_id" {
-  description = "NAT Gateway OCID"
-  value       = oci_core_nat_gateway.nat.id
+  description = "NAT Gateway OCID (if available)"
+  value       = length(oci_core_nat_gateway.nat) > 0 ? oci_core_nat_gateway.nat[0].id : null
 }
 
 output "internet_gateway_id" {

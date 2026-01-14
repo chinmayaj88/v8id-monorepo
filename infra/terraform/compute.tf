@@ -4,8 +4,8 @@ module "compute" {
   compartment_id    = data.oci_identity_compartment.v8id_cloud.id
   tenancy_ocid      = var.tenancy_ocid
   project_name      = var.project_name
-  subnet_id         = module.network.private_subnet_id
-  assign_public_ip  = false # Use NAT gateway for outbound
+  subnet_id         = module.network.public_subnet_id  # Using public subnet (NAT not available on free tier)
+  assign_public_ip  = true  # Public IP needed for deployment (free tier doesn't support NAT gateway)
   compute_shape     = var.compute_shape
   compute_ocpus     = var.compute_ocpus
   compute_memory_gb = var.compute_memory_gb

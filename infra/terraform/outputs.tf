@@ -28,6 +28,11 @@ output "namespace" {
   value       = var.namespace
 }
 
+output "terraform_state_bucket_name" {
+  description = "Terraform state bucket name (for remote state storage)"
+  value       = module.storage.terraform_state_bucket_name
+}
+
 output "vault_id" {
   description = "Vault OCID (if enabled)"
   value       = var.enable_vault ? module.vault[0].vault_id : null
