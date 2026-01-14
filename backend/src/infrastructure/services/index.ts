@@ -9,7 +9,7 @@ export { JwtService } from './jwt.service';
 export { TotpService } from './totp.service';
 export { AuditLogService, AuditEventType } from './audit-log.service';
 export { EmailServiceFactory } from './email.service.factory';
-export { ResendEmailService } from './resend-email.service';
+export { NodemailerEmailService } from './nodemailer-email.service';
 export { ConsoleEmailService } from './console-email.service';
 export { UrlCacheService } from './url-cache.service';
 export { StorageCacheService } from './storage-cache.service';

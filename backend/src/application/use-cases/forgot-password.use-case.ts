@@ -2,7 +2,7 @@
  * Forgot Password Use Case
  * 
  * Generates a password reset token and stores it with expiration.
- * Sends password reset email via IEmailService (Resend in production, console in development).
+ * Sends password reset email via IEmailService (Nodemailer in production, console in development).
  */
 
 import { IUserRepository } from '../interfaces/user-repository.interface';
@@ -69,10 +69,6 @@ export class ForgotPasswordUseCase {
       await this.emailService.sendPasswordResetEmail(user.email, resetToken, resetLink);
     } catch (error) {
       console.error('Failed to send password reset email:', error);
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[Password Reset] Token for ${email}: ${resetToken}`);
-        console.log(`[Password Reset] Reset link: ${resetLink}`);
-      }
     }
   }
 }

@@ -64,7 +64,7 @@ export class RegenerateThumbnailUseCase {
             await this.storageService.deleteFile(file.thumbnailObjectName);
           }
         } catch (error) {
-          console.warn(`Failed to delete existing thumbnail:`, error);
+          // Failed to delete existing thumbnail - will be overwritten
           // Continue anyway
         }
       }

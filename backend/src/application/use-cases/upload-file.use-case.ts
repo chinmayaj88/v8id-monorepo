@@ -81,7 +81,6 @@ export class UploadFileUseCase {
           ociObjectName = `users/${userId}/files/${timestamp}-${randomString}-${originalFilename}`;
         }
       } catch (error) {
-        console.warn('Failed to verify existing file in storage, will upload new copy:', error);
         shouldUploadToStorage = true;
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(2, 15);
@@ -205,15 +204,10 @@ export class UploadFileUseCase {
           try {
             await this.generateThumbnailSync(file.id, fileBuffer, ociObjectName, storageTier);
           } catch (error) {
-            // Log error but don't fail the upload - thumbnail is non-critical
-            console.error(`Failed to generate thumbnail for file ${file.id}:`, error);
+            // Thumbnail generation failed - non-critical, continue
           }
         }
       }
-    } else if (storageTier === StorageTier.ARCHIVE) {
-      // Archive tier: Skip thumbnail generation during upload (cost optimization)
-      // Thumbnails will be generated on-demand when users browse archive files
-      console.log(`Skipping thumbnail generation for archive tier file ${file.id} (lazy generation)`);
     }
 
     return {

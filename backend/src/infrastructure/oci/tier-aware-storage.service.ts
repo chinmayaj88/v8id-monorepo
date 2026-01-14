@@ -78,7 +78,6 @@ export class TierAwareStorageService implements IStorageService {
 
       if (envPrivateKey) {
         privateKeyContent = envPrivateKey.trim();
-        console.log('🔐 Using OCI credentials from environment variables (inline key)');
       } else {
         const resolvedKeyPath = path.isAbsolute(envPrivateKeyPath!)
           ? envPrivateKeyPath!
@@ -90,7 +89,6 @@ export class TierAwareStorageService implements IStorageService {
         
         privateKeyContent = fs.readFileSync(resolvedKeyPath, 'utf8').trim();
         keyFilePath = resolvedKeyPath;
-        console.log(`🔐 Using OCI credentials from environment variables (key file: ${resolvedKeyPath})`);
       }
 
       // Ensure private key ends with newline
@@ -128,12 +126,6 @@ export class TierAwareStorageService implements IStorageService {
         (this.client as any).region = this.region;
       }
 
-      console.log(`✅ Tier-Aware OCI Object Storage client initialized successfully`);
-      console.log(`   Namespace: ${this.namespace}`);
-      console.log(`   Standard Bucket: ${this.standardBucketName}`);
-      console.log(`   Archive Bucket: ${this.archiveBucketName}`);
-      console.log(`   Region: ${this.region.regionId}`);
-      console.log(`   Key file: ${keyFilePath ?? 'inline key from env'}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
@@ -473,7 +465,7 @@ export class TierAwareStorageService implements IStorageService {
       await this.client.deletePreauthenticatedRequest(deleteParRequest);
     } catch (error) {
       // Log but don't throw - PAR might already be deleted or expired
-      console.warn(`Failed to delete PAR ${parId} from ${tier} tier:`, error instanceof Error ? error.message : 'Unknown error');
+      // PAR deletion failed (may already be deleted or expired)
     }
   }
 

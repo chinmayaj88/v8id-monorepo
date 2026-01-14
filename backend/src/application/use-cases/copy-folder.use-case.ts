@@ -91,7 +91,7 @@ export class CopyFolderUseCase {
           this.copyFileUseCase.execute(userId, file.id, {
             targetFolderId,
           }).catch((error) => {
-            console.warn(`Failed to copy file ${file.id}:`, error);
+            // Failed to copy file - continue with other files
           })
         )
       );
@@ -111,7 +111,7 @@ export class CopyFolderUseCase {
           // Recursive call (folders must be sequential to maintain structure)
           await this.copyFolderContents(userId, subfolder.id, copiedSubfolder.id);
         } catch (error) {
-          console.warn(`Failed to copy subfolder ${subfolder.id}:`, error);
+          // Failed to copy subfolder - continue with other folders
         }
       }
     }

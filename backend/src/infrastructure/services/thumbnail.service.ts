@@ -131,7 +131,7 @@ export class ThumbnailService implements IThumbnailService {
         });
         results.set(sizeKey, result);
       } catch (error) {
-        console.warn(`Failed to generate thumbnail size ${sizeKey}:`, error);
+        // Failed to generate thumbnail size - continue with other sizes
         // Continue with other sizes
       }
     }

@@ -108,7 +108,7 @@ export class ListFilesUseCase {
           this.urlCache?.set(cacheKey, thumbnailUrl, 72000);
         }
       } catch (error) {
-        console.warn(`Failed to generate thumbnail URL for file ${file.id}:`, error);
+        // Thumbnail URL generation failed - non-critical
         // Continue without thumbnail URL
       }
     }

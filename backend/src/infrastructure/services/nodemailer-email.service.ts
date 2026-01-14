@@ -1,38 +1,49 @@
 /**
- * Resend Email Service Implementation
+ * Nodemailer Email Service Implementation
  * 
- * Production implementation using Resend API.
- * Requires RESEND_API_KEY environment variable.
+ * Production implementation using Nodemailer with Gmail SMTP.
+ * Uses App Password authentication method.
  */
 
-import { Resend } from 'resend';
+import nodemailer, { type Transporter } from 'nodemailer';
 import { IEmailService } from '../../application/interfaces/email-service.interface';
 
-export class ResendEmailService implements IEmailService {
-  private resend: Resend;
+export class NodemailerEmailService implements IEmailService {
+  private transporter: Transporter;
   private fromEmail: string;
 
   constructor() {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      throw new Error('RESEND_API_KEY environment variable is required');
+    const emailHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const emailPort = parseInt(process.env.SMTP_PORT || '587', 10);
+    const emailSecure = process.env.SMTP_SECURE === 'true';
+    const emailUser = process.env.SMTP_USER;
+    const emailPassword = process.env.SMTP_PASSWORD;
+
+    if (!emailUser || !emailPassword) {
+      throw new Error(
+        'Email authentication not configured. Provide SMTP_USER and SMTP_PASSWORD environment variables.'
+      );
     }
 
-    this.resend = new Resend(apiKey);
-    
-    // For testing without domain verification, use Resend's test domain
-    // Or use a verified email address from your Resend account
-    // In production, use your verified domain (e.g., noreply@yourdomain.com)
-    this.fromEmail = process.env.EMAIL_FROM || 'onboarding@resend.dev';
-    // frontendUrl is not currently used in email templates
-    // Keeping for potential future use
-    
-    // Warn if using default test domain
-    if (!process.env.EMAIL_FROM) {
-      console.log('📧 Using Resend test domain: onboarding@resend.dev');
-      console.log('💡 For production, set EMAIL_FROM to your verified domain');
-    }
+    this.fromEmail = process.env.EMAIL_FROM || emailUser;
+
+    // Create transporter with App Password
+    this.transporter = nodemailer.createTransport({
+      host: emailHost,
+      port: emailPort,
+      secure: emailSecure,
+      auth: {
+        user: emailUser,
+        pass: emailPassword,
+      },
+    });
+
+    // Verify connection (async, non-blocking)
+    this.transporter.verify().catch((error) => {
+      console.error('SMTP connection verification failed:', error);
+    });
   }
+
 
   async sendPasswordResetEmail(
     to: string,
@@ -40,40 +51,15 @@ export class ResendEmailService implements IEmailService {
     resetLink: string
   ): Promise<void> {
     try {
-      const result = await this.resend.emails.send({
+      await this.transporter.sendMail({
         from: this.fromEmail,
-        to: [to],
-        subject: 'Reset Your Password - void',
+        to,
+        subject: 'Reset Your Password - v8id-cloud',
         html: this.getPasswordResetEmailTemplate(resetLink),
       });
-
-      if (result.error) {
-        console.error('Resend API Error:', result.error);
-        throw new Error(`Failed to send email: ${result.error.message || 'Unknown error'}`);
-      }
-
-      console.log(`✅ Password reset email sent successfully to ${to}`);
-      console.log(`   Email ID: ${result.data?.id || 'N/A'}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('❌ Failed to send password reset email:', errorMessage);
-      
-      // Provide helpful error messages
-      if (errorMessage.includes('API key') || errorMessage.includes('401') || errorMessage.includes('403')) {
-        if (errorMessage.includes('domain') || errorMessage.includes('not verified')) {
-          console.error('\n❌ Domain Verification Error:');
-          console.error('   Your email domain is not verified in Resend.');
-          console.error('\n💡 Solutions:');
-          console.error('   1. Verify your domain at: https://resend.com/domains');
-          console.error('   2. OR use Resend test domain (onboarding@resend.dev) - works for testing');
-          console.error('   3. OR set EMAIL_FROM to a verified email address');
-          console.error(`   Current EMAIL_FROM: ${this.fromEmail}\n`);
-          throw new Error('Email domain not verified. Use onboarding@resend.dev for testing or verify your domain.');
-        }
-        throw new Error('Invalid Resend API key. Please check RESEND_API_KEY environment variable.');
-      }
-      
-      throw new Error(`Failed to send password reset email: ${errorMessage}`);
+      console.error('Failed to send password reset email:', error);
+      throw new Error(`Failed to send password reset email: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -83,19 +69,12 @@ export class ResendEmailService implements IEmailService {
     tempPassword?: string
   ): Promise<void> {
     try {
-      const result = await this.resend.emails.send({
+      await this.transporter.sendMail({
         from: this.fromEmail,
-        to: [to],
-        subject: 'Welcome to void',
+        to,
+        subject: 'Welcome to v8id-cloud',
         html: this.getWelcomeEmailTemplate(firstName, tempPassword),
       });
-
-      if (result.error) {
-        console.error('Resend API Error:', result.error);
-        throw new Error(`Failed to send email: ${result.error.message || 'Unknown error'}`);
-      }
-
-      console.log(`✅ Welcome email sent successfully to ${to}`);
     } catch (error) {
       console.error('Failed to send welcome email:', error);
       throw new Error('Failed to send welcome email');
@@ -109,19 +88,12 @@ export class ResendEmailService implements IEmailService {
     userAgent?: string
   ): Promise<void> {
     try {
-      const result = await this.resend.emails.send({
+      await this.transporter.sendMail({
         from: this.fromEmail,
-        to: [to],
-        subject: 'Password Changed - void',
+        to,
+        subject: 'Password Changed - v8id-cloud',
         html: this.getPasswordChangeNotificationTemplate(firstName, ipAddress, userAgent),
       });
-
-      if (result.error) {
-        console.error('Resend API Error:', result.error);
-        throw new Error(`Failed to send email: ${result.error.message || 'Unknown error'}`);
-      }
-
-      console.log(`✅ Password change notification sent to ${to}`);
     } catch (error) {
       console.error('Failed to send password change notification:', error);
       throw new Error('Failed to send password change notification');
@@ -137,10 +109,10 @@ export class ResendEmailService implements IEmailService {
     location?: string
   ): Promise<void> {
     try {
-      const result = await this.resend.emails.send({
+      await this.transporter.sendMail({
         from: this.fromEmail,
-        to: [to],
-        subject: 'New Device Login Alert - void',
+        to,
+        subject: 'New Device Login Alert - v8id-cloud',
         html: this.getNewDeviceLoginAlertTemplate(
           firstName,
           deviceType,
@@ -149,16 +121,36 @@ export class ResendEmailService implements IEmailService {
           location
         ),
       });
-
-      if (result.error) {
-        console.error('Resend API Error:', result.error);
-        throw new Error(`Failed to send email: ${result.error.message || 'Unknown error'}`);
-      }
-
-      console.log(`✅ New device login alert sent to ${to}`);
     } catch (error) {
       console.error('Failed to send new device login alert:', error);
       throw new Error('Failed to send new device login alert');
+    }
+  }
+
+  async sendSuspiciousActivityAlert(
+    to: string,
+    firstName: string | undefined,
+    activityType: string,
+    details: Record<string, any>,
+    timestamp: Date,
+    ipAddress?: string
+  ): Promise<void> {
+    try {
+      await this.transporter.sendMail({
+        from: this.fromEmail,
+        to,
+        subject: '⚠️ Suspicious Activity Detected - v8id-cloud',
+        html: this.getSuspiciousActivityAlertTemplate(
+          firstName,
+          activityType,
+          details,
+          timestamp,
+          ipAddress
+        ),
+      });
+    } catch (error) {
+      console.error('Failed to send suspicious activity alert email:', error);
+      throw new Error(`Failed to send suspicious activity alert email: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -175,7 +167,7 @@ export class ResendEmailService implements IEmailService {
   <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px;">
     <h1 style="color: #2c3e50; margin-top: 0;">Reset Your Password</h1>
     
-    <p>You requested to reset your password for your void account.</p>
+    <p>You requested to reset your password for your v8id-cloud account.</p>
     
     <p>Click the button below to reset your password. This link will expire in <strong>1 hour</strong>.</p>
     
@@ -199,7 +191,7 @@ export class ResendEmailService implements IEmailService {
     <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
     
     <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated message from void. Please do not reply to this email.
+      This is an automated message from v8id-cloud. Please do not reply to this email.
     </p>
   </div>
 </body>
@@ -216,11 +208,11 @@ export class ResendEmailService implements IEmailService {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to void</title>
+  <title>Welcome to v8id-cloud</title>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px;">
-    <h1 style="color: #2c3e50; margin-top: 0;">Welcome to void!</h1>
+    <h1 style="color: #2c3e50; margin-top: 0;">Welcome to v8id-cloud!</h1>
     
     <p>${greeting}</p>
     
@@ -242,12 +234,12 @@ export class ResendEmailService implements IEmailService {
       <li>${tempPassword ? 'Change your temporary password' : 'Start using your secure cloud storage'}</li>
     </ol>
     
-    <p>Thank you for choosing void for your secure document storage needs.</p>
+    <p>Thank you for choosing v8id-cloud for your secure document storage needs.</p>
     
     <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
     
     <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated message from void. Please do not reply to this email.
+      This is an automated message from v8id-cloud. Please do not reply to this email.
     </p>
   </div>
 </body>
@@ -298,7 +290,7 @@ export class ResendEmailService implements IEmailService {
     <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
     
     <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated security notification from void. Please do not reply to this email.
+      This is an automated security notification from v8id-cloud. Please do not reply to this email.
     </p>
   </div>
 </body>
@@ -330,7 +322,7 @@ export class ResendEmailService implements IEmailService {
     
     <p>${greeting}</p>
     
-    <p>A new device has logged into your void account.</p>
+    <p>A new device has logged into your v8id-cloud account.</p>
     
     <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
       <p style="margin: 0; font-weight: bold;">Device Information:</p>
@@ -357,44 +349,12 @@ export class ResendEmailService implements IEmailService {
     <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
     
     <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated security notification from void. Please do not reply to this email.
+      This is an automated security notification from v8id-cloud. Please do not reply to this email.
     </p>
   </div>
 </body>
 </html>
     `.trim();
-  }
-
-  async sendSuspiciousActivityAlert(
-    to: string,
-    firstName: string | undefined,
-    activityType: string,
-    details: Record<string, any>,
-    timestamp: Date,
-    ipAddress?: string
-  ): Promise<void> {
-    try {
-      const result = await this.resend.emails.send({
-        from: this.fromEmail,
-        to: [to],
-        subject: `⚠️ Suspicious Activity Detected - void`,
-        html: this.getSuspiciousActivityAlertTemplate(
-          firstName,
-          activityType,
-          details,
-          timestamp,
-          ipAddress
-        ),
-      });
-
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to send suspicious activity alert email:', errorMessage);
-      throw new Error(`Failed to send suspicious activity alert email: ${errorMessage}`);
-    }
   }
 
   private getSuspiciousActivityAlertTemplate(
@@ -509,7 +469,7 @@ export class ResendEmailService implements IEmailService {
     <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
     
     <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated security notification from void. Please do not reply to this email.
+      This is an automated security notification from v8id-cloud. Please do not reply to this email.
     </p>
   </div>
 </body>

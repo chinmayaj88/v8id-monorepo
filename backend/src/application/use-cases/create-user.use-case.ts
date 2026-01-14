@@ -90,9 +90,6 @@ export class CreateUserUseCase {
       );
     } catch (error) {
       console.error('Failed to send welcome email:', error);
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[Welcome Email] Would send to ${user.email}`);
-      }
     }
 
     return {

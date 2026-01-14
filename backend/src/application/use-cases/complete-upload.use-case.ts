@@ -103,7 +103,7 @@ export class CompleteUploadUseCase {
           await this.storageService.deleteFile(session.ociObjectName!);
         }
       } catch (error) {
-        console.warn('Failed to delete duplicate file from storage:', error);
+        // Failed to delete duplicate - non-critical
       }
       
       await this.uploadSessionRepository.delete(session.id);
@@ -183,7 +183,7 @@ export class CompleteUploadUseCase {
       try {
         await this.storageService.deletePreAuthenticatedRequest(session.parId);
       } catch (error) {
-        console.warn('Failed to delete PAR:', error);
+        // PAR deletion failed - non-critical
       }
     }
 
@@ -208,13 +208,10 @@ export class CompleteUploadUseCase {
           try {
             await this.generateThumbnailSync(file.id, fileBuffer, session.ociObjectName!, storageTier);
           } catch (error) {
-            console.error(`Failed to generate thumbnail for file ${file.id}:`, error);
+            // Thumbnail generation failed - non-critical
           }
         }
       }
-    } else if (storageTier === StorageTier.ARCHIVE) {
-      // Archive tier: Skip thumbnail generation during upload (cost optimization)
-      console.log(`Skipping thumbnail generation for archive tier file ${file.id} (lazy generation)`);
     }
 
     return this.fileToDto(file);

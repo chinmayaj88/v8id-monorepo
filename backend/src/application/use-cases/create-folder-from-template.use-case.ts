@@ -65,7 +65,7 @@ export class CreateFolderFromTemplateUseCase {
           await this.createSubfolders(userId, subfolder.id, subfolderStructure.folders);
         }
       } catch (error) {
-        console.warn(`Failed to create subfolder from template:`, error);
+        // Failed to create subfolder - continue with other folders
       }
     }
   }
