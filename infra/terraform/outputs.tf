@@ -13,6 +13,11 @@ output "compute_private_ip" {
   value       = module.compute.instance_private_ip
 }
 
+output "compute_public_ip" {
+  description = "Compute instance public IP (for SSH access)"
+  value       = module.compute.instance_public_ip
+}
+
 output "standard_bucket_name" {
   description = "Standard bucket name"
   value       = module.storage.standard_bucket_name
