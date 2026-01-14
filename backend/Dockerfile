@@ -53,6 +53,10 @@ RUN pnpm build
 # =========================
 FROM node:22-alpine AS production
 
+# 🔹 FIX: define pnpm global bin directory
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
 # Install pnpm, Prisma CLI, and create non-root user
 RUN npm install -g pnpm@9 && \
     pnpm add -g prisma && \
