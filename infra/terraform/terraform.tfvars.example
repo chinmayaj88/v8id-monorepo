@@ -1,0 +1,37 @@
+# OCI Authentication
+tenancy_ocid     = "ocid1.tenancy.oc1..aaaaaaa..."
+user_ocid        = "ocid1.user.oc1..aaaaaaa..."
+fingerprint      = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+private_key_path = "~/.oci/oci_api_key.pem"
+region           = "us-ashburn-1"
+
+# Compartment
+compartment_id = "ocid1.compartment.oc1..aaaaaaa..."
+
+# Project Configuration
+project_name = "v8id-cloud"
+environment  = "prod"
+namespace    = "your-object-storage-namespace"
+
+# Network Configuration
+vcn_cidr           = "10.0.0.0/16"
+public_subnet_cidr  = "10.0.1.0/24"
+private_subnet_cidr = "10.0.2.0/24"
+
+# Compute Configuration
+# Try VM.Standard.A1.Flex first (ARM-based flexible shape), fallback to VM.Standard.E2.1.Micro if not available
+compute_shape     = "VM.Standard.A1.Flex"     # Primary: ARM flexible shape (supports shape_config)
+# compute_shape     = "VM.Standard.E2.1.Micro"  # Fallback: Always Free: 1 OCPU, 1GB RAM (fixed resources, no shape_config)
+compute_ocpus     = 1                        # For A1.Flex: configurable OCPUs (min 1, max varies by region). For E2.1.Micro: fixed at 1
+compute_memory_gb = 6                        # For A1.Flex: minimum 6GB per OCPU (required). For E2.1.Micro: fixed at 1GB (ignored)
+ssh_public_key    = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC..."
+
+# Vault
+enable_vault = true
+
+# Tags
+tags = {
+  Project     = "v8id-cloud"
+  Environment = "production"
+  ManagedBy   = "terraform"
+}

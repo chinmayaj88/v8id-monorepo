@@ -96,4 +96,3 @@ jobs:
             ${{ secrets.DOCKER_HUB_USERNAME }}/v8id-cloud-backend:${{ github.sha }}
           cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/v8id-cloud-backend:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/v8id-cloud-backend:buildcache,mode=max
-
