@@ -13,13 +13,14 @@ WORKDIR /app
 # -------------------------
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
-COPY prisma.config.ts ./prisma.config.ts
+
 
 # -------------------------
 # Copy backend manifests
 # -------------------------
 COPY backend/package.json ./backend/
 COPY backend/tsconfig.json ./backend/
+COPY backend/prisma.config.ts ./backend/
 
 # -------------------------
 # Copy Prisma files
@@ -61,12 +62,13 @@ WORKDIR /app
 # Copy monorepo root files
 # -------------------------
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY prisma.config.ts ./prisma.config.ts
+
 
 # -------------------------
 # Copy backend manifests
 # -------------------------
 COPY backend/package.json ./backend/
+COPY backend/prisma.config.ts ./backend/
 
 # -------------------------
 # Copy Prisma schema + migrations
