@@ -1,105 +1,132 @@
-# name: CD
+name: CD
 
-# on:
-#   workflow_run:
-#     workflows: ['CI']
-#     types:
-#       - completed
+on:
+  workflow_run:
+    workflows: ['CI']
+    types:
+      - completed
+  workflow_dispatch: # Allow manual trigger
 
-# env:
-#   IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/v8id-cloud-backend:latest
+env:
+  IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/v8id-cloud-backend:latest
 
-# jobs:
-#   deploy:
-#     name: Deploy to OCI
-#     runs-on: ubuntu-latest
+jobs:
+  deploy:
+    name: Deploy to OCI
+    runs-on: ubuntu-latest
 
-#     # Run only if CI succeeded
-#     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # RESTRICT TO MAIN: Only run if the triggering CI workflow was on the main branch
+    if: >
+      github.event_name == 'workflow_dispatch' || 
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
 
-#     steps:
-#       # -------------------------
-#       # SSH Setup
-#       # -------------------------
-#       - name: Setup SSH
-#         run: |
-#           mkdir -p ~/.ssh
-#           echo "${{ secrets.OCI_COMPUTE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-#           chmod 600 ~/.ssh/id_rsa
-#           ssh-keyscan -H ${{ secrets.OCI_COMPUTE_IP }} >> ~/.ssh/known_hosts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-#       # -------------------------
-#       # Deploy on OCI VM
-#       # -------------------------
-#       - name: Deploy to OCI Compute
-#         run: |
-#           ssh \
-#             -o StrictHostKeyChecking=no \
-#             -o ServerAliveInterval=30 \
-#             -o ServerAliveCountMax=3 \
-#             ${{ secrets.OCI_COMPUTE_SSH_USER }}@${{ secrets.OCI_COMPUTE_IP }} << EOF
+      # -------------------------
+      # SSH Setup
+      # -------------------------
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.OCI_COMPUTE_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.OCI_COMPUTE_IP }} >> ~/.ssh/known_hosts
 
-#           set -euo pipefail
+      # -------------------------
+      # Sync Scripts
+      # -------------------------
+      - name: Sync deployment scripts
+        run: |
+          # Ensure directory exists and has correct permissions
+          ssh -o StrictHostKeyChecking=no ${{ secrets.OCI_COMPUTE_SSH_USER }}@${{ secrets.OCI_COMPUTE_IP }} "sudo mkdir -p /opt/v8id-cloud/scripts && sudo chown -R ${{ secrets.OCI_COMPUTE_SSH_USER }}:${{ secrets.OCI_COMPUTE_SSH_USER }} /opt/v8id-cloud"
 
-#           IMAGE="${IMAGE_NAME}"
-#           ENV_FILE="/opt/v8id-cloud/.env"
-#           OCI_KEY="/opt/oci/oci_api_key.pem"
-#           CONTAINER="v8id-backend"
+          # Copy all scripts from infra/scripts to the VM
+          scp -o StrictHostKeyChecking=no -r infra/scripts/* ${{ secrets.OCI_COMPUTE_SSH_USER }}@${{ secrets.OCI_COMPUTE_IP }}:/opt/v8id-cloud/scripts/
 
-#           echo "[INFO] Verifying environment file"
-#           if [ ! -r "\$ENV_FILE" ]; then
-#             echo "[ERROR] Missing or unreadable .env at \$ENV_FILE"
-#             exit 1
-#           fi
+          # Fix permissions for execution
+          ssh -o StrictHostKeyChecking=no ${{ secrets.OCI_COMPUTE_SSH_USER }}@${{ secrets.OCI_COMPUTE_IP }} "chmod +x /opt/v8id-cloud/scripts/*.sh"
 
-#           echo "[INFO] Verifying OCI private key"
-#           if [ ! -r "\$OCI_KEY" ]; then
-#             echo "[ERROR] OCI key not readable at \$OCI_KEY"
-#             exit 1
-#           fi
+      # -------------------------
+      # Deploy on OCI VM
+      # -------------------------
+      - name: Deploy to OCI Compute
+        env:
+          OCI_COMPARTMENT_ID: ${{ secrets.OCI_COMPARTMENT_ID }}
+          OCI_VAULT_ID: ${{ secrets.OCI_VAULT_ID }}
+        run: |
+          ssh \
+            -o StrictHostKeyChecking=no \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=3 \
+            ${{ secrets.OCI_COMPUTE_SSH_USER }}@${{ secrets.OCI_COMPUTE_IP }} << 'EOF'
 
-#           echo "[INFO] Pulling latest image"
-#           docker pull "\$IMAGE"
+          set -euo pipefail
 
-#           echo "[INFO] Stopping existing container (if any)"
-#           docker rm -f "\$CONTAINER" 2>/dev/null || true
+          # Export OCI credentials for the secret loader script
+          export OCI_COMPARTMENT_ID="${{ secrets.OCI_COMPARTMENT_ID }}"
+          export OCI_VAULT_ID="${{ secrets.OCI_VAULT_ID }}"
 
-#           echo "[INFO] Running Prisma migrations"
-#           docker run --rm \
-#             --env-file "\$ENV_FILE" \
-#             "\$IMAGE" \
-#             prisma migrate deploy
+          IMAGE="${{ env.IMAGE_NAME }}"
+          CONTAINER="v8id-backend"
+          SCRIPT_DIR="/opt/v8id-cloud/scripts"
 
-#           echo "[INFO] Starting backend container"
-#           docker run -d \
-#             --name "\$CONTAINER" \
-#             --restart unless-stopped \
-#             -p 4000:4000 \
-#             --env-file "\$ENV_FILE" \
-#             -v /opt/oci:/opt/oci:ro \
-#             "\$IMAGE"
+          echo "[INFO] Setting up deployment environment"
+          cd /opt/v8id-cloud
 
-#           echo "[INFO] Verifying container is running"
-#           docker ps | grep "\$CONTAINER"
+          echo "[INFO] Pulling latest image"
+          docker pull "$IMAGE"
 
-#           echo "[INFO] Cleaning up old images"
-#           docker image prune -af --filter "until=24h" || true
+          echo "[INFO] Stopping existing container (if any)"
+          docker rm -f "$CONTAINER" 2>/dev/null || true
 
-#           echo "[SUCCESS] Deployment completed"
-#           EOF
+          echo "[INFO] Loading secrets from OCI Vault"
+          # Load secrets and create environment file
+          bash "$SCRIPT_DIR/load-vault-secrets.sh" > /tmp/.env.vault
 
-#       # -------------------------
-#       # Health Check (via Nginx)
-#       # -------------------------
-#       - name: Health Check
-#         run: |
-#           for i in {1..30}; do
-#             if curl -fs http://${{ secrets.OCI_COMPUTE_IP }}/health; then
-#               echo "✅ Health check passed"
-#               exit 0
-#             fi
-#             echo "Waiting for service... ($i/30)"
-#             sleep 5
-#           done
-#           echo "❌ Health check failed"
-#           exit 1
+          echo "[INFO] Running Prisma migrations"
+          docker run --rm \
+            --env-file /tmp/.env.vault \
+            -e NODE_ENV=production \
+            "$IMAGE" \
+            sh -c "npx prisma migrate deploy"
+
+          echo "[INFO] Starting backend container"
+          docker run -d \
+            --name "$CONTAINER" \
+            --restart unless-stopped \
+            -p 4000:4000 \
+            --env-file /tmp/.env.vault \
+            -e NODE_ENV=production \
+            -e OCI_COMPARTMENT_ID="${{ secrets.OCI_COMPARTMENT_ID }}" \
+            -e OCI_VAULT_ID="${{ secrets.OCI_VAULT_ID }}" \
+            "$IMAGE"
+
+          # Clean up temp env file
+          rm -f /tmp/.env.vault
+
+          echo "[INFO] Verifying container is running"
+          docker ps | grep "$CONTAINER"
+
+          echo "[INFO] Cleaning up old images"
+          docker image prune -af --filter "until=24h" || true
+
+          echo "[SUCCESS] Deployment completed"
+          EOF
+
+      # -------------------------
+      # Health Check
+      # -------------------------
+      - name: Health Check
+        run: |
+          for i in {1..30}; do
+            if curl -fs http://${{ secrets.OCI_COMPUTE_IP }}/health; then
+              echo "✅ Health check passed"
+              exit 0
+            fi
+            echo "Waiting for service... ($i/30)"
+            sleep 5
+          done
+          echo "❌ Health check failed"
+          exit 1
