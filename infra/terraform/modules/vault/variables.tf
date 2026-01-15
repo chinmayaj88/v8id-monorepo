@@ -8,22 +8,25 @@ variable "project_name" {
   type        = string
 }
 
-variable "database_host" {
-  description = "Database host (for secret example)"
+variable "oci_namespace" {
+  description = "OCI Object Storage namespace"
   type        = string
-  default     = ""
 }
 
-variable "database_port" {
-  description = "Database port"
-  type        = number
-  default     = 3306
+variable "oci_region" {
+  description = "OCI region"
+  type        = string
 }
 
-variable "database_name" {
-  description = "Database name"
+variable "frontend_url" {
+  description = "Frontend application URL"
   type        = string
-  default     = ""
+  default     = "http://localhost:3000"
+}
+
+variable "admin_email" {
+  description = "Admin user email"
+  type        = string
 }
 
 variable "tags" {
@@ -31,3 +34,4 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+

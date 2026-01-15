@@ -89,8 +89,19 @@ variable "ssh_public_key" {
   type        = string
 }
 
-variable "namespace" {
+variable "oci_namespace" {
   description = "Object Storage namespace"
+  type        = string
+}
+
+variable "frontend_url" {
+  description = "Frontend application URL"
+  type        = string
+  default     = "http://localhost:3000"
+}
+
+variable "admin_email" {
+  description = "Initial admin user email"
   type        = string
 }
 

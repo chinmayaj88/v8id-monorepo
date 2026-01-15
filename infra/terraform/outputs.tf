@@ -5,17 +5,17 @@ output "vcn_id" {
 
 output "compute_instance_id" {
   description = "Compute instance OCID"
-  value       = module.compute.instance_id
+  value       = null # module.compute.instance_id
 }
 
 output "compute_private_ip" {
   description = "Compute instance private IP"
-  value       = module.compute.instance_private_ip
+  value       = null # module.compute.instance_private_ip
 }
 
 output "compute_public_ip" {
   description = "Compute instance public IP (for SSH access)"
-  value       = module.compute.instance_public_ip
+  value       = null # module.compute.instance_public_ip
 }
 
 output "standard_bucket_name" {
@@ -30,7 +30,7 @@ output "archive_bucket_name" {
 
 output "namespace" {
   description = "Object Storage namespace"
-  value       = var.namespace
+  value       = var.oci_namespace
 }
 
 output "terraform_state_bucket_name" {

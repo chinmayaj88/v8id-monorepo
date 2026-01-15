@@ -3,7 +3,7 @@ resource "oci_identity_dynamic_group" "compute_instances" {
   compartment_id = var.tenancy_ocid
   name           = "${var.project_name}-compute-instances"
   description    = "Dynamic group for ${var.project_name} compute instances"
-  matching_rule  = "ALL {resource.compartment.id = '${var.compartment_id}'}"
+  matching_rule  = "ANY {resource.compartment.id = '${var.compartment_id}', tag.v8id.instance_principal.value = 'true'}"
 }
 
 # Policy for compute instances to access Object Storage
