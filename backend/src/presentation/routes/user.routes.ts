@@ -5,19 +5,19 @@
  */
 
 import { Router, type IRouter } from 'express';
-import { UserController } from '../controllers/user.controller';
-import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
-import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case';
-import { UserRepository } from '../../infrastructure/repositories/user.repository';
-import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
-import { TotpBackupCodeRepository } from '../../infrastructure/repositories/totp-backup-code.repository';
-import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service';
-import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory';
-import { PasswordService } from '../../infrastructure/services/password.service';
-import { TotpService } from '../../infrastructure/services/totp.service';
-import { JwtService } from '../../infrastructure/services/jwt.service';
-import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware';
+import { UserController } from '../controllers/user.controller.js';
+import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case.js';
+import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case.js';
+import { UserRepository } from '../../infrastructure/repositories/user.repository.js';
+import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository.js';
+import { TotpBackupCodeRepository } from '../../infrastructure/repositories/totp-backup-code.repository.js';
+import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository.js';
+import { AuditLogService } from '../../infrastructure/services/audit-log.service.js';
+import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory.js';
+import { PasswordService } from '../../infrastructure/services/password.service.js';
+import { TotpService } from '../../infrastructure/services/totp.service.js';
+import { JwtService } from '../../infrastructure/services/jwt.service.js';
+import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware.js';
 import {
   validateBody,
   validateQuery,
@@ -26,7 +26,7 @@ import {
   updateCurrentUserSchema,
   listUsersSchema,
   revokeSessionSchema,
-} from '../validators';
+} from '../validators/index.js';
 
 const router: IRouter = Router();
 

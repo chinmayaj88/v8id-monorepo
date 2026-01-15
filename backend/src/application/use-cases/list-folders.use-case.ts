@@ -4,9 +4,9 @@
  * Handles folder listing with filtering and pagination.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { ListFoldersDTO, FolderResponseDTO } from '../dtos/file.dto';
-import { Folder } from '../../domain/entities/folder';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { ListFoldersDTO, FolderResponseDTO } from '../dtos/file.dto.js';
+import { Folder } from '../../domain/entities/folder.js';
 
 export interface ListFoldersResult {
   folders: FolderResponseDTO[];

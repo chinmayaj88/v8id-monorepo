@@ -5,13 +5,13 @@
  * Returns a temporary session token that can be used to verify TOTP.
  */
 
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IPasswordService } from '../interfaces/password-service.interface';
-import { IJwtService } from '../interfaces/jwt-service.interface';
-import { IAuditLogService } from '../interfaces/audit-log-service.interface';
-import { IAccountLockoutService } from '../interfaces/account-lockout-service.interface';
-import { ISuspiciousActivityService } from '../interfaces/suspicious-activity-service.interface';
-import { IEmailService } from '../interfaces/email-service.interface';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IPasswordService } from '../interfaces/password-service.interface.js';
+import { IJwtService } from '../interfaces/jwt-service.interface.js';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
+import { IAccountLockoutService } from '../interfaces/account-lockout-service.interface.js';
+import { ISuspiciousActivityService } from '../interfaces/suspicious-activity-service.interface.js';
+import { IEmailService } from '../interfaces/email-service.interface.js';
 
 export interface VerifyCredentialsResult {
   requiresTotp: boolean;

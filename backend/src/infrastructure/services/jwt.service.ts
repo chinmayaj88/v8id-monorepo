@@ -5,8 +5,8 @@
  */
 
 import jwt from 'jsonwebtoken';
-import { IJwtService, TokenPayload } from '../../application/interfaces/jwt-service.interface';
-import { validateJwtSecret } from '../config/env-validator';
+import { IJwtService, TokenPayload } from '../../application/interfaces/jwt-service.interface.js';
+import { validateJwtSecret } from '../config/env-validator.js';
 
 export class JwtService implements IJwtService {
   constructor(

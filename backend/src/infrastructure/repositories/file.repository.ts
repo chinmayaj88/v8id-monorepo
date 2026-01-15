@@ -4,11 +4,11 @@
  * Concrete implementation of IFileRepository using Prisma.
  */
 
-import { prisma } from '../database';
-import { IFileRepository } from '../../application/interfaces/file-repository.interface';
-import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file';
-import type { PrismaFile, PrismaFileWhereInput, PrismaFileOrderByInput } from './types';
-import type { Prisma } from '../../../generated/prisma/client';
+import { prisma } from '../database/index.js';
+import { IFileRepository } from '../../application/interfaces/file-repository.interface.js';
+import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file.js';
+import type { PrismaFile, PrismaFileWhereInput, PrismaFileOrderByInput } from './types.js';
+import type { Prisma } from '../../../generated/prisma/client.js';
 
 export class FileRepository implements IFileRepository {
   /**

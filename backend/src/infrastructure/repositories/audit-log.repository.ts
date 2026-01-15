@@ -4,12 +4,12 @@
  * Concrete implementation of IAuditLogRepository using Prisma.
  */
 
-import { prisma } from '../database';
+import { prisma } from '../database/index.js';
 import {
   IAuditLogRepository,
   AuditLog,
-} from '../../application/interfaces/audit-log-repository.interface';
-import type { PrismaAuditLog, PrismaAuditLogWhereInput } from './types';
+} from '../../application/interfaces/audit-log-repository.interface.js';
+import type { PrismaAuditLog, PrismaAuditLogWhereInput } from './types.js';
 
 export class AuditLogRepository implements IAuditLogRepository {
   private toDomain(prismaLog: PrismaAuditLog): AuditLog {

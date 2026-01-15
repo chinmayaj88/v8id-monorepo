@@ -5,17 +5,17 @@
  * Creates file record, calculates hash, and updates user storage.
  */
 
-import { IUploadSessionRepository } from '../interfaces/upload-session-repository.interface';
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { IThumbnailService } from '../interfaces/thumbnail-service.interface';
-import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file';
-import { FileResponseDTO } from '../dtos/file.dto';
+import { IUploadSessionRepository } from '../interfaces/upload-session-repository.interface.js';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { IThumbnailService } from '../interfaces/thumbnail-service.interface.js';
+import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file.js';
+import { FileResponseDTO } from '../dtos/file.dto.js';
 import { createHash } from 'crypto';
-import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 
 export interface CompleteUploadDTO {
   sessionId: string;

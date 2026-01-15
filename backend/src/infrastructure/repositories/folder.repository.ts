@@ -4,10 +4,10 @@
  * Concrete implementation of IFolderRepository using Prisma.
  */
 
-import { prisma } from '../database';
-import { IFolderRepository } from '../../application/interfaces/folder-repository.interface';
-import { Folder } from '../../domain/entities/folder';
-import type { PrismaFolder, PrismaFolderWhereInput } from './types';
+import { prisma } from '../database/index.js';
+import { IFolderRepository } from '../../application/interfaces/folder-repository.interface.js';
+import { Folder } from '../../domain/entities/folder.js';
+import type { PrismaFolder, PrismaFolderWhereInput } from './types.js';
 
 export class FolderRepository implements IFolderRepository {
   /**

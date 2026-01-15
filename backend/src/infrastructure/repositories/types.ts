@@ -4,7 +4,7 @@
  * Type definitions for Prisma models to avoid using `any` types.
  */
 
-import type { Prisma } from '../../../generated/prisma/client';
+import type { Prisma } from '../../../generated/prisma/client.js';
 
 // User types
 export type PrismaUser = Prisma.UserGetPayload<{}>;

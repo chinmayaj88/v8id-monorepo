@@ -4,10 +4,10 @@
  * List all favorite files and folders for a user.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { FileResponseDTO, FolderResponseDTO } from '../dtos/file.dto';
-import { prisma } from '../../infrastructure/database';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { FileResponseDTO, FolderResponseDTO } from '../dtos/file.dto.js';
+import { prisma } from '../../infrastructure/database/index.js';
 
 export interface ListFavoritesResult {
   files: FileResponseDTO[];

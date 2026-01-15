@@ -6,13 +6,13 @@
  * This will invalidate the old TOTP secret and generate a new one.
  */
 
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface';
-import { IPasswordService } from '../interfaces/password-service.interface';
-import { ITotpService } from '../interfaces/totp-service.interface';
-import { IAuditLogService } from '../interfaces/audit-log-service.interface';
-import { Email } from '../../domain/value-objects/email';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface.js';
+import { IPasswordService } from '../interfaces/password-service.interface.js';
+import { ITotpService } from '../interfaces/totp-service.interface.js';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
+import { Email } from '../../domain/value-objects/email.js';
+import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
 
 export interface ResetupTotpDTO {
   password: string;

@@ -4,8 +4,8 @@
  * Resumes an interrupted upload by returning current progress and next chunk number.
  */
 
-import { IUploadSessionRepository } from '../interfaces/upload-session-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
+import { IUploadSessionRepository } from '../interfaces/upload-session-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
 
 export interface ResumeUploadResult {
   sessionId: string;

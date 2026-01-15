@@ -5,7 +5,7 @@
  * Used when EMAIL_PROVIDER=console or in development mode.
  */
 
-import { IEmailService } from '../../application/interfaces/email-service.interface';
+import { IEmailService } from '../../application/interfaces/email-service.interface.js';
 
 export class ConsoleEmailService implements IEmailService {
   constructor() {

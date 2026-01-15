@@ -6,7 +6,7 @@
  * Use PermanentDeleteFolderUseCase to permanently delete from trash.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
 
 export class DeleteFolderUseCase {
   constructor(

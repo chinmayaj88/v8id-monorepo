@@ -1,4 +1,4 @@
-import { FileStatus, FileType, StorageTier } from '../../domain/entities/file';
+import { FileStatus, FileType, StorageTier } from '../../domain/entities/file.js';
 
 export interface UploadFileDTO {
   folderId?: string | null;

@@ -1,4 +1,4 @@
-import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface';
+import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface.js';
 
 export interface GetBackupCodesResult {
   totalCodes: number;

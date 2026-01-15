@@ -4,8 +4,8 @@
  * Service for logging security events and audit trails.
  */
 
-import { IAuditLogRepository } from '../../application/interfaces/audit-log-repository.interface';
-import { IAuditLogService, AuditEventType } from '../../application/interfaces/audit-log-service.interface';
+import { IAuditLogRepository } from '../../application/interfaces/audit-log-repository.interface.js';
+import { IAuditLogService, AuditEventType } from '../../application/interfaces/audit-log-service.interface.js';
 
 export { AuditEventType };
 

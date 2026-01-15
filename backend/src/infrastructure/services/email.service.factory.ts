@@ -5,9 +5,9 @@
  * Follows Clean Architecture - allows easy swapping of implementations.
  */
 
-import { IEmailService } from '../../application/interfaces/email-service.interface';
-import { NodemailerEmailService } from './nodemailer-email.service';
-import { ConsoleEmailService } from './console-email.service';
+import { IEmailService } from '../../application/interfaces/email-service.interface.js';
+import { NodemailerEmailService } from './nodemailer-email.service.js';
+import { ConsoleEmailService } from './console-email.service.js';
 
 export class EmailServiceFactory {
   /**

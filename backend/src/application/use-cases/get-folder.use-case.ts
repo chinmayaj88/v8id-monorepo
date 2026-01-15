@@ -4,8 +4,8 @@
  * Retrieves folder metadata by ID.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { FolderResponseDTO } from '../dtos/file.dto';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { FolderResponseDTO } from '../dtos/file.dto.js';
 
 export class GetFolderUseCase {
   constructor(

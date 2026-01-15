@@ -4,11 +4,11 @@
  * Share a file or folder with another user.
  */
 
-import { IFileShareRepository } from '../interfaces/file-share-repository.interface';
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { FileShare, SharePermission } from '../../domain/entities/file-share';
+import { IFileShareRepository } from '../interfaces/file-share-repository.interface.js';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { FileShare, SharePermission } from '../../domain/entities/file-share.js';
 
 export interface ShareFileDTO {
   fileId?: string | null;

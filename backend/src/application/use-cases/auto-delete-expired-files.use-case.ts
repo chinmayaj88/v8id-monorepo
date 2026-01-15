@@ -5,10 +5,10 @@
  * This should be run as a scheduled job.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { DeleteFileUseCase } from './delete-file.use-case';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { DeleteFileUseCase } from './delete-file.use-case.js';
 
 export interface AutoDeleteResult {
   deleted: number;

@@ -4,11 +4,11 @@
  * Handles restoring soft-deleted files back to active status.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { FileResponseDTO } from '../dtos/file.dto';
-import { File } from '../../domain/entities/file';
-import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { FileResponseDTO } from '../dtos/file.dto.js';
+import { File } from '../../domain/entities/file.js';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
 
 export class RestoreFileUseCase {
   constructor(

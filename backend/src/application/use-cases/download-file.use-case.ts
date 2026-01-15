@@ -4,10 +4,10 @@
  * Handles file download logic with proper authorization checks.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { FileStatus } from '../../domain/entities/file';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { FileStatus } from '../../domain/entities/file.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 
 export interface DownloadFileResult {
   file: Buffer;

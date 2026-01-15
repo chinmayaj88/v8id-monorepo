@@ -5,13 +5,13 @@
  * Creates upload session for chunked/resumable uploads.
  */
 
-import { IUploadSessionRepository } from '../interfaces/upload-session-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { UploadMethod } from '../../domain/entities/upload-session';
-import { StorageTier } from '../../domain/entities/file';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
+import { IUploadSessionRepository } from '../interfaces/upload-session-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { UploadMethod } from '../../domain/entities/upload-session.js';
+import { StorageTier } from '../../domain/entities/file.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 
 export interface InitiateUploadDTO {
   fileName: string;

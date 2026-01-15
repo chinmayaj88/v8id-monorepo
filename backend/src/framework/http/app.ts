@@ -1,8 +1,8 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { generalRateLimiter } from '../../presentation/middleware/rate-limit.middleware';
-import { ResponseUtil } from '../../presentation/utils/response.util';
+import { generalRateLimiter } from '../../presentation/middleware/rate-limit.middleware.js';
+import { ResponseUtil } from '../../presentation/utils/response.util.js';
 
 export async function createApp(): Promise<Express> {
   const app = express();

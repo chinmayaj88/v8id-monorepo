@@ -6,12 +6,12 @@
  * Only folders that are already soft-deleted (in trash) can be permanently deleted.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 
 export class PermanentDeleteFolderUseCase {
   constructor(

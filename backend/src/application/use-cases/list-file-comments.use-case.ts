@@ -4,7 +4,7 @@
  * List all comments for a file or folder.
  */
 
-import { prisma } from '../../infrastructure/database';
+import { prisma } from '../../infrastructure/database/index.js';
 
 export interface FileCommentResponse {
   id: string;

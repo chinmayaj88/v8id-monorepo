@@ -4,10 +4,10 @@
  * Get storage analytics including breakdown by type, folder usage, and trends.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { FileType } from '../../domain/entities/file';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { FileType } from '../../domain/entities/file.js';
 
 export interface StorageAnalyticsResult {
   totalStorage: number;

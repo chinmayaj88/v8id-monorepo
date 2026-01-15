@@ -5,16 +5,16 @@
  */
 
 import { Response } from 'express';
-import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case';
-import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case';
-import { IUserRepository } from '../../application/interfaces/user-repository.interface';
-import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service';
-import { UpdateUserDTO, ListUsersDTO } from '../../application/dtos/user.dto';
-import { CreateUserDTO } from '../../application/dtos/auth.dto';
-import { AuthenticatedRequest } from '../middleware/auth.middleware';
-import { extractIpAddress } from '../utils/ip-address.util';
-import { ResponseUtil } from '../utils/response.util';
+import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case.js';
+import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case.js';
+import { IUserRepository } from '../../application/interfaces/user-repository.interface.js';
+import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface.js';
+import { AuditLogService } from '../../infrastructure/services/audit-log.service.js';
+import { UpdateUserDTO, ListUsersDTO } from '../../application/dtos/user.dto.js';
+import { CreateUserDTO } from '../../application/dtos/auth.dto.js';
+import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import { extractIpAddress } from '../utils/ip-address.util.js';
+import { ResponseUtil } from '../utils/response.util.js';
 
 export class UserController {
   constructor(

@@ -5,15 +5,15 @@
  * TOTP is mandatory and automatically generated for all users.
  */
 
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface';
-import { IEmailService } from '../interfaces/email-service.interface';
-import { IPasswordService } from '../interfaces/password-service.interface';
-import { ITotpService } from '../interfaces/totp-service.interface';
-import { CreateUserDTO } from '../dtos/auth.dto';
-import { Email } from '../../domain/value-objects/email';
-import { Password } from '../../domain/value-objects/password';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface.js';
+import { IEmailService } from '../interfaces/email-service.interface.js';
+import { IPasswordService } from '../interfaces/password-service.interface.js';
+import { ITotpService } from '../interfaces/totp-service.interface.js';
+import { CreateUserDTO } from '../dtos/auth.dto.js';
+import { Email } from '../../domain/value-objects/email.js';
+import { Password } from '../../domain/value-objects/password.js';
+import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
 
 export interface CreateUserResult {
   id: string;

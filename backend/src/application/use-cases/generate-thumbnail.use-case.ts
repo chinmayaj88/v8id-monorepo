@@ -5,11 +5,11 @@
  * Optimized to not block file uploads - runs in background.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { IThumbnailService } from '../interfaces/thumbnail-service.interface';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
-import { StorageTier } from '../../domain/entities/file';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { IThumbnailService } from '../interfaces/thumbnail-service.interface.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
+import { StorageTier } from '../../domain/entities/file.js';
 
 export interface GenerateThumbnailResult {
   success: boolean;

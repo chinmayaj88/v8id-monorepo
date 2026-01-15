@@ -1,4 +1,4 @@
-import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file';
+import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file.js';
 
 export interface IFileRepository {
   findById(id: string): Promise<File | null>;

@@ -4,9 +4,9 @@
  * Concrete implementation of ITotpBackupCodeRepository using Prisma.
  */
 
-import { prisma } from '../database';
-import { ITotpBackupCodeRepository } from '../../application/interfaces/totp-backup-code-repository.interface';
-import { IPasswordService } from '../../application/interfaces/password-service.interface';
+import { prisma } from '../database/index.js';
+import { ITotpBackupCodeRepository } from '../../application/interfaces/totp-backup-code-repository.interface.js';
+import { IPasswordService } from '../../application/interfaces/password-service.interface.js';
 
 export class TotpBackupCodeRepository implements ITotpBackupCodeRepository {
   constructor(private passwordService: IPasswordService) {}

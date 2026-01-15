@@ -1,5 +1,5 @@
-import { UploadSession, UploadMethod } from '../../domain/entities/upload-session';
-import { StorageTier } from '../../domain/entities/file';
+import { UploadSession, UploadMethod } from '../../domain/entities/upload-session.js';
+import { StorageTier } from '../../domain/entities/file.js';
 
 export interface IUploadSessionRepository {
   findById(id: string): Promise<UploadSession | null>;

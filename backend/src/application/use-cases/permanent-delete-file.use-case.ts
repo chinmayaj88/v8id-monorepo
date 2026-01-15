@@ -6,12 +6,12 @@
  * Only files that are already soft-deleted (in trash) can be permanently deleted.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { FileStatus } from '../../domain/entities/file';
-import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { FileStatus } from '../../domain/entities/file.js';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 
 export class PermanentDeleteFileUseCase {
   constructor(

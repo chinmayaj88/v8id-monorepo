@@ -1,4 +1,4 @@
-import { Folder } from '../../domain/entities/folder';
+import { Folder } from '../../domain/entities/folder.js';
 
 export interface IFolderRepository {
 

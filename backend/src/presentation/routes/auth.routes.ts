@@ -1,33 +1,33 @@
 import { Router, type IRouter } from 'express';
-import { AuthController } from '../controllers/auth.controller';
-import { VerifyCredentialsUseCase } from '../../application/use-cases/verify-credentials.use-case';
-import { VerifyTotpLoginUseCase } from '../../application/use-cases/verify-totp-login.use-case';
-import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
-import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
-import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password.use-case';
-import { ResetPasswordUseCase } from '../../application/use-cases/reset-password.use-case';
-import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case';
-import { RegenerateBackupCodesUseCase } from '../../application/use-cases/regenerate-backup-codes.use-case';
-import { ResetupTotpUseCase } from '../../application/use-cases/resetup-totp.use-case';
-import { GetBackupCodesUseCase } from '../../application/use-cases/get-backup-codes.use-case';
-import { TotpBackupCodeRepository } from '../../infrastructure/repositories';
-import { UserRepository } from '../../infrastructure/repositories/user.repository';
-import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository';
-import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service';
-import { AccountLockoutService } from '../../infrastructure/services/account-lockout.service';
-import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory';
-import { PasswordService } from '../../infrastructure/services/password.service';
-import { JwtService } from '../../infrastructure/services/jwt.service';
-import { TotpService } from '../../infrastructure/services/totp.service';
-import { SuspiciousActivityService } from '../../infrastructure/services/suspicious-activity.service';
-import { IEmailService } from '../../application/interfaces/email-service.interface';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { AuthController } from '../controllers/auth.controller.js';
+import { VerifyCredentialsUseCase } from '../../application/use-cases/verify-credentials.use-case.js';
+import { VerifyTotpLoginUseCase } from '../../application/use-cases/verify-totp-login.use-case.js';
+import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case.js';
+import { LogoutUseCase } from '../../application/use-cases/logout.use-case.js';
+import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password.use-case.js';
+import { ResetPasswordUseCase } from '../../application/use-cases/reset-password.use-case.js';
+import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case.js';
+import { RegenerateBackupCodesUseCase } from '../../application/use-cases/regenerate-backup-codes.use-case.js';
+import { ResetupTotpUseCase } from '../../application/use-cases/resetup-totp.use-case.js';
+import { GetBackupCodesUseCase } from '../../application/use-cases/get-backup-codes.use-case.js';
+import { TotpBackupCodeRepository } from '../../infrastructure/repositories/index.js';
+import { UserRepository } from '../../infrastructure/repositories/user.repository.js';
+import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository.js';
+import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository.js';
+import { AuditLogService } from '../../infrastructure/services/audit-log.service.js';
+import { AccountLockoutService } from '../../infrastructure/services/account-lockout.service.js';
+import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory.js';
+import { PasswordService } from '../../infrastructure/services/password.service.js';
+import { JwtService } from '../../infrastructure/services/jwt.service.js';
+import { TotpService } from '../../infrastructure/services/totp.service.js';
+import { SuspiciousActivityService } from '../../infrastructure/services/suspicious-activity.service.js';
+import { IEmailService } from '../../application/interfaces/email-service.interface.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 import {
   authRateLimiter,
   totpRateLimiter,
   refreshRateLimiter,
-} from '../middleware/rate-limit.middleware';
+} from '../middleware/rate-limit.middleware.js';
 import {
   validateBody,
   verifyCredentialsSchema,
@@ -39,7 +39,7 @@ import {
   regenerateBackupCodesSchema,
   resetupTotpSchema,
   logoutSchema,
-} from '../validators';
+} from '../validators/index.js';
 
 const router: IRouter = Router();
 

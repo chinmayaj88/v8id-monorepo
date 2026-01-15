@@ -6,8 +6,8 @@
  * Use PermanentDeleteFileUseCase to permanently delete from trash.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { FileStatus } from '../../domain/entities/file';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { FileStatus } from '../../domain/entities/file.js';
 
 export class DeleteFileUseCase {
   constructor(

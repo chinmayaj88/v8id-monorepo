@@ -4,7 +4,7 @@
  * Set or update expiration date for a file (auto-delete).
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
 
 export interface SetFileExpirationDTO {
   expiresAt: Date | null; // null to remove expiration

@@ -4,9 +4,9 @@
  * Create a new folder structure from a template.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { prisma } from '../../infrastructure/database';
-import { CreateFolderUseCase } from './create-folder.use-case';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { prisma } from '../../infrastructure/database/index.js';
+import { CreateFolderUseCase } from './create-folder.use-case.js';
 
 export interface CreateFolderFromTemplateDTO {
   templateId: string;

@@ -4,13 +4,13 @@
  * Handles file listing with filtering, pagination, and sorting.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { ListFilesDTO, FileResponseDTO } from '../dtos/file.dto';
-import { File } from '../../domain/entities/file';
-import { UrlCacheService } from '../../infrastructure/services/url-cache.service';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
-import { StorageTier } from '../../domain/entities/file';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { ListFilesDTO, FileResponseDTO } from '../dtos/file.dto.js';
+import { File } from '../../domain/entities/file.js';
+import { UrlCacheService } from '../../infrastructure/services/url-cache.service.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
+import { StorageTier } from '../../domain/entities/file.js';
 
 export interface ListFilesResult {
   files: FileResponseDTO[];

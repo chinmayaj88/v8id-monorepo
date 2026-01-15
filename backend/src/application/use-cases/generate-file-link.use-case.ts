@@ -4,11 +4,11 @@
  * Generate a temporary download link (pre-signed URL/PAR) for a file or folder.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
-import { prisma } from '../../infrastructure/database';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
+import { prisma } from '../../infrastructure/database/index.js';
 import { randomBytes } from 'crypto';
 
 export interface GenerateFileLinkDTO {

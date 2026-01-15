@@ -4,12 +4,12 @@
  * Concrete implementation of IDeviceSessionRepository using Prisma.
  */
 
-import { prisma } from '../database';
+import { prisma } from '../database/index.js';
 import {
   IDeviceSessionRepository,
   DeviceSession,
-} from '../../application/interfaces/device-session-repository.interface';
-import type { PrismaDeviceSession } from './types';
+} from '../../application/interfaces/device-session-repository.interface.js';
+import type { PrismaDeviceSession } from './types.js';
 
 export class DeviceSessionRepository implements IDeviceSessionRepository {
   private toDomain(prismaSession: PrismaDeviceSession): DeviceSession {

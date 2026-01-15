@@ -4,9 +4,9 @@
  * Add or remove a file/folder from favorites.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { prisma } from '../../infrastructure/database';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { prisma } from '../../infrastructure/database/index.js';
 
 export interface ToggleFavoriteDTO {
   fileId?: string | null;

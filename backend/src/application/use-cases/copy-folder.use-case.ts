@@ -4,12 +4,12 @@
  * Copy a folder with all its contents (files and subfolders) recursively.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { FolderResponseDTO } from '../dtos/file.dto';
-import { CreateFolderUseCase } from './create-folder.use-case';
-import { CopyFileUseCase } from './copy-file.use-case';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { FolderResponseDTO } from '../dtos/file.dto.js';
+import { CreateFolderUseCase } from './create-folder.use-case.js';
+import { CopyFileUseCase } from './copy-file.use-case.js';
 
 export interface CopyFolderDTO {
   targetParentId?: string | null;

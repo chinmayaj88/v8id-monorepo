@@ -1,4 +1,4 @@
-import { StorageTier } from '../../domain/entities/file';
+import { StorageTier } from '../../domain/entities/file.js';
 
 export interface IStorageService {
 

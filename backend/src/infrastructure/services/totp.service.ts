@@ -7,7 +7,7 @@
 import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
-import { ITotpService, TotpSetupResult } from '../../application/interfaces/totp-service.interface';
+import { ITotpService, TotpSetupResult } from '../../application/interfaces/totp-service.interface.js';
 
 export class TotpService implements ITotpService {
   constructor(private totpIssuer: string = process.env.TOTP_ISSUER || 'void') {}

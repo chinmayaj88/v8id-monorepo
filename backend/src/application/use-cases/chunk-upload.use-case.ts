@@ -5,8 +5,8 @@
  * Works for both direct (PAR) and backend uploads.
  */
 
-import { IUploadSessionRepository } from '../interfaces/upload-session-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
+import { IUploadSessionRepository } from '../interfaces/upload-session-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
 
 export interface ChunkUploadDTO {
   sessionId: string;

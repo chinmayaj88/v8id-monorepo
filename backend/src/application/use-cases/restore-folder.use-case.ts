@@ -4,9 +4,9 @@
  * Handles restoring soft-deleted folders back to active status.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { FolderResponseDTO } from '../dtos/file.dto';
-import { Folder } from '../../domain/entities/folder';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { FolderResponseDTO } from '../dtos/file.dto.js';
+import { Folder } from '../../domain/entities/folder.js';
 
 export class RestoreFolderUseCase {
   constructor(

@@ -4,7 +4,7 @@
  * Represents an upload session for chunked/resumable file uploads.
  */
 
-import { StorageTier } from './file';
+import { StorageTier } from './file.js';
 
 export enum UploadMethod {
   DIRECT = 'DIRECT', // Direct upload via PAR (Pre-Authenticated Request)

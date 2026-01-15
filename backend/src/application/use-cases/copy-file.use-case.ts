@@ -4,13 +4,13 @@
  * Copy a file to another folder or duplicate in the same folder.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { FileResponseDTO } from '../dtos/file.dto';
-import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { FileResponseDTO } from '../dtos/file.dto.js';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 
 export interface CopyFileDTO {
   targetFolderId?: string | null;

@@ -4,10 +4,10 @@
  * Create a new version of a file when it's updated.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
-import { prisma } from '../../infrastructure/database';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
+import { prisma } from '../../infrastructure/database/index.js';
 import { createHash } from 'crypto';
 
 export class CreateFileVersionUseCase {

@@ -4,12 +4,12 @@
  * Retrieves file metadata by ID.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { FileResponseDTO } from '../dtos/file.dto';
-import { UrlCacheService } from '../../infrastructure/services/url-cache.service';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
-import { StorageTier } from '../../domain/entities/file';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { FileResponseDTO } from '../dtos/file.dto.js';
+import { UrlCacheService } from '../../infrastructure/services/url-cache.service.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
+import { StorageTier } from '../../domain/entities/file.js';
 
 export class GetFileUseCase {
   constructor(

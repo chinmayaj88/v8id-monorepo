@@ -5,9 +5,9 @@
  * Uses audit logs to track attempts (no schema changes needed).
  */
 
-import { IAuditLogRepository } from '../../application/interfaces/audit-log-repository.interface';
-import { IAccountLockoutService } from '../../application/interfaces/account-lockout-service.interface';
-import { AuditEventType } from './audit-log.service';
+import { IAuditLogRepository } from '../../application/interfaces/audit-log-repository.interface.js';
+import { IAccountLockoutService } from '../../application/interfaces/account-lockout-service.interface.js';
+import { AuditEventType } from './audit-log.service.js';
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes

@@ -5,7 +5,7 @@
  * This is a pure domain entity with no external dependencies.
  */
 
-import { UserRole } from './user-role';
+import { UserRole } from './user-role.js';
 
 export class User {
   constructor(

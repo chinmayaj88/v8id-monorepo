@@ -5,12 +5,12 @@
  * Requires password + TOTP verification for security.
  */
 
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface';
-import { IPasswordService } from '../interfaces/password-service.interface';
-import { ITotpService } from '../interfaces/totp-service.interface';
-import { IAuditLogService } from '../interfaces/audit-log-service.interface';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-repository.interface.js';
+import { IPasswordService } from '../interfaces/password-service.interface.js';
+import { ITotpService } from '../interfaces/totp-service.interface.js';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
+import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
 
 export interface RegenerateBackupCodesDTO {
   password: string;

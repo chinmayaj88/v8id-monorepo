@@ -5,7 +5,7 @@
  */
 
 import { z } from 'zod';
-import { FileStatus, FileType } from '../../domain/entities/file';
+import { FileStatus, FileType } from '../../domain/entities/file.js';
 
 /**
  * Create folder schema

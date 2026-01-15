@@ -4,8 +4,8 @@
  * Logs out a user by revoking their device session.
  */
 
-import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface';
-import { IAuditLogService } from '../interfaces/audit-log-service.interface';
+import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface.js';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
 
 export class LogoutUseCase {
   constructor(

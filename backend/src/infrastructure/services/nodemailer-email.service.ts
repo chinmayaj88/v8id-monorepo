@@ -6,7 +6,7 @@
  */
 
 import nodemailer, { type Transporter } from 'nodemailer';
-import { IEmailService } from '../../application/interfaces/email-service.interface';
+import { IEmailService } from '../../application/interfaces/email-service.interface.js';
 
 export class NodemailerEmailService implements IEmailService {
   private transporter: Transporter;

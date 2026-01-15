@@ -5,9 +5,9 @@
  * Archived files are kept but marked as archived for long-term storage.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { FileStatus } from '../../domain/entities/file';
-import { FileResponseDTO } from '../dtos/file.dto';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { FileStatus } from '../../domain/entities/file.js';
+import { FileResponseDTO } from '../dtos/file.dto.js';
 
 export class ArchiveFileUseCase {
   constructor(

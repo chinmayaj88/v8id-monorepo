@@ -4,10 +4,10 @@
  * List files and folders shared with the user.
  */
 
-import { IFileShareRepository } from '../interfaces/file-share-repository.interface';
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { FileResponseDTO, FolderResponseDTO } from '../dtos/file.dto';
+import { IFileShareRepository } from '../interfaces/file-share-repository.interface.js';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { FileResponseDTO, FolderResponseDTO } from '../dtos/file.dto.js';
 
 export interface ListSharedFilesResult {
   files: FileResponseDTO[];

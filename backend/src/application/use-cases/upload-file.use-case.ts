@@ -4,15 +4,15 @@
  * Handles file upload logic including validation, storage, and metadata creation.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { IThumbnailService } from '../interfaces/thumbnail-service.interface';
-import { UploadFileDTO } from '../dtos/file.dto';
-import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { IThumbnailService } from '../interfaces/thumbnail-service.interface.js';
+import { UploadFileDTO } from '../dtos/file.dto.js';
+import { File, FileStatus, FileType, StorageTier } from '../../domain/entities/file.js';
 import { createHash } from 'crypto';
-import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
 
 export interface UploadFileResult {
   id: string;

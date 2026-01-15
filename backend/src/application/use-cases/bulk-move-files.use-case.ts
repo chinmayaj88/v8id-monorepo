@@ -5,8 +5,8 @@
  * OPTIMIZED: Uses batch database operations instead of loops.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
 
 export interface BulkMoveFilesDTO {
   fileIds: string[];

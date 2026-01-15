@@ -4,14 +4,14 @@
  * Second step of two-step login: Verifies TOTP code and completes login.
  */
 
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface';
-import { IEmailService } from '../interfaces/email-service.interface';
-import { ITotpService } from '../interfaces/totp-service.interface';
-import { IJwtService } from '../interfaces/jwt-service.interface';
-import { ISuspiciousActivityService } from '../interfaces/suspicious-activity-service.interface';
-import { IAuditLogService } from '../interfaces/audit-log-service.interface';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface.js';
+import { IEmailService } from '../interfaces/email-service.interface.js';
+import { ITotpService } from '../interfaces/totp-service.interface.js';
+import { IJwtService } from '../interfaces/jwt-service.interface.js';
+import { ISuspiciousActivityService } from '../interfaces/suspicious-activity-service.interface.js';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
+import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
 
 export interface VerifyTotpLoginResult {
   accessToken: string;

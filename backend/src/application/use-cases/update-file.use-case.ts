@@ -4,10 +4,10 @@
  * Handles file metadata updates (name, description, tags, folder).
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { UpdateFileDTO, FileResponseDTO } from '../dtos/file.dto';
-import { File } from '../../domain/entities/file';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { UpdateFileDTO, FileResponseDTO } from '../dtos/file.dto.js';
+import { File } from '../../domain/entities/file.js';
 
 export class UpdateFileUseCase {
   constructor(

@@ -4,9 +4,9 @@
  * Validation schemas and logic for request validation using Zod.
  */
 
-export * from './auth.validator';
-export * from './user.validator';
-export * from './file.validator';
+export * from './auth.validator.js';
+export * from './user.validator.js';
+export * from './file.validator.js';
 
 export {
   createFolderSchema,
@@ -17,7 +17,7 @@ export {
   initiateUploadSchema,
   chunkUploadSchema,
   completeUploadSchema,
-} from './file.validator';
+} from './file.validator.js';
 
 /**
  * Validation middleware factory
@@ -25,7 +25,7 @@ export {
  */
 import { Request, Response, NextFunction } from 'express';
 import { z, ZodError } from 'zod';
-import { ResponseUtil } from '../utils/response.util';
+import { ResponseUtil } from '../utils/response.util.js';
 
 export function validateBody<T>(schema: z.ZodSchema<T>) {
   return (req: Request, res: Response, next: NextFunction): void => {

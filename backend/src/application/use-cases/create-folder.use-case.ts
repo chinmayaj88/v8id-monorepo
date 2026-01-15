@@ -4,9 +4,9 @@
  * Handles folder creation with validation and hierarchy checks.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { CreateFolderDTO, FolderResponseDTO } from '../dtos/file.dto';
-import { Folder } from '../../domain/entities/folder';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { CreateFolderDTO, FolderResponseDTO } from '../dtos/file.dto.js';
+import { Folder } from '../../domain/entities/folder.js';
 
 export class CreateFolderUseCase {
   constructor(

@@ -1,4 +1,4 @@
-import { FileShare, SharePermission } from '../../domain/entities/file-share';
+import { FileShare, SharePermission } from '../../domain/entities/file-share.js';
 
 export interface IFileShareRepository {
   findById(id: string): Promise<FileShare | null>;

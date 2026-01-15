@@ -4,11 +4,11 @@
  * Concrete implementation of IUserRepository using Prisma.
  */
 
-import { prisma } from '../database';
-import { IUserRepository } from '../../application/interfaces/user-repository.interface';
-import { User } from '../../domain/entities/user';
-import { UserRole } from '../../domain/entities/user-role';
-import type { PrismaUser } from './types';
+import { prisma } from '../database/index.js';
+import { IUserRepository } from '../../application/interfaces/user-repository.interface.js';
+import { User } from '../../domain/entities/user.js';
+import { UserRole } from '../../domain/entities/user-role.js';
+import type { PrismaUser } from './types.js';
 
 export class UserRepository implements IUserRepository {
   /**

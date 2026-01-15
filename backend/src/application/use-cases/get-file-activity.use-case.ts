@@ -4,8 +4,8 @@
  * Get activity log/audit trail for file operations.
  */
 
-import { prisma } from '../../infrastructure/database';
-import { IFileRepository } from '../interfaces/file-repository.interface';
+import { prisma } from '../../infrastructure/database/index.js';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
 
 export interface FileActivityResponse {
   id: string;

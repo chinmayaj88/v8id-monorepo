@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { IJwtService } from '../../application/interfaces/jwt-service.interface';
-import { IUserRepository } from '../../application/interfaces/user-repository.interface';
-import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface';
-import { ResponseUtil } from '../utils/response.util';
+import { IJwtService } from '../../application/interfaces/jwt-service.interface.js';
+import { IUserRepository } from '../../application/interfaces/user-repository.interface.js';
+import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface.js';
+import { ResponseUtil } from '../utils/response.util.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: {

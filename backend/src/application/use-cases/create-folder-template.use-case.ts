@@ -4,9 +4,9 @@
  * Create a folder template from an existing folder structure.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { prisma } from '../../infrastructure/database';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { prisma } from '../../infrastructure/database/index.js';
 
 export interface CreateFolderTemplateDTO {
   name: string;

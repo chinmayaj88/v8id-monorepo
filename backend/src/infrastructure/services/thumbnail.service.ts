@@ -6,7 +6,7 @@
  */
 
 import sharp from 'sharp';
-import { IThumbnailService, ThumbnailGenerationOptions, ThumbnailGenerationResult } from '../../application/interfaces/thumbnail-service.interface';
+import { IThumbnailService, ThumbnailGenerationOptions, ThumbnailGenerationResult } from '../../application/interfaces/thumbnail-service.interface.js';
 
 // Standard thumbnail sizes for different use cases
 const THUMBNAIL_SIZES = {

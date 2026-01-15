@@ -5,5 +5,5 @@
  * Used to represent concepts like Email, FilePath, etc.
  */
 
-export { Email } from './email';
-export { Password } from './password';
+export { Email } from './email.js';
+export { Password } from './password.js';

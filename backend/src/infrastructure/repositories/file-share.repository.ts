@@ -4,10 +4,10 @@
  * Concrete implementation of IFileShareRepository using Prisma.
  */
 
-import { prisma } from '../database';
-import { IFileShareRepository } from '../../application/interfaces/file-share-repository.interface';
-import { FileShare, SharePermission } from '../../domain/entities/file-share';
-import type { PrismaFileShare, PrismaFileShareUpdateInput } from './types';
+import { prisma } from '../database/index.js';
+import { IFileShareRepository } from '../../application/interfaces/file-share-repository.interface.js';
+import { FileShare, SharePermission } from '../../domain/entities/file-share.js';
+import type { PrismaFileShare, PrismaFileShareUpdateInput } from './types.js';
 
 export class FileShareRepository implements IFileShareRepository {
   private toDomain(prismaShare: PrismaFileShare): FileShare {

@@ -5,10 +5,10 @@
  * Increments tokenVersion to invalidate all existing sessions.
  */
 
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IPasswordService } from '../interfaces/password-service.interface';
-import { IAuditLogService } from '../interfaces/audit-log-service.interface';
-import { Password } from '../../domain/value-objects/password';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IPasswordService } from '../interfaces/password-service.interface.js';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
+import { Password } from '../../domain/value-objects/password.js';
 
 export class ResetPasswordUseCase {
   constructor(

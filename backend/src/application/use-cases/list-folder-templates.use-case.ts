@@ -4,7 +4,7 @@
  * List all folder templates for a user.
  */
 
-import { prisma } from '../../infrastructure/database';
+import { prisma } from '../../infrastructure/database/index.js';
 
 export interface FolderTemplateResponse {
   id: string;

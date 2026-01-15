@@ -6,13 +6,13 @@
  * Increments tokenVersion to invalidate all existing sessions.
  */
 
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IEmailService } from '../interfaces/email-service.interface';
-import { IPasswordService } from '../interfaces/password-service.interface';
-import { IAuditLogService } from '../interfaces/audit-log-service.interface';
-import { ITotpService } from '../interfaces/totp-service.interface';
-import { Password } from '../../domain/value-objects/password';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IEmailService } from '../interfaces/email-service.interface.js';
+import { IPasswordService } from '../interfaces/password-service.interface.js';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
+import { ITotpService } from '../interfaces/totp-service.interface.js';
+import { Password } from '../../domain/value-objects/password.js';
+import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
 
 export interface ChangePasswordDTO {
   currentPassword: string;

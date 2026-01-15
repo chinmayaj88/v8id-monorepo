@@ -4,11 +4,11 @@
  * Refreshes an access token using a valid refresh token.
  */
 
-import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IJwtService } from '../interfaces/jwt-service.interface';
-import { IAuditLogService } from '../interfaces/audit-log-service.interface';
-import { RefreshTokenDTO } from '../dtos/auth.dto';
+import { IDeviceSessionRepository } from '../interfaces/device-session-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IJwtService } from '../interfaces/jwt-service.interface.js';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
+import { RefreshTokenDTO } from '../dtos/auth.dto.js';
 
 export interface RefreshTokenResult {
   accessToken: string;

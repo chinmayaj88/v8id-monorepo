@@ -1,18 +1,18 @@
 import { Request, Response } from 'express';
-import { VerifyCredentialsUseCase } from '../../application/use-cases/verify-credentials.use-case';
-import { VerifyTotpLoginUseCase } from '../../application/use-cases/verify-totp-login.use-case';
-import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case';
-import { LogoutUseCase } from '../../application/use-cases/logout.use-case';
-import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password.use-case';
-import { ResetPasswordUseCase } from '../../application/use-cases/reset-password.use-case';
-import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case';
-import { RefreshTokenDTO, VerifyCredentialsDTO, VerifyTotpDTO, ForgotPasswordDTO, ResetPasswordDTO } from '../../application/dtos/auth.dto';
-import { RegenerateBackupCodesUseCase } from '../../application/use-cases/regenerate-backup-codes.use-case';
-import { ResetupTotpUseCase } from '../../application/use-cases/resetup-totp.use-case';
-import { GetBackupCodesUseCase } from '../../application/use-cases/get-backup-codes.use-case';
-import { AuthenticatedRequest } from '../middleware/auth.middleware';
-import { extractIpAddress } from '../utils/ip-address.util';
-import { ResponseUtil } from '../utils/response.util';
+import { VerifyCredentialsUseCase } from '../../application/use-cases/verify-credentials.use-case.js';
+import { VerifyTotpLoginUseCase } from '../../application/use-cases/verify-totp-login.use-case.js';
+import { RefreshTokenUseCase } from '../../application/use-cases/refresh-token.use-case.js';
+import { LogoutUseCase } from '../../application/use-cases/logout.use-case.js';
+import { ForgotPasswordUseCase } from '../../application/use-cases/forgot-password.use-case.js';
+import { ResetPasswordUseCase } from '../../application/use-cases/reset-password.use-case.js';
+import { ChangePasswordUseCase } from '../../application/use-cases/change-password.use-case.js';
+import { RefreshTokenDTO, VerifyCredentialsDTO, VerifyTotpDTO, ForgotPasswordDTO, ResetPasswordDTO } from '../../application/dtos/auth.dto.js';
+import { RegenerateBackupCodesUseCase } from '../../application/use-cases/regenerate-backup-codes.use-case.js';
+import { ResetupTotpUseCase } from '../../application/use-cases/resetup-totp.use-case.js';
+import { GetBackupCodesUseCase } from '../../application/use-cases/get-backup-codes.use-case.js';
+import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
+import { extractIpAddress } from '../utils/ip-address.util.js';
+import { ResponseUtil } from '../utils/response.util.js';
 
 export class AuthController {
   constructor(

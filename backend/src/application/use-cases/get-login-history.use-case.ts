@@ -1,4 +1,4 @@
-import { IAuditLogRepository } from '../interfaces/audit-log-repository.interface';
+import { IAuditLogRepository } from '../interfaces/audit-log-repository.interface.js';
 
 export interface GetLoginHistoryResult {
   logs: Array<{

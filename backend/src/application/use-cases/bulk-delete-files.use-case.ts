@@ -5,10 +5,10 @@
  * OPTIMIZED: Uses batch database operations instead of loops.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { FileStatus } from '../../domain/entities/file';
-import { StorageCacheService } from '../../infrastructure/services/storage-cache.service';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { FileStatus } from '../../domain/entities/file.js';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
 
 export interface BulkDeleteFilesDTO {
   fileIds: string[];

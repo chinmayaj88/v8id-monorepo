@@ -4,11 +4,11 @@
  * Concrete implementation of IUploadSessionRepository using Prisma.
  */
 
-import { prisma } from '../database';
-import { IUploadSessionRepository } from '../../application/interfaces/upload-session-repository.interface';
-import { UploadSession, UploadMethod } from '../../domain/entities/upload-session';
-import { StorageTier } from '../../domain/entities/file';
-import type { PrismaUploadSession, PrismaUploadSessionWhereInput, PrismaUploadSessionUpdateInput } from './types';
+import { prisma } from '../database/index.js';
+import { IUploadSessionRepository } from '../../application/interfaces/upload-session-repository.interface.js';
+import { UploadSession, UploadMethod } from '../../domain/entities/upload-session.js';
+import { StorageTier } from '../../domain/entities/file.js';
+import type { PrismaUploadSession, PrismaUploadSessionWhereInput, PrismaUploadSessionUpdateInput } from './types.js';
 
 export class UploadSessionRepository implements IUploadSessionRepository {
   private toDomain(prismaSession: PrismaUploadSession): UploadSession {

@@ -1,6 +1,6 @@
-import { IAuditLogRepository } from '../../application/interfaces/audit-log-repository.interface';
-import { ISuspiciousActivityService, SuspiciousActivityDetectionResult } from '../../application/interfaces/suspicious-activity-service.interface';
-import { AuditEventType } from '../../application/interfaces/audit-log-service.interface';
+import { IAuditLogRepository } from '../../application/interfaces/audit-log-repository.interface.js';
+import { ISuspiciousActivityService, SuspiciousActivityDetectionResult } from '../../application/interfaces/suspicious-activity-service.interface.js';
+import { AuditEventType } from '../../application/interfaces/audit-log-service.interface.js';
 
 export class SuspiciousActivityService implements ISuspiciousActivityService {
   constructor(private auditLogRepository: IAuditLogRepository) {}

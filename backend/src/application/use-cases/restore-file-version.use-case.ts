@@ -4,11 +4,11 @@
  * Restore a previous version of a file.
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
-import { CreateFileVersionUseCase } from './create-file-version.use-case';
-import { prisma } from '../../infrastructure/database';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
+import { CreateFileVersionUseCase } from './create-file-version.use-case.js';
+import { prisma } from '../../infrastructure/database/index.js';
 
 export class RestoreFileVersionUseCase {
   constructor(

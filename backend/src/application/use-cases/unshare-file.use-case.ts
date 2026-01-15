@@ -4,7 +4,7 @@
  * Remove a share of a file or folder.
  */
 
-import { IFileShareRepository } from '../interfaces/file-share-repository.interface';
+import { IFileShareRepository } from '../interfaces/file-share-repository.interface.js';
 
 export class UnshareFileUseCase {
   constructor(

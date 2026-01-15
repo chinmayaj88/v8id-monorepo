@@ -4,9 +4,9 @@
  * Handles folder metadata updates with validation.
  */
 
-import { IFolderRepository } from '../interfaces/folder-repository.interface';
-import { UpdateFolderDTO, FolderResponseDTO } from '../dtos/file.dto';
-import { Folder } from '../../domain/entities/folder';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { UpdateFolderDTO, FolderResponseDTO } from '../dtos/file.dto.js';
+import { Folder } from '../../domain/entities/folder.js';
 
 export class UpdateFolderUseCase {
   constructor(

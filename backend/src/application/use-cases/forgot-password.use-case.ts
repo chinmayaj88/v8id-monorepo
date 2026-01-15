@@ -5,9 +5,9 @@
  * Sends password reset email via IEmailService (Nodemailer in production, console in development).
  */
 
-import { IUserRepository } from '../interfaces/user-repository.interface';
-import { IEmailService } from '../interfaces/email-service.interface';
-import { IAuditLogService } from '../interfaces/audit-log-service.interface';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { IEmailService } from '../interfaces/email-service.interface.js';
+import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
 import crypto from 'crypto';
 
 export class ForgotPasswordUseCase {

@@ -4,10 +4,10 @@
  * Generate preview URL or data for files (images, PDFs, documents).
  */
 
-import { IFileRepository } from '../interfaces/file-repository.interface';
-import { IStorageService } from '../interfaces/storage-service.interface';
-import { IFileShareRepository } from '../interfaces/file-share-repository.interface';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service';
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { IFileShareRepository } from '../interfaces/file-share-repository.interface.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 
 export interface PreviewFileResult {
   previewUrl?: string;
