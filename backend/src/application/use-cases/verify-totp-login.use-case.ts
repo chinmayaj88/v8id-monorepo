@@ -1,6 +1,6 @@
 /**
  * Verify TOTP Login Use Case
- * 
+ *
  * Second step of two-step login: Verifies TOTP code and completes login.
  */
 
@@ -11,7 +11,7 @@ import { ITotpService } from '../interfaces/totp-service.interface.js';
 import { IJwtService } from '../interfaces/jwt-service.interface.js';
 import { ISuspiciousActivityService } from '../interfaces/suspicious-activity-service.interface.js';
 import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
+import { ConfigServiceFactory } from '../../infrastructure/config/config-service.factory.js';
 
 export interface VerifyTotpLoginResult {
   accessToken: string;
@@ -87,7 +87,8 @@ export class VerifyTotpLoginUseCase {
       throw new Error('TOTP is not set up for this account');
     }
 
-    const encryptionKey = getTotpEncryptionKey();
+    const config = ConfigServiceFactory.getInstance();
+    const encryptionKey = config.getRequired('TOTP_ENCRYPTION_KEY');
     let totpSecret: string;
     try {
       totpSecret = this.totpService.decryptSecret(user.totpSecret, encryptionKey);
@@ -108,7 +109,10 @@ export class VerifyTotpLoginUseCase {
         ipAddress
       );
 
-      if (suspiciousActivity.isSuspicious && suspiciousActivity.activityType === 'MULTIPLE_FAILED_TOTP') {
+      if (
+        suspiciousActivity.isSuspicious &&
+        suspiciousActivity.activityType === 'MULTIPLE_FAILED_TOTP'
+      ) {
         try {
           await this.emailService.sendSuspiciousActivityAlert(
             user.email,
@@ -166,28 +170,34 @@ export class VerifyTotpLoginUseCase {
       }
 
       if (dto.deviceType === 'MOBILE') {
-        const existingRememberedSession = await this.deviceSessionRepository.findRememberedMobileSession(user.id);
+        const existingRememberedSession =
+          await this.deviceSessionRepository.findRememberedMobileSession(user.id);
         if (existingRememberedSession) {
-          throw new Error('Remember Me can only be used on one mobile device. You already have a remembered device. Please revoke it first.');
+          throw new Error(
+            'Remember Me can only be used on one mobile device. You already have a remembered device. Please revoke it first.'
+          );
         }
       }
     }
 
     const activeSessions = await this.deviceSessionRepository.findActiveSessionsByUserId(user.id);
-    const mobileCount = await this.deviceSessionRepository.countActiveSessionsByType(user.id, 'MOBILE');
+    const mobileCount = await this.deviceSessionRepository.countActiveSessionsByType(
+      user.id,
+      'MOBILE'
+    );
     const webCount = await this.deviceSessionRepository.countActiveSessionsByType(user.id, 'WEB');
 
-    const isNewDevice = !activeSessions.some((s) => s.deviceId === dto.deviceId);
+    const isNewDevice = !activeSessions.some(s => s.deviceId === dto.deviceId);
 
     if (dto.deviceType === 'MOBILE' && mobileCount >= 2) {
       const mobileSessions = activeSessions
-        .filter((s) => s.deviceType === 'MOBILE')
+        .filter(s => s.deviceType === 'MOBILE')
         .sort((a, b) => a.lastActiveAt.getTime() - b.lastActiveAt.getTime());
       if (mobileSessions.length > 0 && mobileSessions[0]) {
         await this.deviceSessionRepository.revoke(mobileSessions[0].id);
       }
     } else if (dto.deviceType === 'WEB' && webCount >= 1) {
-      const webSessions = activeSessions.filter((s) => s.deviceType === 'WEB');
+      const webSessions = activeSessions.filter(s => s.deviceType === 'WEB');
       for (const session of webSessions) {
         await this.deviceSessionRepository.revoke(session.id);
       }
@@ -264,4 +274,3 @@ export class VerifyTotpLoginUseCase {
     };
   }
 }
-

@@ -1,17 +1,20 @@
 /**
  * Environment Variable Validator
- * 
- * Validates critical environment variables and ensures security requirements are met.
+ *
+ * Validates critical environment variables from IConfigService.
+ * Ensures security requirements are met.
  * Throws errors in production if required variables are missing or using defaults.
  */
+
+import type { IConfigService } from '../../application/interfaces/config-service.interface.js';
 
 /**
  * Validates TOTP encryption key
  * @throws Error if key is missing or using default value in production
  */
-export function validateTotpEncryptionKey(): string {
-  const key = process.env.TOTP_ENCRYPTION_KEY;
-  const isProduction = process.env.NODE_ENV === 'production';
+export function validateTotpEncryptionKey(configService: IConfigService): string {
+  const key = configService.get('TOTP_ENCRYPTION_KEY');
+  const isProduction = configService.isProduction();
 
   if (!key) {
     if (isProduction) {
@@ -37,28 +40,19 @@ export function validateTotpEncryptionKey(): string {
   }
 
   if (key.length < 32) {
-    throw new Error(
-      'TOTP_ENCRYPTION_KEY must be at least 32 characters long for security.'
-    );
+    throw new Error('TOTP_ENCRYPTION_KEY must be at least 32 characters long for security.');
   }
 
   return key;
 }
 
 /**
- * Gets TOTP encryption key with validation
- */
-export function getTotpEncryptionKey(): string {
-  return validateTotpEncryptionKey();
-}
-
-/**
  * Validates JWT secret
  * @throws Error if secret is missing or using default value in production
  */
-export function validateJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  const isProduction = process.env.NODE_ENV === 'production';
+export function validateJwtSecret(configService: IConfigService): string {
+  const secret = configService.get('JWT_SECRET');
+  const isProduction = configService.isProduction();
 
   if (!secret) {
     if (isProduction) {
@@ -66,15 +60,11 @@ export function validateJwtSecret(): string {
         'JWT_SECRET is required in production. Set a secure secret (minimum 32 characters).'
       );
     }
-    throw new Error(
-      'JWT_SECRET is required. Set a secure secret (minimum 32 characters).'
-    );
+    throw new Error('JWT_SECRET is required. Set a secure secret (minimum 32 characters).');
   }
 
   if (secret.length < 32) {
-    throw new Error(
-      'JWT_SECRET must be at least 32 characters long for security.'
-    );
+    throw new Error('JWT_SECRET must be at least 32 characters long for security.');
   }
 
   return secret;
@@ -84,13 +74,13 @@ export function validateJwtSecret(): string {
  * Validates database connection
  * @throws Error if database configuration is invalid
  */
-export function validateDatabaseConfig(): void {
-  const hasDatabaseUrl = !!process.env.DATABASE_URL;
+export function validateDatabaseConfig(configService: IConfigService): void {
+  const hasDatabaseUrl = configService.has('DATABASE_URL');
   const hasIndividualConfig =
-    process.env.DATABASE_HOST &&
-    process.env.DATABASE_USER &&
-    process.env.DATABASE_PASSWORD &&
-    process.env.DATABASE_NAME;
+    configService.has('DATABASE_HOST') &&
+    configService.has('DATABASE_USER') &&
+    configService.has('DATABASE_PASSWORD') &&
+    configService.has('DATABASE_NAME');
 
   if (!hasDatabaseUrl && !hasIndividualConfig) {
     throw new Error(
@@ -104,8 +94,8 @@ export function validateDatabaseConfig(): void {
  * Call this at application startup
  * @throws Error if any critical variable is invalid
  */
-export function validateEnvironment(): void {
-  validateDatabaseConfig();
-  validateJwtSecret();
-  validateTotpEncryptionKey();
+export function validateEnvironment(configService: IConfigService): void {
+  validateDatabaseConfig(configService);
+  validateJwtSecret(configService);
+  validateTotpEncryptionKey(configService);
 }

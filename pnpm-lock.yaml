@@ -52,6 +52,12 @@ importers:
       oci-objectstorage:
         specifier: ^2.122.2
         version: 2.122.2
+      oci-secrets:
+        specifier: ^2.123.0
+        version: 2.123.0
+      oci-vault:
+        specifier: ^2.123.0
+        version: 2.123.0
       otplib:
         specifier: ^12.0.1
         version: 12.0.1
@@ -1784,11 +1790,23 @@ packages:
   oci-common@2.122.2:
     resolution: {integrity: sha512-VgMgkYpBPr89+InaTIicGQr3iYfoI5wcvZaC55EKOGHioEX25ocAWqZ8aSTYck24YXOkj1dzCdApziCII2GJog==}
 
+  oci-common@2.123.0:
+    resolution: {integrity: sha512-HdmQsat5XqQ2AasJGqktezKbHtthWbS+vQNcrbTj7B144gO49rooVXTjL34HIWWadz/vj+Sz0zyu18MPOEuKuQ==}
+
   oci-objectstorage@2.122.2:
     resolution: {integrity: sha512-u89y09ja1UO5KXHSFC9nGa4F1Yfpyi5K1KhzJW/6JPEFyTqoRt/c7IqksqrFm6NqB4U1Cg0oB3EPM5NmSsaydQ==}
 
+  oci-secrets@2.123.0:
+    resolution: {integrity: sha512-9mJC8Idiiujm0hlPdIMSmelxptWcyEiuPYAz/tojsl7ZdsdflQqVjCvOx/x7UhJGmNuXunBc0VC8Vp/KR7DvMg==}
+
+  oci-vault@2.123.0:
+    resolution: {integrity: sha512-yGK5zi+D78DVX4jfWfjvH21l/vcJwh9MgTbAWxzHK1AJ1z27+uj6Pw0e8NpwjD+gSIEHL/9jJ3uo4nISmOolUQ==}
+
   oci-workrequests@2.122.2:
     resolution: {integrity: sha512-9mse9EkszRcEDvZSjQgUA4ni4/J4jPsaqlmFCa7+NJ7bwdnpp7CqE/6fiKT+4WyaCEz4aK3tGKRvEnH/BC8/Tg==}
+
+  oci-workrequests@2.123.0:
+    resolution: {integrity: sha512-3Ckg3cG1fS+ZOqQRXveAxKOb8+UeBylIOtanfSugXtPZfV+ZzGDfju2U35+5hqnA6b9FdPqHRNv8a9x76a+uDQ==}
 
   ohash@2.0.11:
     resolution: {integrity: sha512-RdR9FQrFwNBNXAr4GixM8YaRZRJ5PUWbKYbE5eOsrwAjJW0q2REGcf79oYPsLyskQCZG1PLN+S/K1V00joZAoQ==}
@@ -4295,6 +4313,24 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  oci-common@2.123.0:
+    dependencies:
+      '@types/isomorphic-fetch': 0.0.35
+      '@types/jsonwebtoken': 9.0.0
+      '@types/jssha': 2.0.0
+      '@types/opossum': 4.1.1
+      '@types/sshpk': 1.10.3
+      es6-promise: 4.2.6
+      http-signature: 1.3.1
+      isomorphic-fetch: 3.0.0
+      jsonwebtoken: 9.0.0
+      jssha: 2.4.1
+      opossum: 5.0.1
+      sshpk: 1.16.1
+      uuid: 3.3.3
+    transitivePeerDependencies:
+      - encoding
+
   oci-objectstorage@2.122.2:
     dependencies:
       await-semaphore: 0.1.3
@@ -4303,9 +4339,29 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
+  oci-secrets@2.123.0:
+    dependencies:
+      oci-common: 2.123.0
+      oci-workrequests: 2.123.0
+    transitivePeerDependencies:
+      - encoding
+
+  oci-vault@2.123.0:
+    dependencies:
+      oci-common: 2.123.0
+      oci-workrequests: 2.123.0
+    transitivePeerDependencies:
+      - encoding
+
   oci-workrequests@2.122.2:
     dependencies:
       oci-common: 2.122.2
+    transitivePeerDependencies:
+      - encoding
+
+  oci-workrequests@2.123.0:
+    dependencies:
+      oci-common: 2.123.0
     transitivePeerDependencies:
       - encoding
 

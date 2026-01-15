@@ -1,6 +1,6 @@
 /**
  * Regenerate Backup Codes Use Case
- * 
+ *
  * Allows authenticated users to regenerate TOTP backup codes.
  * Requires password + TOTP verification for security.
  */
@@ -10,7 +10,7 @@ import { ITotpBackupCodeRepository } from '../interfaces/totp-backup-code-reposi
 import { IPasswordService } from '../interfaces/password-service.interface.js';
 import { ITotpService } from '../interfaces/totp-service.interface.js';
 import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
+import { ConfigServiceFactory } from '../../infrastructure/config/config-service.factory.js';
 
 export interface RegenerateBackupCodesDTO {
   password: string;
@@ -67,7 +67,8 @@ export class RegenerateBackupCodesUseCase {
       throw new Error('Invalid password');
     }
 
-    const encryptionKey = getTotpEncryptionKey();
+    const config = ConfigServiceFactory.getInstance();
+    const encryptionKey = config.getRequired('TOTP_ENCRYPTION_KEY');
     let totpSecret: string;
     try {
       totpSecret = this.totpService.decryptSecret(user.totpSecret, encryptionKey);
@@ -97,7 +98,7 @@ export class RegenerateBackupCodesUseCase {
     const newBackupCodes = this.totpService.generateBackupCodes(10);
 
     const hashedBackupCodes = await Promise.all(
-      newBackupCodes.map(async (code) => {
+      newBackupCodes.map(async code => {
         return await this.passwordService.hashPassword(code);
       })
     );

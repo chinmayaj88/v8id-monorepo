@@ -1,6 +1,6 @@
 /**
  * Resetup TOTP Use Case
- * 
+ *
  * Allows authenticated users to re-setup TOTP if they lose access to their authenticator.
  * Requires password verification for security.
  * This will invalidate the old TOTP secret and generate a new one.
@@ -12,7 +12,7 @@ import { IPasswordService } from '../interfaces/password-service.interface.js';
 import { ITotpService } from '../interfaces/totp-service.interface.js';
 import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
 import { Email } from '../../domain/value-objects/email.js';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
+import { ConfigServiceFactory } from '../../infrastructure/config/config-service.factory.js';
 
 export interface ResetupTotpDTO {
   password: string;
@@ -69,11 +69,12 @@ export class ResetupTotpUseCase {
     const email = new Email(user.email);
     const totpSetup = await this.totpService.generateTotpSetup(email.getValue());
 
-    const encryptionKey = getTotpEncryptionKey();
+    const config = ConfigServiceFactory.getInstance();
+    const encryptionKey = config.getRequired('TOTP_ENCRYPTION_KEY');
     const encryptedSecret = this.totpService.encryptSecret(totpSetup.secret, encryptionKey);
 
     const hashedBackupCodes = await Promise.all(
-      totpSetup.backupCodes.map(async (code) => {
+      totpSetup.backupCodes.map(async code => {
         return await this.passwordService.hashPassword(code);
       })
     );

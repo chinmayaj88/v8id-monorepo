@@ -1,19 +1,41 @@
 /**
  * JWT Service
- * 
+ *
  * Handles JWT token generation and verification.
  */
 
 import jwt from 'jsonwebtoken';
 import { IJwtService, TokenPayload } from '../../application/interfaces/jwt-service.interface.js';
-import { validateJwtSecret } from '../config/env-validator.js';
+import { ConfigServiceFactory } from '../config/config-service.factory.js';
 
 export class JwtService implements IJwtService {
-  constructor(
-    private jwtSecret: string = validateJwtSecret(),
-    private accessTokenExpiresIn: string = process.env.JWT_ACCESS_EXPIRES_IN || '15m',
-    private refreshTokenExpiresIn: string = process.env.JWT_REFRESH_EXPIRES_IN || '7d'
-  ) {}
+  private _jwtSecret?: string;
+  private _accessTokenExpiresIn?: string;
+  private _refreshTokenExpiresIn?: string;
+
+  private get jwtSecret(): string {
+    if (!this._jwtSecret) {
+      const config = ConfigServiceFactory.getInstance();
+      this._jwtSecret = config.getRequired('JWT_SECRET');
+    }
+    return this._jwtSecret!;
+  }
+
+  private get accessTokenExpiresIn(): string {
+    if (!this._accessTokenExpiresIn) {
+      const config = ConfigServiceFactory.getInstance();
+      this._accessTokenExpiresIn = config.get('JWT_ACCESS_EXPIRES_IN', '15m')!;
+    }
+    return this._accessTokenExpiresIn!;
+  }
+
+  private get refreshTokenExpiresIn(): string {
+    if (!this._refreshTokenExpiresIn) {
+      const config = ConfigServiceFactory.getInstance();
+      this._refreshTokenExpiresIn = config.get('JWT_REFRESH_EXPIRES_IN', '7d')!;
+    }
+    return this._refreshTokenExpiresIn!;
+  }
 
   /**
    * Generate access token (short-lived: 15 minutes)
@@ -71,7 +93,7 @@ export class JwtService implements IJwtService {
   getAccessTokenExpirationSeconds(): number {
     // Parse "15m" to seconds
     const expiresIn: string = this.accessTokenExpiresIn || '15m';
-    
+
     const match = expiresIn.match(/^(\d+)([smhd])$/);
     if (!match || !match[1] || !match[2]) return 900; // Default 15 minutes
 
@@ -92,4 +114,3 @@ export class JwtService implements IJwtService {
     }
   }
 }
-

@@ -1,6 +1,6 @@
 /**
  * Create User Use Case
- * 
+ *
  * Creates a new user account (admin-only operation).
  * TOTP is mandatory and automatically generated for all users.
  */
@@ -13,7 +13,7 @@ import { ITotpService } from '../interfaces/totp-service.interface.js';
 import { CreateUserDTO } from '../dtos/auth.dto.js';
 import { Email } from '../../domain/value-objects/email.js';
 import { Password } from '../../domain/value-objects/password.js';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
+import { ConfigServiceFactory } from '../../infrastructure/config/config-service.factory.js';
 
 export interface CreateUserResult {
   id: string;
@@ -38,10 +38,7 @@ export class CreateUserUseCase {
     private totpService: ITotpService
   ) {}
 
-  async execute(
-    dto: CreateUserDTO,
-    adminUserId: string
-  ): Promise<CreateUserResult> {
+  async execute(dto: CreateUserDTO, adminUserId: string): Promise<CreateUserResult> {
     const admin = await this.userRepository.findById(adminUserId);
     if (!admin || !admin.canCreateUsers()) {
       throw new Error('Only admins can create users');
@@ -60,11 +57,12 @@ export class CreateUserUseCase {
 
     const totpSetup = await this.totpService.generateTotpSetup(email.getValue());
 
-    const encryptionKey = getTotpEncryptionKey();
+    const config = ConfigServiceFactory.getInstance();
+    const encryptionKey = config.getRequired('TOTP_ENCRYPTION_KEY');
     const encryptedSecret = this.totpService.encryptSecret(totpSetup.secret, encryptionKey);
 
     const hashedBackupCodes = await Promise.all(
-      totpSetup.backupCodes.map(async (code) => {
+      totpSetup.backupCodes.map(async code => {
         return await this.passwordService.hashPassword(code);
       })
     );
@@ -83,11 +81,7 @@ export class CreateUserUseCase {
     await this.totpBackupCodeRepository.createCodes(user.id, hashedBackupCodes);
 
     try {
-      await this.emailService.sendWelcomeEmail(
-        user.email,
-        user.firstName,
-        dto.password
-      );
+      await this.emailService.sendWelcomeEmail(user.email, user.firstName, dto.password);
     } catch (error) {
       console.error('Failed to send welcome email:', error);
     }
@@ -107,4 +101,3 @@ export class CreateUserUseCase {
     };
   }
 }
-

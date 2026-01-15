@@ -1,6 +1,6 @@
 /**
  * Change Password Use Case
- * 
+ *
  * Allows authenticated users to change their password.
  * Requires current password + TOTP verification.
  * Increments tokenVersion to invalidate all existing sessions.
@@ -12,7 +12,7 @@ import { IPasswordService } from '../interfaces/password-service.interface.js';
 import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
 import { ITotpService } from '../interfaces/totp-service.interface.js';
 import { Password } from '../../domain/value-objects/password.js';
-import { getTotpEncryptionKey } from '../../infrastructure/config/env-validator.js';
+import { ConfigServiceFactory } from '../../infrastructure/config/config-service.factory.js';
 
 export interface ChangePasswordDTO {
   currentPassword: string;
@@ -64,7 +64,8 @@ export class ChangePasswordUseCase {
       throw new Error('TOTP is required for password change');
     }
 
-    const encryptionKey = getTotpEncryptionKey();
+    const config = ConfigServiceFactory.getInstance();
+    const encryptionKey = config.getRequired('TOTP_ENCRYPTION_KEY');
     let totpSecret: string;
     try {
       totpSecret = this.totpService.decryptSecret(user.totpSecret, encryptionKey);
