@@ -20,20 +20,6 @@ sudo mkdir -p /opt/v8id-cloud
 sudo chown $USER:$USER /opt/v8id-cloud
 
 # ----------------------------
-# .env template
-# ----------------------------
-log_info "Creating .env file template..."
-cat > /opt/v8id-cloud/.env.template << 'EOF'
-PORT=4000
-NODE_ENV=production
-DATABASE_URL=mysql://user:password@host:3306/database
-JWT_SECRET=change-me
-TOTP_ENCRYPTION_KEY=change-me
-EOF
-
-log_info ".env template created"
-
-# ----------------------------
 # Docker install
 # ----------------------------
 if ! command -v docker &> /dev/null; then
