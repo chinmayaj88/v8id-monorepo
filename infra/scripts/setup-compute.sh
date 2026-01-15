@@ -42,7 +42,7 @@ else
 fi
 
 # ----------------------------
-# INSTALL NGINX (NEW)
+# INSTALL NGINX (DEFAULT PAGE ONLY)
 # ----------------------------
 log_info "Installing Nginx..."
 sudo apt-get update
@@ -50,42 +50,14 @@ sudo apt-get install -y nginx
 sudo systemctl enable nginx
 sudo systemctl start nginx
 
-# ----------------------------
-# NGINX REVERSE PROXY CONFIG
-# ----------------------------
-log_info "Configuring Nginx reverse proxy..."
-
-sudo tee /etc/nginx/sites-available/v8id-cloud > /dev/null << 'EOF'
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-
-    server_name _;
-
-    location / {
-        proxy_pass http://127.0.0.1:4000;
-        proxy_http_version 1.1;
-
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-
-        proxy_connect_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-}
-EOF
-
-# Enable site
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo ln -sf /etc/nginx/sites-available/v8id-cloud /etc/nginx/sites-enabled/v8id-cloud
+# Ensure default config is enabled
+sudo ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 # Test & reload
 sudo nginx -t
 sudo systemctl reload nginx
 
-log_info "Nginx reverse proxy configured (80 → 4000)"
+log_info "Nginx installed and serving default page on port 80"
 
 # ----------------------------
 # FIREWALL (UFW)
@@ -101,10 +73,9 @@ else
 fi
 
 # ----------------------------
-# Vault fetch script (unchanged)
+# Vault scripts placeholder
 # ----------------------------
 mkdir -p /opt/v8id-cloud/scripts
-# (keep your existing fetch-secrets-from-vault.sh here)
 
 log_info "Setup completed!"
-log_info "Backend will be accessible at: http://<VM_PUBLIC_IP>"
+log_info "Test via: http://<VM_PUBLIC_IP>"
