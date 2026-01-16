@@ -7,30 +7,20 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Parse DATABASE_URL or use individual environment variables
-function getDatabaseConfig() {
-  const env = process.env;
+// Database configuration with smart SSL handling
+const env = process.env;
+const databaseUrl = env.DATABASE_URL;
+const isProduction = env.NODE_ENV === 'production';
 
-  // 1. If DATABASE_URL is present, use it as the source of truth
-  if (env.DATABASE_URL) {
-    try {
-      const url = new URL(env.DATABASE_URL.replace(/^mysql:\/\//, 'http://'));
+let adapterOptions: any;
 
-      // The URL parser automatically decodes components like the password
-      return {
-        host: url.hostname || 'localhost',
-        port: url.port ? parseInt(url.port, 10) : 3306,
-        user: url.username || 'root',
-        password: url.password || '',
-        database: url.pathname.replace(/^\//, '') || '',
-      };
-    } catch (error) {
-      console.warn('⚠️ Failed to parse DATABASE_URL, falling back to individual variables');
-    }
-  }
-
-  // 2. Fallback to individual variables (Standard Enterprise Pattern)
-  // We decode the password here too, just in case it was stored encoded in the Vault
-  return {
+if (databaseUrl) {
+  // Use the connection string directly - this is the safest way for special passwords
+  // and is exactly how the successful migrations worked.
+  adapterOptions = { url: databaseUrl };
+} else {
+  // Fallback to individual variables for local development
+  adapterOptions = {
     host: env.DATABASE_HOST || 'localhost',
     port: env.DATABASE_PORT ? parseInt(env.DATABASE_PORT, 10) : 3306,
     user: env.DATABASE_USER || 'root',
@@ -39,21 +29,24 @@ function getDatabaseConfig() {
   };
 }
 
-const dbConfig = getDatabaseConfig();
+// HeatWave requires SSL in production or when specified in URL
+const useSsl = isProduction || (databaseUrl?.includes('ssl') ?? false);
+
 const adapter = new PrismaMariaDb({
-  ...dbConfig,
+  ...adapterOptions,
   connectionLimit: 5,
   allowPublicKeyRetrieval: true,
-  ssl: {
-    rejectUnauthorized: false, // HeatWave requires SSL, but we bypass CA check for internal VCN traffic
-  },
+  ssl: useSsl
+    ? {
+        rejectUnauthorized: false,
+      }
+    : undefined,
 });
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     adapter,
-    // log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
 if (process.env.NODE_ENV !== 'production') {
