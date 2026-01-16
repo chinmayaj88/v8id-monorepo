@@ -93,8 +93,13 @@ jobs:
           bash "$SCRIPT_DIR/load-vault-secrets.sh" > /tmp/.env.vault
 
           echo "[INFO] Running Prisma migrations"
+          # Source env file to get DATABASE_URL
+          set -a
+          source /tmp/.env.vault
+          set +a
+
           docker run --rm \
-            --env-file /tmp/.env.vault \
+            -e DATABASE_URL="$DATABASE_URL" \
             -e NODE_ENV=production \
             "$IMAGE" \
             sh -c "npx prisma migrate deploy --schema=prisma/schema.prisma"
