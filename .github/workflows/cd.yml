@@ -90,25 +90,20 @@ jobs:
           bash "$SCRIPT_DIR/load-vault-secrets.sh" > /tmp/.env.vault
 
           echo "[INFO] Running Prisma migrations"
-          # Safely load variables into the shell without expansion
-          while IFS='=' read -r key value; do
-            if [[ ! $key =~ ^# && -n $key ]]; then
-              export "$key"="$value"
-            fi
-          done < /tmp/.env.vault
+          # Pre-flight check: Ensure we can reach the DB host
+          # We extract the host from the URL to test it
+          DB_HOST=$(grep "DATABASE_URL=" /tmp/.env.vault | sed -e 's/.*@//' -e 's/:.*//' -e 's/\/.*//')
+          echo "[DEBUG] Testing connectivity to $DB_HOST:3306"
+          nc -zv -w 5 "$DB_HOST" 3306 || echo "⚠️ Warning: Database port unreachable via netcat, but proceeding..."
 
-          # Ensure DATABASE_URL has SSL if it's MySQL but missing SSL param
-          MIGRATION_URL="$DATABASE_URL"
-          if [[ "$DATABASE_URL" == *"mysql://"* && "$DATABASE_URL" != *"ssl-mode="* ]]; then
-            MIGRATION_URL="${DATABASE_URL}&ssl-mode=REQUIRED"
-          fi
-
+          # Run migration container using --env-file to bypass shell expansion bugs
+          # We also auto-append connect_timeout to prevent early termination
           docker run --rm \
             --network host \
-            -e DATABASE_URL="$MIGRATION_URL" \
+            --env-file /tmp/.env.vault \
             -e NODE_ENV=production \
             "$IMAGE" \
-            sh -c "npx prisma migrate deploy --schema=prisma/schema.prisma"
+            sh -c "export DATABASE_URL=\"\${DATABASE_URL}&connect_timeout=30\"; npx prisma migrate deploy --schema=prisma/schema.prisma"
 
           echo "[INFO] Starting backend container"
           docker run -d \
