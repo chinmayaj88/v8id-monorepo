@@ -51,7 +51,7 @@ secrets=$(oci vault secret list \
   --compartment-id "$COMPARTMENT_ID" \
   --vault-id "$VAULT_ID" \
   --all \
-  --query 'data[].{id:id,name:name}' \
+  --query 'data[].{id:id,name:"secret-name"}' \
   --output json)
 
 # Check if we got any secrets
