@@ -8,17 +8,16 @@ export async function createApp(): Promise<Express> {
   const app = express();
 
   const trustProxy = process.env.TRUST_PROXY;
+  const isProduction = process.env.NODE_ENV === 'production';
+
   if (trustProxy === 'true') {
-    console.warn(
-      '⚠️  WARNING: TRUST_PROXY=true is insecure and allows IP spoofing. Only use in trusted networks.'
-    );
     app.set('trust proxy', true);
-  } else if (trustProxy === 'false' || !trustProxy) {
-    app.set('trust proxy', false);
+  } else if (!trustProxy && isProduction) {
+    // In production, default to trusting 1 level of proxy (Nginx)
+    app.set('trust proxy', 1);
   } else if (!isNaN(Number(trustProxy))) {
     app.set('trust proxy', Number(trustProxy));
   } else {
-    console.warn(`⚠️  Invalid TRUST_PROXY value: ${trustProxy}. Defaulting to false for security.`);
     app.set('trust proxy', false);
   }
 
@@ -39,7 +38,6 @@ export async function createApp(): Promise<Express> {
 
   // CORS configuration
   const corsOrigin = process.env.CORS_ORIGIN;
-  const isProduction = process.env.NODE_ENV === 'production';
 
   if (isProduction && !corsOrigin) {
     console.warn(
