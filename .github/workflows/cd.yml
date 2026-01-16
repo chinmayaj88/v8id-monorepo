@@ -116,7 +116,7 @@ jobs:
           docker image prune -af --filter "until=24h" || true
 
           echo "[SUCCESS] Deployment completed"
-EOF
+          EOF
 
       # -------------------------
       # Health Check
