@@ -107,7 +107,7 @@ jobs:
           docker run -d \
             --name "$CONTAINER" \
             --restart unless-stopped \
-            -p 4000:4000 \
+            --network host \
             --env-file /tmp/.env.vault \
             -e NODE_ENV=production \
             -e OCI_COMPARTMENT_ID="$OCI_COMPARTMENT_ID" \
