@@ -42,6 +42,9 @@ const adapter = new PrismaMariaDb({
   ...dbConfig,
   connectionLimit: 5,
   allowPublicKeyRetrieval: true,
+  ssl: {
+    rejectUnauthorized: false, // Set to true if you have the CA certificate
+  },
 });
 
 export const prisma =
