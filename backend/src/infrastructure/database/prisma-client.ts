@@ -28,7 +28,33 @@ function getPrismaClient(): PrismaClient {
 
   let adapterOptions: any;
   if (databaseUrl) {
-    adapterOptions = { url: databaseUrl };
+    try {
+      // Must replace 'mysql://' with 'http://' to satisfy the strictly compliant URL parser if needed
+      // Most environments handle mysql:// fine, but this guarantees compatibility.
+      const protocolFixedUrl = databaseUrl.replace(/^mysql:\/\//, 'http://');
+      const url = new URL(protocolFixedUrl);
+
+      adapterOptions = {
+        host: url.hostname || 'localhost',
+        port: url.port ? parseInt(url.port, 10) : 3306,
+        user: url.username || 'root',
+        // CRITICAL: Decode the password. 'url.password' gives the encoded string (e.g. %24),
+        // but the MariaDB driver expects the raw character (e.g. $).
+        password: decodeURIComponent(url.password),
+        database: url.pathname.replace(/^\//, ''),
+      };
+
+      console.log(
+        `🔗 parsed DATABASE_URL: host=${adapterOptions.host} user=${adapterOptions.user}`
+      );
+    } catch (err) {
+      console.error(
+        '❌ Failed to parse DATABASE_URL, attempting raw string usage (may fail if driver does not support it)',
+        err
+      );
+      // Fallback to the method that failed before, but at least we tried parsing
+      adapterOptions = { url: databaseUrl };
+    }
   } else {
     adapterOptions = {
       host: env.DATABASE_HOST || 'localhost',
