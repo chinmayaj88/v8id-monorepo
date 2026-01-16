@@ -79,9 +79,11 @@ jobs:
           docker rm -f "$CONTAINER" 2>/dev/null || true
 
           echo "[INFO] Loading secrets from OCI Vault"
-          # Export OCI variables so the subshell can access them
-          export OCI_COMPARTMENT_ID
-          export OCI_VAULT_ID
+          # Explicitly assign and export OCI variables for subprocesses
+          export OCI_COMPARTMENT_ID="${OCI_COMPARTMENT_ID}"
+          export OCI_VAULT_ID="${OCI_VAULT_ID}"
+          echo "[DEBUG] OCI_COMPARTMENT_ID=${OCI_COMPARTMENT_ID:0:20}..."
+          echo "[DEBUG] OCI_VAULT_ID=${OCI_VAULT_ID:0:20}..."
           # Load secrets and create environment file
           bash "$SCRIPT_DIR/load-vault-secrets.sh" > /tmp/.env.vault
 
