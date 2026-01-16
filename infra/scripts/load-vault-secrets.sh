@@ -50,7 +50,6 @@ secrets=$(oci vault secret list \
   $AUTH_FLAG \
   --compartment-id "$COMPARTMENT_ID" \
   --vault-id "$VAULT_ID" \
-  --lifecycle-state ACTIVE \
   --all \
   --query 'data[].{id:id,name:name}' \
   --output json)
