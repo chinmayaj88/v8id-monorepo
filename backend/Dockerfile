@@ -59,9 +59,9 @@ ENV PATH=$PNPM_HOME:$PATH
 
 # Install pnpm, Prisma CLI, and create non-root user
 RUN npm install -g pnpm@9 && \
-    pnpm add -g prisma && \
-    addgroup -S nodejs && \
-    adduser -S nodejs -G nodejs
+  pnpm add -g prisma && \
+  addgroup -S nodejs && \
+  adduser -S nodejs -G nodejs
 
 WORKDIR /app
 
@@ -74,7 +74,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy backend manifests
 # -------------------------
 COPY backend/package.json ./backend/
-COPY backend/prisma.config.ts ./backend/
 
 # -------------------------
 # Install production dependencies only
