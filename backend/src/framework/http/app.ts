@@ -40,11 +40,13 @@ export async function createApp(): Promise<Express> {
   // CORS configuration
   const corsOrigin = process.env.CORS_ORIGIN;
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   if (isProduction && !corsOrigin) {
-    console.warn('⚠️  WARNING: CORS_ORIGIN not set in production. Defaulting to no CORS (most secure).');
+    console.warn(
+      '⚠️  WARNING: CORS_ORIGIN not set in production. Defaulting to no CORS (most secure).'
+    );
   }
-  
+
   app.use(
     cors({
       origin: corsOrigin || (isProduction ? false : '*'), // Allow all in dev, restrict in prod
@@ -67,6 +69,51 @@ export async function createApp(): Promise<Express> {
       status: 'ok',
       timestamp: new Date().toISOString(),
     });
+  });
+
+  // TEMPORARY: One-time registration route for admin setup
+  // WILL BE REMOVED AFTER USE
+  app.post('/api/temp-register', async (req, res) => {
+    try {
+      const { email, password, firstName, lastName, role } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      const { prisma } = await import('../../infrastructure/database/prisma-client.js');
+      const { PasswordService } = await import('../../infrastructure/services/password.service.js');
+      const passwordService = new PasswordService();
+
+      const hashedPassword = await passwordService.hashPassword(password);
+
+      const user = await prisma.user.create({
+        data: {
+          email,
+          passwordHash: hashedPassword,
+          firstName,
+          lastName,
+          role: role || 'USER',
+          emailVerified: true,
+          isActive: true,
+          storageQuota: BigInt(10737418240), // 10GB
+          storageUsed: BigInt(0),
+          totpVerified: false,
+        },
+      });
+
+      return res.status(201).json({
+        message: 'User created successfully',
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   });
 
   app.get('/', (_req, res) => {
