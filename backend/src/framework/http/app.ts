@@ -81,30 +81,87 @@ export async function createApp(): Promise<Express> {
 
       const { prisma } = await import('../../infrastructure/database/prisma-client.js');
       const { PasswordService } = await import('../../infrastructure/services/password.service.js');
+      const { TotpService } = await import('../../infrastructure/services/totp.service.js');
+
       const passwordService = new PasswordService();
+      const totpService = new TotpService();
 
       const hashedPassword = await passwordService.hashPassword(password);
 
-      const user = await prisma.user.create({
-        data: {
-          email,
-          passwordHash: hashedPassword,
-          firstName,
-          lastName,
-          role: role || 'USER',
-          emailVerified: true,
-          isActive: true,
-          storageQuota: BigInt(10737418240), // 10GB
-          storageUsed: BigInt(0),
-          totpVerified: false,
-        },
-      });
+      // Generate TOTP Setup
+      const totpSetup = await totpService.generateTotpSetup(email);
+      const encryptionKey = process.env.TOTP_ENCRYPTION_KEY || 'default-key-change-in-production';
+      const encryptedSecret = totpService.encryptSecret(totpSetup.secret, encryptionKey);
 
-      return res.status(201).json({
-        message: 'User created successfully',
+      // Hash backup codes
+      const hashedBackupCodes = await Promise.all(
+        totpSetup.backupCodes.map(async code => {
+          return await passwordService.hashPassword(code);
+        })
+      );
+
+      // Check if user exists
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+
+      let user;
+      if (existingUser) {
+        // Update existing user with new TOTP
+        // First, delete old backup codes
+        await prisma.totpBackupCode.deleteMany({ where: { userId: existingUser.id } });
+
+        user = await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            passwordHash: hashedPassword,
+            firstName,
+            lastName,
+            role: role || existingUser.role,
+            totpSecret: encryptedSecret,
+            totpVerified: false,
+            totpBackupCodes: {
+              create: hashedBackupCodes.map(hashedCode => ({
+                code: hashedCode,
+                isUsed: false,
+              })),
+            },
+          },
+        });
+      } else {
+        // Create new user
+        user = await prisma.user.create({
+          data: {
+            email,
+            passwordHash: hashedPassword,
+            firstName,
+            lastName,
+            role: role || 'USER',
+            emailVerified: true,
+            isActive: true,
+            storageQuota: BigInt(10737418240), // 10GB
+            storageUsed: BigInt(0),
+            totpSecret: encryptedSecret,
+            totpVerified: false,
+            totpBackupCodes: {
+              create: hashedBackupCodes.map(hashedCode => ({
+                code: hashedCode,
+                isUsed: false,
+              })),
+            },
+          },
+        });
+      }
+
+      return res.status(200).json({
+        message: existingUser ? 'User updated with new TOTP' : 'User created successfully',
         userId: user.id,
         email: user.email,
         role: user.role,
+        totp: {
+          secret: totpSetup.secret,
+          qrCodeUrl: totpSetup.qrCodeUrl,
+          backupCodes: totpSetup.backupCodes,
+          warning: 'SAVE THIS INFO NOW! It will not be shown again.',
+        },
       });
     } catch (error) {
       console.error('Registration error:', error);
