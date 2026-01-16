@@ -7,7 +7,7 @@ const PORT = Number(process.env.PORT) || 4000;
 async function main() {
   console.log('🚀 v8id-cloud Backend starting...');
 
-  // Initialize configuration service (loads from .env or OCI Vault based on environment)
+  // Initialize configuration service (loads from .env or OCI Vault based on environment )
   const configService = await ConfigServiceFactory.create();
   console.log(`📦 Running in ${configService.getEnvironment()} mode`);
 
