@@ -8,32 +8,34 @@ const globalForPrisma = globalThis as unknown as {
 
 // Parse DATABASE_URL or use individual environment variables
 function getDatabaseConfig() {
-  if (process.env.DATABASE_URL) {
+  const env = process.env;
+
+  // 1. If DATABASE_URL is present, use it as the source of truth
+  if (env.DATABASE_URL) {
     try {
-      // Parse mysql://user:password@host:port/database
-      const url = new URL(process.env.DATABASE_URL.replace(/^mysql:\/\//, 'http://'));
+      const url = new URL(env.DATABASE_URL.replace(/^mysql:\/\//, 'http://'));
+
+      // The URL parser automatically decodes components like the password
       return {
-        host: process.env.DATABASE_HOST || url.hostname || 'localhost',
-        port: process.env.DATABASE_PORT
-          ? parseInt(process.env.DATABASE_PORT, 10)
-          : url.port
-          ? parseInt(url.port, 10)
-          : 3306,
-        user: process.env.DATABASE_USER || url.username || 'root',
-        password: process.env.DATABASE_PASSWORD || url.password || '',
-        database: process.env.DATABASE_NAME || url.pathname.replace(/^\//, '') || '',
+        host: url.hostname || 'localhost',
+        port: url.port ? parseInt(url.port, 10) : 3306,
+        user: url.username || 'root',
+        password: url.password || '',
+        database: url.pathname.replace(/^\//, '') || '',
       };
-    } catch {
-      // Fallback to individual env vars if URL parsing fails
+    } catch (error) {
+      console.warn('⚠️ Failed to parse DATABASE_URL, falling back to individual variables');
     }
   }
 
+  // 2. Fallback to individual variables (Standard Enterprise Pattern)
+  // We decode the password here too, just in case it was stored encoded in the Vault
   return {
-    host: process.env.DATABASE_HOST || 'localhost',
-    port: process.env.DATABASE_PORT ? parseInt(process.env.DATABASE_PORT, 10) : 3306,
-    user: process.env.DATABASE_USER || 'root',
-    password: process.env.DATABASE_PASSWORD || '',
-    database: process.env.DATABASE_NAME || '',
+    host: env.DATABASE_HOST || 'localhost',
+    port: env.DATABASE_PORT ? parseInt(env.DATABASE_PORT, 10) : 3306,
+    user: env.DATABASE_USER || 'root',
+    password: env.DATABASE_PASSWORD ? decodeURIComponent(env.DATABASE_PASSWORD) : '',
+    database: env.DATABASE_NAME || '',
   };
 }
 
@@ -43,7 +45,7 @@ const adapter = new PrismaMariaDb({
   connectionLimit: 5,
   allowPublicKeyRetrieval: true,
   ssl: {
-    rejectUnauthorized: false, // Set to true if you have the CA certificate
+    rejectUnauthorized: false, // HeatWave requires SSL, but we bypass CA check for internal VCN traffic
   },
 });
 
