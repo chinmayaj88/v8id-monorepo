@@ -60,7 +60,7 @@ jobs:
             -o StrictHostKeyChecking=no \
             -o ServerAliveInterval=30 \
             -o ServerAliveCountMax=3 \
-            ${{ secrets.OCI_COMPUTE_SSH_USER }}@${{ secrets.OCI_COMPUTE_IP }} << 'EOF'
+            ${{ secrets.OCI_COMPUTE_SSH_USER }}@${{ secrets.OCI_COMPUTE_IP }} << EOF
 
           set -euo pipefail
 
@@ -79,44 +79,44 @@ jobs:
           echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
           echo "[INFO] Pulling latest image"
-          docker pull "$IMAGE"
+          docker pull "\$IMAGE"
 
           echo "[INFO] Stopping existing container (if any)"
-          docker rm -f "$CONTAINER" 2>/dev/null || true
+          docker rm -f "\$CONTAINER" 2>/dev/null || true
 
           echo "[INFO] Loading secrets from OCI Vault"
           # Load secrets and create environment file
-          bash "$SCRIPT_DIR/load-vault-secrets.sh" > /tmp/.env.vault
+          bash "\$SCRIPT_DIR/load-vault-secrets.sh" > /tmp/.env.vault
 
           echo "[INFO] Running Prisma migrations"
           docker run --rm \
             --env-file /tmp/.env.vault \
             -e NODE_ENV=production \
-            "$IMAGE" \
+            "\$IMAGE" \
             sh -c "npx prisma migrate deploy"
 
           echo "[INFO] Starting backend container"
           docker run -d \
-            --name "$CONTAINER" \
+            --name "\$CONTAINER" \
             --restart unless-stopped \
             -p 4000:4000 \
             --env-file /tmp/.env.vault \
             -e NODE_ENV=production \
             -e OCI_COMPARTMENT_ID="${{ secrets.OCI_COMPARTMENT_ID }}" \
             -e OCI_VAULT_ID="${{ secrets.OCI_VAULT_ID }}" \
-            "$IMAGE"
+            "\$IMAGE"
 
           # Clean up temp env file
           rm -f /tmp/.env.vault
 
           echo "[INFO] Verifying container is running"
-          docker ps | grep "$CONTAINER"
+          docker ps | grep "\$CONTAINER"
 
           echo "[INFO] Cleaning up old images"
           docker image prune -af --filter "until=24h" || true
 
           echo "[SUCCESS] Deployment completed"
-          EOF
+EOF
 
       # -------------------------
       # Health Check
