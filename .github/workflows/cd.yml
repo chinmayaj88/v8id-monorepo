@@ -85,6 +85,10 @@ jobs:
           # Trim any accidental whitespace or quotes from OCIDs
           export OCI_COMPARTMENT_ID=$(echo "$OCI_COMPARTMENT_ID" | tr -d '[:space:]' | sed "s/['\"]//g")
           export OCI_VAULT_ID=$(echo "$OCI_VAULT_ID" | tr -d '[:space:]' | sed "s/['\"]//g")
+          echo "[DEBUG] OCI_COMPARTMENT_ID length: ${#OCI_COMPARTMENT_ID}"
+          echo "[DEBUG] OCI_COMPARTMENT_ID value: ${OCI_COMPARTMENT_ID:0:30}...${OCI_COMPARTMENT_ID: -10}"
+          echo "[DEBUG] OCI_VAULT_ID length: ${#OCI_VAULT_ID}"
+          echo "[DEBUG] OCI_VAULT_ID value: ${OCI_VAULT_ID:0:30}...${OCI_VAULT_ID: -10}"
           # Load secrets and create environment file
           bash "$SCRIPT_DIR/load-vault-secrets.sh" > /tmp/.env.vault
 
