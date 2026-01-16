@@ -51,7 +51,7 @@ secrets=$(oci vault secret list \
   --compartment-id "$COMPARTMENT_ID" \
   --vault-id "$VAULT_ID" \
   --all \
-  --query 'data[].{id:id,name:"secret-name"}' \
+  --query 'data[].{id:id,name:"secret-name",state:"lifecycle-state"}' \
   --output json)
 
 # Check if we got any secrets
@@ -64,6 +64,12 @@ fi
 echo "$secrets" | jq -c '.[]' | while read -r secret; do
   secret_id=$(echo "$secret" | jq -r '.id')
   secret_name=$(echo "$secret" | jq -r '.name')
+  secret_state=$(echo "$secret" | jq -r '.state')
+  
+  # Skip if not ACTIVE
+  if [ "$secret_state" != "ACTIVE" ]; then
+    continue
+  fi
   
   # Skip if doesn't match our prefix
   if [[ ! "$secret_name" =~ ^${SECRET_PREFIX} ]]; then
