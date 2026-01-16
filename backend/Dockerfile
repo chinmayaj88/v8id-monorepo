@@ -57,11 +57,10 @@ FROM node:22-alpine AS production
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
-# Install pnpm, Prisma CLI, and create non-root user
+# Install pnpm and create non-root user
 RUN npm install -g pnpm@9 && \
-  pnpm add -g prisma && \
-  addgroup -S nodejs && \
-  adduser -S nodejs -G nodejs
+    addgroup -S nodejs && \
+    adduser -S nodejs -G nodejs
 
 WORKDIR /app
 
@@ -74,6 +73,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy backend manifests
 # -------------------------
 COPY backend/package.json ./backend/
+COPY backend/prisma.config.ts ./backend/
 
 # -------------------------
 # Install production dependencies only
@@ -104,7 +104,7 @@ EXPOSE 4000
 # Healthcheck
 # -------------------------
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:4000/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
+    CMD node -e "require('http').get('http://localhost:4000/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 # -------------------------
 # Start app
