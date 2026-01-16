@@ -14,7 +14,7 @@ async function main() {
   // Validate critical environment variables
   try {
     validateEnvironment(configService);
-    console.log('✅ Environment variables validated');
+    console.log('✅ Environment variables validated successfully');
   } catch (error) {
     console.error(
       '❌ Environment validation failed:',
