@@ -107,6 +107,7 @@ jobs:
           echo "[DEBUG] DATABASE_URL is set: ${DATABASE_URL:+yes}"
 
           docker run --rm \
+            --network host \
             -e DATABASE_URL="$DATABASE_URL" \
             -e NODE_ENV=production \
             "$IMAGE" \
