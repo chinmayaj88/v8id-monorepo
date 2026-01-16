@@ -89,12 +89,8 @@ jobs:
           bash "$SCRIPT_DIR/load-vault-secrets.sh" > /tmp/.env.vault
 
           echo "[INFO] Running Prisma migrations"
-          # Source env file to get DATABASE_URL (temporarily disable unbound variable check)
-          set +u
-          set -a
-          source /tmp/.env.vault
-          set +a
-          set -u
+          # Export variables from the env file for the migration step
+          export $(grep -v '^#' /tmp/.env.vault | xargs -d '\n')
 
           docker run --rm \
             --network host \

@@ -91,8 +91,9 @@ echo "$secrets" | jq -c '.[]' | while read -r secret; do
   # Export the environment variable
   export "$env_var_name=$secret_value"
   
-  # Output in KEY=VALUE format for Docker --env-file compatibility (use single quotes for bash safety)
-  echo "$env_var_name='$secret_value'"
+  # Output in KEY=VALUE format for Docker --env-file compatibility
+  # DO NOT use quotes here, as Docker reads them literally into the variable value.
+  echo "$env_var_name=$secret_value"
 done
 
 echo "✅ Successfully loaded secrets from OCI Vault" >&2
