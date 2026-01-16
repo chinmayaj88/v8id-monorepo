@@ -97,7 +97,7 @@ jobs:
             --env-file /tmp/.env.vault \
             -e NODE_ENV=production \
             "$IMAGE" \
-            sh -c "npx prisma migrate deploy --schema=prisma/schema.prisma"
+            sh -c 'npx prisma migrate deploy --schema=prisma/schema.prisma --url="$DATABASE_URL"'
 
           echo "[INFO] Starting backend container"
           docker run -d \
