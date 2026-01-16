@@ -75,6 +75,9 @@ jobs:
           echo "[INFO] Setting up deployment environment"
           cd /opt/v8id-cloud
 
+          echo "[INFO] Logging in to Docker Hub"
+          echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
           echo "[INFO] Pulling latest image"
           docker pull "$IMAGE"
 
