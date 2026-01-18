@@ -40,16 +40,14 @@ fun FoldersScreen(navController: NavHostController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(V8idColors.UI.Background)
     ) {
-        // Background Image
+        // Full Screen Background (bg2.jpg) - No blur, same as Home
         Image(
-            painter = painterResource(id = R.drawable.bg1),
+            painter = painterResource(id = R.drawable.bg2),
             contentDescription = "Background",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(0.05f)
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
         )
 
         LazyColumn(
@@ -70,7 +68,7 @@ fun FoldersScreen(navController: NavHostController) {
                         text = "Folders",
                         fontSize = 28.sp,
                         fontWeight = FontWeight.Bold,
-                        color = V8idColors.Purple.DarkNavy
+                        color = V8idColors.UI.TextPrimary
                     )
                     IconButton(onClick = { /* Create folder */ }) {
                         Icon(
@@ -95,8 +93,8 @@ private fun FolderItemCard(folder: FolderData) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 4.dp
+        color = V8idColors.UI.Surface,
+        shadowElevation = 2.dp
     ) {
         Row(
             modifier = Modifier
@@ -109,7 +107,7 @@ private fun FolderItemCard(folder: FolderData) {
             Surface(
                 modifier = Modifier.size(56.dp),
                 shape = RoundedCornerShape(12.dp),
-                color = V8idColors.Purple.SubtlePurpleTint
+                color = V8idColors.UI.SearchBackground
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -130,13 +128,13 @@ private fun FolderItemCard(folder: FolderData) {
                     text = folder.name,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = V8idColors.Purple.DarkNavy
+                    color = V8idColors.UI.TextPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${folder.itemCount} items • ${folder.size}",
                     fontSize = 13.sp,
-                    color = V8idColors.Purple.Indigo
+                    color = V8idColors.UI.TextSecondary
                 )
             }
 
@@ -145,7 +143,7 @@ private fun FolderItemCard(folder: FolderData) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "More",
-                    tint = V8idColors.Purple.Indigo
+                    tint = V8idColors.UI.IconTint
                 )
             }
         }
