@@ -113,14 +113,12 @@ fun HomeScreen(
             .fillMaxSize()
             .background(V8idColors.UI.Background)
     ) {
-        // Subtle Background
+        // Full Screen Background (bg2.jpg)
         Image(
-            painter = painterResource(id = R.drawable.bg1),
+            painter = painterResource(id = R.drawable.bg2),
             contentDescription = "Background",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(0.03f)
+            contentScale = ContentScale.FillBounds, // Fill bounds to fit perfectly without cropping
+            modifier = Modifier.fillMaxSize()
         )
 
         LazyColumn(
