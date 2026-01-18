@@ -37,6 +37,8 @@ dependencies {
     
     // Feature modules
     implementation(project(":feature:auth"))
+    implementation(project(":feature:home"))
+
     
     // Compose
     implementation(platform(libs.androidx.compose.bom))

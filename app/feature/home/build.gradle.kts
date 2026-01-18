@@ -59,4 +59,10 @@ dependencies {
     
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+    
+    // Retrofit (needed for Response type in ViewModels)
+    implementation(libs.retrofit)
+    
+    // Gson (needed for error parsing in ViewModels)
+    implementation(libs.gson)
 }
