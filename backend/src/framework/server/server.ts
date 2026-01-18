@@ -15,7 +15,6 @@ export class Server {
       this.app = await createApp();
 
       // Start server on all network interfaces (0.0.0.0)
-      // This allows connections from Android emulator (10.0.2.2) and physical devices
       this.app.listen(port, '0.0.0.0', () => {
         console.log(`🚀 Server running on http://localhost:${port}`);
       });
@@ -25,4 +24,3 @@ export class Server {
     }
   }
 }
-
