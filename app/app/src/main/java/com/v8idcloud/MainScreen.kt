@@ -22,6 +22,7 @@ fun MainScreen(
     val currentRoute = navBackStackEntry?.destination?.route ?: "home"
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent, // Ensure Scaffold doesn't have a background
         bottomBar = {
             V8idBottomNavigationBar(
                 currentRoute = currentRoute,
@@ -40,7 +41,8 @@ fun MainScreen(
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
+        // Use Box to overlay content and let it expand behind the bottom bar
+        Box(modifier = Modifier.fillMaxSize()) {
             content()
         }
     }
