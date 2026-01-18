@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.v8idcloud.core.common.Constants
+import com.v8idcloud.core.common.security.CryptoManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -25,7 +26,8 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
  */
 @Singleton
 class StorageManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val cryptoManager: CryptoManager
 ) {
     private val dataStore = context.dataStore
     
@@ -45,41 +47,49 @@ class StorageManager @Inject constructor(
     // ============ TOKEN OPERATIONS ============
     
     suspend fun saveAccessToken(token: String) {
+        val encrypted = cryptoManager.encrypt(token)
         dataStore.edit { preferences ->
-            preferences[ACCESS_TOKEN] = token
+            preferences[ACCESS_TOKEN] = encrypted
         }
     }
     
-    fun getAccessToken(): Flow<String?> = dataStore.data.map { it[ACCESS_TOKEN] }
+    fun getAccessToken(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[ACCESS_TOKEN]?.let { cryptoManager.decrypt(it) }
+    }
     
     suspend fun getAccessTokenSync(): String? = getAccessToken().first()
     
     suspend fun saveRefreshToken(token: String) {
+        val encrypted = cryptoManager.encrypt(token)
         dataStore.edit { preferences ->
-            preferences[REFRESH_TOKEN] = token
+            preferences[REFRESH_TOKEN] = encrypted
         }
     }
     
-    fun getRefreshToken(): Flow<String?> = dataStore.data.map { it[REFRESH_TOKEN] }
+    fun getRefreshToken(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[REFRESH_TOKEN]?.let { cryptoManager.decrypt(it) }
+    }
     
     suspend fun saveSessionId(sessionId: String) {
+        val encrypted = cryptoManager.encrypt(sessionId)
         dataStore.edit { preferences ->
-            preferences[SESSION_ID] = sessionId
+            preferences[SESSION_ID] = encrypted
         }
     }
     
     suspend fun getSessionIdSync(): String? = dataStore.data
-        .map { it[SESSION_ID] }
+        .map { preferences -> preferences[SESSION_ID]?.let { cryptoManager.decrypt(it) } }
         .first()
     
     suspend fun saveTempToken(token: String) {
+        val encrypted = cryptoManager.encrypt(token)
         dataStore.edit { preferences ->
-            preferences[TEMP_TOKEN] = token
+            preferences[TEMP_TOKEN] = encrypted
         }
     }
     
     suspend fun getTempTokenSync(): String? = dataStore.data
-        .map { it[TEMP_TOKEN] }
+        .map { preferences -> preferences[TEMP_TOKEN]?.let { cryptoManager.decrypt(it) } }
         .first()
     
     suspend fun clearTempToken() {
@@ -91,35 +101,45 @@ class StorageManager @Inject constructor(
     // ============ USER OPERATIONS ============
     
     suspend fun saveUserId(userId: String) {
+        val encrypted = cryptoManager.encrypt(userId)
         dataStore.edit { preferences ->
-            preferences[USER_ID] = userId
+            preferences[USER_ID] = encrypted
         }
     }
     
-    fun getUserId(): Flow<String?> = dataStore.data.map { it[USER_ID] }
+    fun getUserId(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_ID]?.let { cryptoManager.decrypt(it) }
+    }
     
     suspend fun saveUserEmail(email: String) {
+        val encrypted = cryptoManager.encrypt(email)
         dataStore.edit { preferences ->
-            preferences[USER_EMAIL] = email
+            preferences[USER_EMAIL] = encrypted
         }
     }
     
-    fun getUserEmail(): Flow<String?> = dataStore.data.map { it[USER_EMAIL] }
+    fun getUserEmail(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_EMAIL]?.let { cryptoManager.decrypt(it) }
+    }
     
     suspend fun getUserEmailSync(): String? = getUserEmail().first()
     
-    fun getUserFirstName(): Flow<String?> = dataStore.data.map { it[USER_FIRST_NAME] }
+    fun getUserFirstName(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_FIRST_NAME]?.let { cryptoManager.decrypt(it) }
+    }
     
     suspend fun getUserFirstNameSync(): String? = getUserFirstName().first()
     
-    fun getUserLastName(): Flow<String?> = dataStore.data.map { it[USER_LAST_NAME] }
+    fun getUserLastName(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_LAST_NAME]?.let { cryptoManager.decrypt(it) }
+    }
     
     suspend fun getUserLastNameSync(): String? = getUserLastName().first()
     
     suspend fun saveUserFirstName(firstName: String?) {
         dataStore.edit { preferences ->
             if (firstName != null) {
-                preferences[USER_FIRST_NAME] = firstName
+                preferences[USER_FIRST_NAME] = cryptoManager.encrypt(firstName)
             } else {
                 preferences.remove(USER_FIRST_NAME)
             }
@@ -129,7 +149,7 @@ class StorageManager @Inject constructor(
     suspend fun saveUserLastName(lastName: String?) {
         dataStore.edit { preferences ->
             if (lastName != null) {
-                preferences[USER_LAST_NAME] = lastName
+                preferences[USER_LAST_NAME] = cryptoManager.encrypt(lastName)
             } else {
                 preferences.remove(USER_LAST_NAME)
             }
@@ -138,10 +158,10 @@ class StorageManager @Inject constructor(
     
     suspend fun saveUserInfo(userId: String, email: String, firstName: String?, lastName: String?) {
         dataStore.edit { preferences ->
-            preferences[USER_ID] = userId
-            preferences[USER_EMAIL] = email
-            firstName?.let { preferences[USER_FIRST_NAME] = it }
-            lastName?.let { preferences[USER_LAST_NAME] = it }
+            preferences[USER_ID] = cryptoManager.encrypt(userId)
+            preferences[USER_EMAIL] = cryptoManager.encrypt(email)
+            firstName?.let { preferences[USER_FIRST_NAME] = cryptoManager.encrypt(it) }
+            lastName?.let { preferences[USER_LAST_NAME] = cryptoManager.encrypt(it) }
         }
     }
     
