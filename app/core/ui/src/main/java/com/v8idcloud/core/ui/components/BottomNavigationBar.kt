@@ -21,6 +21,7 @@ import com.v8idcloud.core.ui.theme.V8idColors
 /**
  * Bottom Navigation Bar
  * Matches Dropbox-style design with black capsule background
+ * Made transparent and floating to blend with screen background
  */
 @Composable
 fun V8idBottomNavigationBar(
@@ -28,20 +29,22 @@ fun V8idBottomNavigationBar(
     onTabSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    // Outer surface is completely transparent to blend with screen
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 8.dp),
-        color = Color.Transparent
+            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+        contentAlignment = Alignment.BottomCenter
     ) {
+        // Floating Capsule for the actual bar
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp),
-            color = V8idColors.UI.BottomNavBackground,
-            shape = RoundedCornerShape(30.dp),
-            shadowElevation = 8.dp
+                .height(64.dp),
+            color = Color(0xFF121212).copy(alpha = 0.9f), // Dark semi-transparent capsule
+            shape = RoundedCornerShape(32.dp),
+            shadowElevation = 0.dp // Remove shadow to avoid line/border appearance
         ) {
             Row(
                 modifier = Modifier
@@ -56,21 +59,21 @@ fun V8idBottomNavigationBar(
                     isSelected = currentRoute == "home",
                     onClick = { onTabSelected("home") }
                 )
-                
+
                 // Folders
                 NavIcon(
                     icon = Icons.Outlined.Folder,
                     isSelected = currentRoute == "folders",
                     onClick = { onTabSelected("folders") }
                 )
-                
+
                 // Add button (FAB)
                 Surface(
                     modifier = Modifier
                         .size(48.dp)
                         .clickable { /* Add action */ },
                     shape = CircleShape,
-                    color = V8idColors.UI.ButtonBlue,
+                    color = Color(0xFF4285F4), // Material Blue
                     shadowElevation = 4.dp
                 ) {
                     Box(
@@ -85,14 +88,14 @@ fun V8idBottomNavigationBar(
                         )
                     }
                 }
-                
+
                 // Messages/Vault
                 NavIcon(
                     icon = Icons.Outlined.Lock,
                     isSelected = currentRoute == "vault",
                     onClick = { onTabSelected("vault") }
                 )
-                
+
                 // Profile
                 NavIcon(
                     icon = Icons.Outlined.Person,
@@ -111,20 +114,20 @@ private fun NavIcon(
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) {
-        V8idColors.White
+        Color.White
     } else {
         Color.Transparent
     }
-    
+
     val iconColor = if (isSelected) {
-        V8idColors.UI.BottomNavBackground
+        Color.Black
     } else {
-        V8idColors.White
+        Color.White.copy(alpha = 0.7f)
     }
-    
+
     Surface(
         modifier = Modifier
-            .size(40.dp)
+            .size(42.dp)
             .clickable(onClick = onClick),
         shape = CircleShape,
         color = backgroundColor
@@ -142,9 +145,3 @@ private fun NavIcon(
         }
     }
 }
-
-data class TabItem(
-    val route: String,
-    val label: String,
-    val icon: ImageVector
-)
