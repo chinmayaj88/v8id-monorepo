@@ -58,6 +58,29 @@ object V8idColors {
         val SubtlePurpleTint = Color(0xFFFAF5FF) // Input backgrounds
     }
     
+    // Gradient Colors (matching brand gradient)
+    object Gradient {
+        val LightLavender = Color(0xFFE0C5FC) // Gradient start
+        val VibrantPurple = Color(0xFFA855F7) // Gradient mid-light
+        val RoyalBlue = Color(0xFF6366F1) // Gradient mid-dark
+        val DeepNavy = Color(0xFF2D1B69) // Gradient end
+    }
+    
+    // UI Colors (for modern interface)
+    object UI {
+        val Background = Color(0xFFFAFAFA) // Light gray background
+        val Surface = Color(0xFFFFFFFF) // White surface
+        val TextPrimary = Color(0xFF1A1A1A) // Dark text
+        val TextSecondary = Color(0xFF666666) // Gray text
+        val TextTertiary = Color(0xFF999999) // Light gray text
+        val IconTint = Color(0xFF999999) // Icon color
+        val SearchBackground = Color(0xFFF5F5F5) // Search/input backgrounds
+        val ProfileGreen = Color(0xFFB4F8C8) // Profile avatar background
+        val ProfileGreenDark = Color(0xFF2E7D32) // Profile icon color
+        val BottomNavBackground = Color(0xFF1A1A1A) // Bottom nav dark background
+        val ButtonBlue = Color(0xFF4285F4) // FAB button blue
+    }
+    
     // Semantic Colors
     object Semantic {
         val Error = Color(0xFFBA1A1A)
