@@ -51,11 +51,16 @@ fun VaultScreen(navController: NavHostController) {
                 .alpha(0.05f)
         )
 
+        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(20.dp),
-            contentPadding = PaddingValues(vertical = 16.dp),
+            contentPadding = PaddingValues(
+                top = 16.dp + statusBarHeight,
+                bottom = 16.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Header

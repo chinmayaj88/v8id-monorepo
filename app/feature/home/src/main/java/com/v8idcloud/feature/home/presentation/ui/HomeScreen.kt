@@ -121,11 +121,16 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize()
         )
 
+        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = dynamicPadding),
-            contentPadding = PaddingValues(vertical = dynamicVerticalSpacing),
+            contentPadding = PaddingValues(
+                top = dynamicVerticalSpacing + statusBarHeight,
+                bottom = dynamicVerticalSpacing
+            ),
             verticalArrangement = Arrangement.spacedBy(dynamicVerticalSpacing)
         ) {
             // Header with Profile and Notification

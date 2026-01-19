@@ -65,10 +65,12 @@ fun UserScreen(
                 .alpha(0.05f)
         )
 
+        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp),
+                .padding(start = 20.dp, top = 20.dp + statusBarHeight, end = 20.dp, bottom = 20.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // Header

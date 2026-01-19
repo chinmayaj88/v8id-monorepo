@@ -50,11 +50,16 @@ fun FoldersScreen(navController: NavHostController) {
             modifier = Modifier.fillMaxSize()
         )
 
+        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(vertical = 16.dp),
+            contentPadding = PaddingValues(
+                top = 16.dp + statusBarHeight,
+                bottom = 16.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Header
