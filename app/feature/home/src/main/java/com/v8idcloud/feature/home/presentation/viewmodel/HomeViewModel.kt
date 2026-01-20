@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import javax.inject.Inject
 import com.v8idcloud.core.data.network.FileApiService
+import com.v8idcloud.core.data.network.UserApiService
 import com.v8idcloud.core.common.FileItem
 import com.v8idcloud.core.common.FolderData
 import com.v8idcloud.core.common.SearchSuggestion
@@ -25,14 +26,24 @@ import com.v8idcloud.core.common.formatTimeAgo
 import com.v8idcloud.core.ui.utils.UiUtils
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Folder
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import android.net.Uri
+import android.content.Context
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authApiService: AuthApiService,
     private val fileApiService: FileApiService,
+    private val userApiService: UserApiService,
     private val storageManager: StorageManager,
     private val configProvider: com.v8idcloud.core.common.ConfigProvider
 ) : ViewModel() {
+    
+    companion object {
+        private const val TAG = "HomeViewModel"
+    }
     
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -73,6 +84,12 @@ class HomeViewModel @Inject constructor(
         initialValue = null
     )
     
+    val userAvatarUrl: StateFlow<String?> = storageManager.getUserAvatarUrl().stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+    
     init {
         loadDashboardData()
     }
@@ -96,10 +113,41 @@ class HomeViewModel @Inject constructor(
                 val data = response.data
                 _dashboardData.value = data
                 
+                // Also sync user profile to ensure avatar and names are up to date
+                syncUserProfile()
+                
                 updateUiState()
             } catch (e: Exception) {
+                android.util.Log.e(TAG, "Failed to load dashboard", e)
                 _uiState.value = HomeUiState.Error(e.message ?: "Failed to load dashboard")
             }
+        }
+    }
+
+    /**
+     * Sync user profile from backend to local storage
+     */
+    private suspend fun syncUserProfile() {
+        try {
+            android.util.Log.d(TAG, "Syncing user profile...")
+            val response = userApiService.getCurrentUser()
+            if (response.success && response.data != null) {
+                val user = response.data!!
+                android.util.Log.d(TAG, "Profile synced successfully: $user")
+                android.util.Log.d(TAG, "SYNC - Email: ${user.email}, Avatar: ${user.avatarUrl}")
+                
+                storageManager.saveUserInfo(
+                    userId = user.id,
+                    email = user.email,
+                    firstName = user.firstName,
+                    lastName = user.lastName,
+                    avatarUrl = user.avatarUrl
+                )
+            } else {
+                android.util.Log.e(TAG, "Failed to sync profile: ${response.message}")
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Error syncing user profile", e)
         }
     }
 
@@ -268,6 +316,47 @@ class HomeViewModel @Inject constructor(
                 _shareEvent.value = ShareEvent(url = fullUrl)
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Share error", e)
+            }
+        }
+    }
+
+    /**
+     * Update user profile (name and avatar)
+     */
+    fun updateProfile(context: Context, firstName: String?, lastName: String?, avatarUri: Uri?, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                android.util.Log.d(TAG, "Updating profile: $firstName $lastName, hasAvatar: ${avatarUri != null}")
+                
+                val avatarPart = avatarUri?.let { UiUtils.prepareFilePart(context, "avatar", it) }
+                val firstNamePart = firstName?.toRequestBody("text/plain".toMediaTypeOrNull())
+                val lastNamePart = lastName?.toRequestBody("text/plain".toMediaTypeOrNull())
+                
+                val response = userApiService.updateProfile(
+                    avatar = avatarPart,
+                    firstName = firstNamePart,
+                    lastName = lastNamePart
+                )
+                
+                if (response.success && response.data != null) {
+                    val user = response.data!!
+                    android.util.Log.d(TAG, "Profile updated successfully. New avatar: ${user.avatarUrl}")
+                    
+                    // Update local storage
+                    storageManager.saveUserInfo(
+                        userId = user.id,
+                        email = user.email,
+                        firstName = user.firstName,
+                        lastName = user.lastName,
+                        avatarUrl = user.avatarUrl
+                    )
+                    
+                    onSuccess()
+                } else {
+                    android.util.Log.e(TAG, "Profile update failed: ${response.message}")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Error updating profile", e)
             }
         }
     }

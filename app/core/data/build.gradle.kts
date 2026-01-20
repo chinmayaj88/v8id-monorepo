@@ -45,4 +45,7 @@ dependencies {
     
     // DataStore for storage (like AsyncStorage)
     implementation(libs.androidx.datastore.preferences)
+    
+    // Coil for ImageLoader
+    implementation(libs.coil.compose)
 }

@@ -15,7 +15,9 @@ import com.v8idcloud.feature.home.presentation.viewmodel.HomeViewModel
 import com.v8idcloud.feature.home.presentation.ui.HomeScreen
 import com.v8idcloud.feature.folders.presentation.ui.FoldersScreen
 import com.v8idcloud.feature.user.presentation.ui.UserScreen
+import com.v8idcloud.feature.user.presentation.ui.EditProfileScreen
 import com.v8idcloud.feature.vault.presentation.ui.VaultScreen
+import coil.ImageLoader
 
 /**
  * App Navigation Graph
@@ -25,7 +27,8 @@ import com.v8idcloud.feature.vault.presentation.ui.VaultScreen
 fun AppNavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = "auth/login",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    imageLoader: ImageLoader? = null
 ) {
     NavHost(
         navController = navController,
@@ -85,8 +88,13 @@ fun AppNavGraph(
         composable("user") {
             val homeViewModel: HomeViewModel = hiltViewModel()
             MainScreen(navController = navController) {
-                UserScreen(navController = navController, viewModel = homeViewModel)
+                UserScreen(navController = navController, viewModel = homeViewModel, imageLoader = imageLoader)
             }
+        }
+
+        composable("user/edit") {
+            val homeViewModel: HomeViewModel = hiltViewModel()
+            EditProfileScreen(navController = navController, viewModel = homeViewModel)
         }
         
         composable("vault") {

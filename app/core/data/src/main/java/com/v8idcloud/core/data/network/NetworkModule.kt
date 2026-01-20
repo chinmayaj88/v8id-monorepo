@@ -1,5 +1,8 @@
 package com.v8idcloud.core.data.network
 
+import android.content.Context
+import coil.ImageLoader
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.v8idcloud.core.common.ConfigProvider
 import com.v8idcloud.core.common.Constants
 import dagger.Module
@@ -34,6 +37,14 @@ object NetworkModule {
             .writeTimeout(Constants.API_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .build()
     }
+
+    @Provides
+    @Singleton
+    @javax.inject.Named("image")
+    fun provideImageOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
     
     @Provides
     @Singleton
@@ -46,10 +57,6 @@ object NetworkModule {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
     
-    /**
-     * Provide AuthApiService
-     * Similar to: const api = axios.create({ baseURL: '...' })
-     */
     @Provides
     @Singleton
     fun provideAuthApiService(retrofit: Retrofit): AuthApiService =
@@ -59,4 +66,20 @@ object NetworkModule {
     @Singleton
     fun provideFileApiService(retrofit: Retrofit): FileApiService =
         retrofit.create(FileApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUserApiService(retrofit: Retrofit): UserApiService =
+        retrofit.create(UserApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideImageLoader(
+        @ApplicationContext context: Context,
+        @javax.inject.Named("image") okHttpClient: OkHttpClient
+    ): ImageLoader = ImageLoader.Builder(context)
+        .okHttpClient { okHttpClient }
+        .crossfade(true)
+        .build()
 }
+

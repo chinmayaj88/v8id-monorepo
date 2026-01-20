@@ -100,6 +100,13 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     
+    // Coil
+    implementation(libs.coil.compose)
+    
+    // OkHttp
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
+    
     // Navigation
     implementation(libs.navigation.compose)
     

@@ -41,6 +41,7 @@ class StorageManager @Inject constructor(
         val USER_EMAIL = stringPreferencesKey("user_email")
         val USER_FIRST_NAME = stringPreferencesKey("user_first_name")
         val USER_LAST_NAME = stringPreferencesKey("user_last_name")
+        val USER_AVATAR_URL = stringPreferencesKey("user_avatar_url")
         val REMEMBER_ME = booleanPreferencesKey("remember_me")
     }
 
@@ -138,6 +139,12 @@ class StorageManager @Inject constructor(
 
     suspend fun getUserLastNameSync(): String? = getUserLastName().first()
 
+    fun getUserAvatarUrl(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_AVATAR_URL]?.let { cryptoManager.decrypt(it) }
+    }
+
+    suspend fun getUserAvatarUrlSync(): String? = getUserAvatarUrl().first()
+
     suspend fun saveUserFirstName(firstName: String?) {
         dataStore.edit { preferences ->
             if (firstName != null) {
@@ -158,12 +165,23 @@ class StorageManager @Inject constructor(
         }
     }
 
-    suspend fun saveUserInfo(userId: String, email: String, firstName: String?, lastName: String?) {
+    suspend fun saveUserAvatarUrl(avatarUrl: String?) {
+        dataStore.edit { preferences ->
+            if (avatarUrl != null) {
+                preferences[USER_AVATAR_URL] = cryptoManager.encrypt(avatarUrl)
+            } else {
+                preferences.remove(USER_AVATAR_URL)
+            }
+        }
+    }
+
+    suspend fun saveUserInfo(userId: String, email: String, firstName: String?, lastName: String?, avatarUrl: String? = null) {
         dataStore.edit { preferences ->
             preferences[USER_ID] = cryptoManager.encrypt(userId)
             preferences[USER_EMAIL] = cryptoManager.encrypt(email)
             firstName?.let { preferences[USER_FIRST_NAME] = cryptoManager.encrypt(it) }
             lastName?.let { preferences[USER_LAST_NAME] = cryptoManager.encrypt(it) }
+            avatarUrl?.let { preferences[USER_AVATAR_URL] = cryptoManager.encrypt(it) }
         }
     }
 
@@ -184,6 +202,7 @@ class StorageManager @Inject constructor(
             preferences.remove(USER_EMAIL)
             preferences.remove(USER_FIRST_NAME)
             preferences.remove(USER_LAST_NAME)
+            preferences.remove(USER_AVATAR_URL)
         }
     }
 }

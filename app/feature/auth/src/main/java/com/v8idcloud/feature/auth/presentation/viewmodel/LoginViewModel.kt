@@ -64,7 +64,8 @@ class LoginViewModel @Inject constructor(
                             userId = data.user.id,
                             email = data.user.email,
                             firstName = data.user.firstName,
-                            lastName = data.user.lastName
+                            lastName = data.user.lastName,
+                            avatarUrl = data.user.avatarUrl
                         )
                         
                         // Navigate to TOTP screen
