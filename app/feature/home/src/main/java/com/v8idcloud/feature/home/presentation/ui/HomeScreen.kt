@@ -50,6 +50,10 @@ import com.v8idcloud.feature.home.presentation.viewmodel.HomeViewModel
 import com.v8idcloud.core.ui.R
 import com.v8idcloud.feature.home.presentation.viewmodel.SearchSuggestion
 import com.v8idcloud.feature.home.presentation.viewmodel.SuggestionType
+import androidx.compose.ui.text.style.TextAlign
+import com.v8idcloud.feature.home.presentation.viewmodel.FileItem
+import com.v8idcloud.feature.home.presentation.viewmodel.FolderData
+import com.v8idcloud.feature.home.presentation.viewmodel.HomeUiState
 import kotlin.math.roundToInt
 
 @Composable
@@ -67,10 +71,11 @@ fun HomeScreen(
     val dynamicIconSize = (screenWidth / 8.5).dp.coerceIn(40.dp, 52.dp)
     val dynamicFolderIconSize = (screenWidth / 7).dp.coerceIn(48.dp, 60.dp)
 
+    val uiState by viewModel.uiState.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
     val userEmailFlow by viewModel.userEmail.collectAsState()
     val userFirstNameFlow by viewModel.userFirstName.collectAsState()
     val userLastNameFlow by viewModel.userLastName.collectAsState()
-    val searchResults by viewModel.searchResults.collectAsState()
 
     // State for tracking which file card is currently swiped/revealed
     var revealedFileId by remember { mutableStateOf<String?>(null) }
@@ -88,29 +93,8 @@ fun HomeScreen(
         }.takeIf { it.isNotBlank() } ?: userEmail
     }
 
-    // Mock data for cloud storage
-    val storageUsed = 37.5f // GB
-    val storageTotal = 50f // GB
-    val storagePercentage = (storageUsed / storageTotal) * 100f
+    // Mock data for cloud storage (Removed and replaced by UI State)
 
-    val recentFiles = remember {
-        listOf(
-            FileItem("Passport_Scan.pdf", "2.5 MB", "2 hours ago", Icons.Default.Description),
-            FileItem("Family_Photo.jpg", "5.1 MB", "Yesterday", Icons.Default.Image),
-            FileItem("Budget_2024.xlsx", "1.2 MB", "3 days ago", Icons.Default.TableChart),
-            FileItem("Tutorial_Video.mp4", "250 MB", "1 week ago", Icons.Default.VideoFile),
-            FileItem("Project_Notes.txt", "45 KB", "2 weeks ago", Icons.Default.Note)
-        )
-    }
-
-    val folders = remember {
-        listOf(
-            FolderData("My Backup", "50.5 GB", Icons.Outlined.Backup, Color(0xFFFF6B6B)),
-            FolderData("Videos", "10.5 GB", Icons.Outlined.VideoLibrary, Color(0xFF4ECDC4)),
-            FolderData("Projects", "600 MB", Icons.Outlined.Folder, Color(0xFFFFBE0B)),
-            FolderData("Photos", "12.5 GB", Icons.Outlined.Photo, Color(0xFF95E1D3))
-        )
-    }
 
     Box(
         modifier = Modifier
@@ -141,7 +125,8 @@ fun HomeScreen(
             item {
                 ProfileHeader(
                     userName = firstName.takeIf { it.isNotBlank() } ?: userName,
-                    storagePercentage = storagePercentage
+                    storagePercentage = if (uiState is HomeUiState.Loaded) (uiState as HomeUiState.Loaded).storageUsedPercentage else 0f,
+                    onLogout = { viewModel.logout(onLogoutSuccess = { navController.navigate("auth/login") { popUpTo(0) } }) }
                 )
             }
 
@@ -154,41 +139,78 @@ fun HomeScreen(
             item {
                 SearchBar(
                     onSearch = { viewModel.search(it) },
-                    searchResults = searchResults
+                    searchResults = searchResults,
+                    onSuggestionClick = { suggestion ->
+                        if (suggestion.type == SuggestionType.FOLDER) {
+                            navController.navigate("folders/${suggestion.id}")
+                        } else {
+                            // File preview could be handled here
+                        }
+                    }
                 )
             }
 
-            // Quick Access Card (Purple card with folders distributed evenly)
-            item {
-                QuickAccessCard(
-                    folders = folders,
-                    iconSize = dynamicFolderIconSize
-                )
-            }
+            if (uiState is HomeUiState.Loaded) {
+                val state = uiState as HomeUiState.Loaded
+                
+                // Quick Access Card
+                item {
+                    QuickAccessCard(
+                        folders = state.folders,
+                        iconSize = dynamicFolderIconSize
+                    )
+                }
 
-            // File Count Chip
-            item {
-                FileSummaryChip(fileCount = 420, folderCount = 6)
-            }
+                // File Count Chip
+                item {
+                    FileSummaryChip(fileCount = state.totalFiles, folderCount = state.totalFolders)
+                }
 
-            // Recent Files Section
-            item {
-                Text(
-                    text = "Recent Files",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1A1A)
-                )
-            }
+                // Recent Files Section
+                item {
+                    Text(
+                        text = "Recent Files",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1A1A1A)
+                    )
+                }
 
-            items(recentFiles, key = { it.name }) { file ->
-                RecentFileCard(
-                    file = file,
-                    iconSize = dynamicIconSize,
-                    isRevealed = revealedFileId == file.name,
-                    onExpand = { revealedFileId = file.name },
-                    onCollapse = { if (revealedFileId == file.name) revealedFileId = null }
-                )
+                items(state.recentFiles, key = { it.id }) { file ->
+                    RecentFileCard(
+                        file = file,
+                        iconSize = dynamicIconSize,
+                        isRevealed = revealedFileId == file.id,
+                        onExpand = { revealedFileId = file.id },
+                        onCollapse = { if (revealedFileId == file.id) revealedFileId = null },
+                        onDownload = { viewModel.downloadFile(file.id) },
+                        onDelete = { viewModel.deleteFile(file.id) }
+                    )
+                }
+            } else if (uiState is HomeUiState.Loading) {
+                item {
+                   Box(modifier = Modifier.fillParentMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                       CircularProgressIndicator(color = V8idColors.Purple.VibrantPurple)
+                   }
+                }
+            } else if (uiState is HomeUiState.Error) {
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = V8idColors.Semantic.Error, modifier = Modifier.size(48.dp))
+                        Spacer(Modifier.height(16.dp))
+                        Text((uiState as HomeUiState.Error).message, color = V8idColors.UI.TextSecondary, textAlign = TextAlign.Center)
+                        Spacer(Modifier.height(16.dp))
+                        Button(
+                            onClick = { viewModel.loadDashboardData() },
+                            colors = ButtonDefaults.buttonColors(containerColor = V8idColors.Purple.VibrantPurple)
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
             }
         }
     }
@@ -234,7 +256,11 @@ private fun GradientHeading(screenWidth: Int) {
 }
 
 @Composable
-private fun ProfileHeader(userName: String, storagePercentage: Float) {
+private fun ProfileHeader(
+    userName: String, 
+    storagePercentage: Float,
+    onLogout: () -> Unit = {}
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -244,9 +270,8 @@ private fun ProfileHeader(userName: String, storagePercentage: Float) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Profile Photo
             Surface(
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(40.dp).clickable { onLogout() },
                 shape = CircleShape,
                 color = V8idColors.UI.ProfileGreen
             ) {
@@ -303,7 +328,8 @@ private fun SearchBar(
   hint: String = "Search files",
   searchResults: List<SearchSuggestion> = emptyList(),
   onSearch: (String) -> Unit = {},
-  onFilterClick: () -> Unit = {}
+  onFilterClick: () -> Unit = {},
+  onSuggestionClick: (SearchSuggestion) -> Unit = {}
 ) {
   var searchQuery by rememberSaveable { mutableStateOf("") }
 
@@ -410,11 +436,11 @@ private fun SearchBar(
 }
 
 @Composable
-fun SearchSuggestionItem(suggestion: SearchSuggestion) {
+fun SearchSuggestionItem(suggestion: SearchSuggestion, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* Handle click */ }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -588,7 +614,9 @@ private fun RecentFileCard(
     iconSize: Dp,
     isRevealed: Boolean,
     onExpand: () -> Unit,
-    onCollapse: () -> Unit
+    onCollapse: () -> Unit,
+    onDownload: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
     // Menu width - fixed to ensure it doesn't go "out of view"
     val menuWidth = 160.dp
@@ -619,7 +647,7 @@ private fun RecentFileCard(
         ) {
             ActionIconButton(icon = Icons.Outlined.Download, color = V8idColors.Purple.VibrantPurple) {
                 onCollapse()
-                /* Handle download */
+                onDownload()
             }
             ActionIconButton(icon = Icons.Outlined.Link, color = V8idColors.Purple.Indigo) {
                 onCollapse()
@@ -627,7 +655,7 @@ private fun RecentFileCard(
             }
             ActionIconButton(icon = Icons.Outlined.Delete, color = V8idColors.Semantic.Error) {
                 onCollapse()
-                /* Handle delete */
+                onDelete()
             }
         }
 
@@ -723,17 +751,4 @@ private fun ActionIconButton(icon: ImageVector, color: Color, onClick: () -> Uni
     }
 }
 
-// Data Classes
-data class FileItem(
-    val name: String,
-    val size: String,
-    val timeAgo: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
-)
 
-data class FolderData(
-    val name: String,
-    val size: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val iconColor: Color
-)

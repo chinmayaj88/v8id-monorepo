@@ -11,6 +11,9 @@ interface FileApiService {
         @Query("q") query: String,
         @Query("limit") limit: Int = 10
     ): FileApiResponse<UnifiedSearchResponseDto>
+
+    @GET("files/dashboard")
+    suspend fun getDashboardData(): FileApiResponse<DashboardResponseDto>
 }
 
 data class FileApiResponse<T>(
@@ -42,12 +45,31 @@ data class FileDto(
 data class FolderDto(
     val id: String,
     val name: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val color: String? = null
 )
 
 data class UnifiedSearchResponseDto(
     val results: List<SearchResultItemDto>,
     val total: Int
+)
+
+data class DashboardResponseDto(
+    val storage: StorageStatsDto,
+    val recentFiles: List<SearchResultItemDto>,
+    val folders: List<FolderDto>,
+    val stats: DashboardStatsDto
+)
+
+data class StorageStatsDto(
+    val total: Long,
+    val used: Long,
+    val percentage: Double
+)
+
+data class DashboardStatsDto(
+    val totalFiles: Int,
+    val totalFolders: Int
 )
 
 data class SearchResultItemDto(

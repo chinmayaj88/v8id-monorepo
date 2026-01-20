@@ -11,11 +11,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import javax.inject.Inject
 import com.v8idcloud.core.data.network.FileApiService
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.ui.graphics.Color
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -50,7 +53,77 @@ class HomeViewModel @Inject constructor(
     )
     
     init {
-        loadUserInfo()
+        loadDashboardData()
+    }
+
+    /**
+     * Load dashboard data (storage, recent files, folders)
+     */
+    fun loadDashboardData() {
+        viewModelScope.launch {
+            try {
+                // Keep the current loaded state if we are just refreshing
+                if (_uiState.value !is HomeUiState.Loaded) {
+                    _uiState.value = HomeUiState.Loading
+                }
+                
+                val response = fileApiService.getDashboardData()
+                val data = response.data
+                
+                val recentFiles = data.recentFiles.map { item ->
+                    FileItem(
+                        id = item.id,
+                        name = item.name,
+                        size = formatFileSize(item.size ?: 0),
+                        timeAgo = "Recently", 
+                        icon = getFileIcon(item.mimeType ?: ""),
+                        thumbnailUrl = item.thumbnailUrl
+                    )
+                }
+                
+                val folders = data.folders.map { folder ->
+                    FolderData(
+                        id = folder.id,
+                        name = folder.name,
+                        size = "", 
+                        icon = Icons.Outlined.Folder,
+                        iconColor = parseColor(folder.color)
+                    )
+                }
+                
+                _uiState.value = HomeUiState.Loaded(
+                    storageUsedPercentage = data.storage.percentage.toFloat(),
+                    storageUsedText = "${String.format("%.1f", data.storage.used / (1024.0 * 1024.0 * 1024.0))} GB used",
+                    recentFiles = recentFiles,
+                    folders = folders,
+                    totalFiles = data.stats.totalFiles,
+                    totalFolders = data.stats.totalFolders
+                )
+            } catch (e: Exception) {
+                _uiState.value = HomeUiState.Error(e.message ?: "Failed to load dashboard")
+            }
+        }
+    }
+
+    private fun parseColor(colorString: String?): Color {
+        return try {
+            if (colorString != null && colorString.startsWith("#")) {
+                Color(android.graphics.Color.parseColor(colorString))
+            } else {
+                Color(0xFF6B4EE6) // Default V8id purple
+            }
+        } catch (e: Exception) {
+            Color(0xFF6B4EE6)
+        }
+    }
+
+    private fun getFileIcon(mimeType: String): androidx.compose.ui.graphics.vector.ImageVector {
+        return when {
+            mimeType.startsWith("image/") -> Icons.Default.Image
+            mimeType.startsWith("video/") -> Icons.Default.VideoFile
+            mimeType.contains("pdf") -> Icons.Default.Description
+            else -> Icons.Default.InsertDriveFile
+        }
     }
 
     /**
@@ -64,7 +137,6 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // Use unified search endpoint
                 val response = fileApiService.unifiedSearch(query = query, limit = 8)
                 val results = response.data.results
 
@@ -79,8 +151,6 @@ class HomeViewModel @Inject constructor(
 
                 _searchResults.value = suggestions
             } catch (e: Exception) {
-                // Handle general error by clearing suggestions
-                // In production, might want to show error state in UI
                 _searchResults.value = emptyList()
             }
         }
@@ -98,24 +168,20 @@ class HomeViewModel @Inject constructor(
             else -> "$size B"
         }
     }
-    
+
     /**
-     * Load user information from storage
+     * File Actions
      */
-    private fun loadUserInfo() {
-        viewModelScope.launch {
-            try {
-                storageManager.getUserId().first()
-                _uiState.value = HomeUiState.Loaded
-            } catch (e: Exception) {
-                _uiState.value = HomeUiState.Error(e.message ?: "Failed to load user info")
-            }
-        }
+    fun downloadFile(fileId: String) {
+        // Implementation for downloading
     }
-    
+
+    fun deleteFile(fileId: String) {
+        // Implementation for deleting
+    }
+
     /**
      * Logout function
-     * Clears local auth data and optionally calls logout API
      */
     fun logout(onLogoutSuccess: () -> Unit) {
         viewModelScope.launch {
@@ -125,7 +191,6 @@ class HomeViewModel @Inject constructor(
                 val accessToken = storageManager.getAccessTokenSync()
                 val sessionId = storageManager.getSessionIdSync()
                 
-                // Attempt API logout if credentials available
                 if (accessToken != null && sessionId != null) {
                     runCatching {
                         authApiService.logout(
@@ -135,10 +200,8 @@ class HomeViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                // Log error but continue with logout
                 android.util.Log.e("HomeViewModel", "Logout error", e)
             } finally {
-                // Always clear local data regardless of API result
                 storageManager.clearAuthData()
                 _uiState.value = HomeUiState.LoggedOut
                 onLogoutSuccess()
@@ -149,11 +212,17 @@ class HomeViewModel @Inject constructor(
 
 /**
  * Home UI State
- * Sealed interface for type-safe state management
  */
 sealed interface HomeUiState {
     object Loading : HomeUiState
-    object Loaded : HomeUiState
+    data class Loaded(
+        val storageUsedPercentage: Float,
+        val storageUsedText: String,
+        val recentFiles: List<FileItem>,
+        val folders: List<FolderData>,
+        val totalFiles: Int,
+        val totalFolders: Int
+    ) : HomeUiState
     object LoggingOut : HomeUiState
     object LoggedOut : HomeUiState
     data class Error(val message: String) : HomeUiState
@@ -169,3 +238,20 @@ data class SearchSuggestion(
 enum class SuggestionType {
     FILE, FOLDER
 }
+
+data class FileItem(
+    val id: String,
+    val name: String,
+    val size: String,
+    val timeAgo: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val thumbnailUrl: String? = null
+)
+
+data class FolderData(
+    val id: String,
+    val name: String,
+    val size: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val iconColor: Color
+)
