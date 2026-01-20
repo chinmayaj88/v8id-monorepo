@@ -189,18 +189,49 @@ class HomeViewModel @Inject constructor(
                         val response = fileApiService.generateLink(fileId)
                         val linkData = response.data
                         
-                        // Construct full URL
-                        val fullUrl = if (linkData.linkUrl.startsWith("http")) {
+                        // Construct full URL and fix localhost for emulator
+                        var constructedUrl = if (linkData.linkUrl.startsWith("http")) {
                             linkData.linkUrl
                         } else {
                             "${configProvider.baseUrl.trimEnd('/')}${linkData.linkUrl}"
                         }
+                        
+                        // Fix URL host if backend returns localhost
+                        // This handles both Emulator (10.0.2.2) and Physical Device (192.168.x.x)
+                        // provided configProvider.baseUrl is set correctly in local.properties
+                        try {
+                            val baseUrlHost = java.net.URI(configProvider.baseUrl).host
+                            android.util.Log.d("HomeViewModel", "Base URL Host: $baseUrlHost")
+                            
+                            if (baseUrlHost != null && "localhost" !in baseUrlHost && "127.0.0.1" !in baseUrlHost) {
+                                constructedUrl = constructedUrl
+                                    .replace("localhost", baseUrlHost)
+                                    .replace("127.0.0.1", baseUrlHost)
+                            } else if (android.os.Build.FINGERPRINT.contains("generic")) {
+                                // Fallback for emulator if baseUrl is still localhost
+                                constructedUrl = constructedUrl
+                                    .replace("localhost", "10.0.2.2")
+                                    .replace("127.0.0.1", "10.0.2.2")
+                            }
+                        } catch (e: Exception) {
+                            // If URI parsing fails, ignore and use original
+                            android.util.Log.e("HomeViewModel", "Error parsing base URL", e)
+                        }
+                        
+                        val fullUrl = constructedUrl
+                        android.util.Log.d("HomeViewModel", "Download Request: URL=$fullUrl")
+
+                        // Get auth token for download request
+                        val authToken = storageManager.getAccessTokenSync()
+                        android.util.Log.d("HomeViewModel", "Auth Token present: ${authToken != null}")
 
                         // We will need a way to trigger the actual download from the UI
                         // For now, let's use a side effect or a simple Event
                         _downloadEvent.value = DownloadEvent(
                             url = fullUrl,
-                            fileName = fileItem?.name ?: "downloaded_file"
+                            fileName = fileItem?.name ?: "downloaded_file",
+                            mimeType = fileItem?.mimeType,
+                            authToken = authToken
                         )
                     }
                 }
@@ -289,7 +320,7 @@ sealed interface HomeUiState {
     data class Error(val message: String) : HomeUiState
 }
 
-data class DownloadEvent(val url: String, val fileName: String)
+data class DownloadEvent(val url: String, val fileName: String, val mimeType: String? = null, val authToken: String? = null)
 data class ShareEvent(val url: String)
 
 

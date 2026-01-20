@@ -64,11 +64,75 @@ fun HomeScreen(
     val downloadEvent by viewModel.downloadEvent.collectAsState()
     val shareEvent by viewModel.shareEvent.collectAsState()
 
-    // Handle Download Event
+    // State for Download Progress
+    var currentDownloadId by remember { mutableStateOf<Long?>(null) }
+    var downloadProgress by remember { mutableStateOf(0f) }
+    var isDownloadComplete by remember { mutableStateOf(false) }
+
+    // State for Download Permission
+    var fileToDownloadId by remember { mutableStateOf<String?>(null) }
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted && fileToDownloadId != null) {
+            viewModel.downloadFile(fileToDownloadId!!)
+            fileToDownloadId = null
+        } else {
+             // Optional: Show toast if permission denied
+        }
+    }
+    
+    // Handle Download Event and Start Download
     LaunchedEffect(downloadEvent) {
         downloadEvent?.let { event ->
-            com.v8idcloud.core.ui.utils.UiUtils.downloadFile(context, event.url, event.fileName)
+            val id = com.v8idcloud.core.ui.utils.UiUtils.downloadFile(
+                context = context, 
+                url = event.url, 
+                fileName = event.fileName, 
+                mimeType = event.mimeType,
+                authToken = event.authToken
+            )
+            
+            if (id != -1L) {
+                currentDownloadId = id
+                isDownloadComplete = false
+                downloadProgress = 0f
+            } else {
+                android.widget.Toast.makeText(context, "Failed to start download", android.widget.Toast.LENGTH_SHORT).show()
+            }
             viewModel.clearDownloadEvent()
+        }
+    }
+
+    // Poll Download Progress
+    LaunchedEffect(currentDownloadId) {
+        if (currentDownloadId != null) {
+            var polling = true
+            while (polling && currentDownloadId != null) {
+                val status = com.v8idcloud.core.ui.utils.UiUtils.getDownloadProgress(context, currentDownloadId!!)
+                
+                when (status.status) {
+                    android.app.DownloadManager.STATUS_SUCCESSFUL -> {
+                        isDownloadComplete = true
+                        downloadProgress = 1f
+                        polling = false
+                    }
+                    android.app.DownloadManager.STATUS_FAILED -> {
+                        currentDownloadId = null
+                        polling = false
+                        android.widget.Toast.makeText(context, "Download failed", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                    else -> {
+                        if (status.totalBytes > 0) {
+                            downloadProgress = status.bytesDownloaded.toFloat() / status.totalBytes.toFloat()
+                        }
+                    }
+                }
+                
+                if (polling) {
+                    kotlinx.coroutines.delay(500) // Poll every 500ms
+                }
+            }
         }
     }
 
@@ -84,6 +148,16 @@ fun HomeScreen(
             context.startActivity(shareIntent)
             viewModel.clearShareEvent()
         }
+    }
+
+    // Show Progress Dialog
+    if (currentDownloadId != null) {
+        com.v8idcloud.core.ui.components.DownloadProgressDialog(
+            fileName = "Downloading file...", // Could be improved if we stored the name
+            progress = downloadProgress,
+            isComplete = isDownloadComplete,
+            onDismiss = { currentDownloadId = null }
+        )
     }
 
     // Compute user name
@@ -226,7 +300,22 @@ fun HomeScreen(
                         isRevealed = revealedFileId == file.id,
                         onExpand = { revealedFileId = file.id },
                         onCollapse = { if (revealedFileId == file.id) revealedFileId = null },
-                        onDownload = { viewModel.downloadFile(file.id) },
+                        onDownload = { 
+                            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
+                                fileToDownloadId = file.id
+                                permissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                            } else if (android.os.Build.VERSION.SDK_INT >= 33) {
+                                // Android 13+ requires notification permission for download progress
+                                if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                                    fileToDownloadId = file.id
+                                    permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                } else {
+                                    viewModel.downloadFile(file.id)
+                                }
+                            } else {
+                                viewModel.downloadFile(file.id)
+                            }
+                        },
                         onDelete = { viewModel.deleteFile(file.id) },
                         onShare = { viewModel.shareFile(file.id) }
                     )

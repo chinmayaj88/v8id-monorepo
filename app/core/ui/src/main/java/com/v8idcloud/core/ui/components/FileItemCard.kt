@@ -66,37 +66,44 @@ fun FileItemCard(
         contentAlignment = Alignment.CenterEnd
     ) {
         // Swipe actions background (Revealed buttons)
-        Row(
+        Surface(
             modifier = Modifier
                 .padding(end = 8.dp)
-                .width(menuWidth),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .width(menuWidth)
+                .height(IntrinsicSize.Min), // Match height of parent
+            color = Color.White.copy(alpha = 0.9f), // Strong white background for visibility
+            shape = RoundedCornerShape(16.dp)
         ) {
-            ActionIconButton(
-                icon = Icons.Outlined.Download, 
-                color = V8idColors.Purple.VibrantPurple,
-                onClick = { 
-                    onCollapse()
-                    onDownload() 
-                }
-            )
-            ActionIconButton(
-                icon = Icons.Outlined.Link, 
-                color = V8idColors.Purple.Indigo,
-                onClick = { 
-                    onCollapse()
-                    onShare() 
-                }
-            )
-            ActionIconButton(
-                icon = Icons.Outlined.Delete, 
-                color = V8idColors.Semantic.Error,
-                onClick = { 
-                    onCollapse()
-                    onDelete() 
-                }
-            )
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ActionIconButton(
+                    icon = Icons.Outlined.Download, 
+                    color = V8idColors.Purple.VibrantPurple,
+                    onClick = { 
+                        onCollapse()
+                        onDownload() 
+                    }
+                )
+                ActionIconButton(
+                    icon = Icons.Outlined.Link, 
+                    color = V8idColors.Purple.Indigo,
+                    onClick = { 
+                        onCollapse()
+                        onShare() 
+                    }
+                )
+                ActionIconButton(
+                    icon = Icons.Outlined.Delete, 
+                    color = V8idColors.Semantic.Error,
+                    onClick = { 
+                        onCollapse()
+                        onDelete() 
+                    }
+                )
+            }
         }
 
         // Main card content (Foreground)
