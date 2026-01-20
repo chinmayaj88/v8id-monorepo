@@ -18,8 +18,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             V8idTheme {
                 AppNavGraph(
-                        // DEV: Bypass login - change to "auth/login" for production
-                        startDestination = "home",
+                        startDestination = "auth/login",
                         modifier = Modifier.fillMaxSize()
                 )
             }

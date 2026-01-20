@@ -19,12 +19,15 @@ object NetworkModule {
     
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideOkHttpClient(
+        authInterceptor: AuthInterceptor
+    ): OkHttpClient {
         val loggingInterceptor = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
         
         return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor(loggingInterceptor)
             .connectTimeout(Constants.API_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(Constants.API_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -51,4 +54,9 @@ object NetworkModule {
     @Singleton
     fun provideAuthApiService(retrofit: Retrofit): AuthApiService =
         retrofit.create(AuthApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideFileApiService(retrofit: Retrofit): FileApiService =
+        retrofit.create(FileApiService::class.java)
 }

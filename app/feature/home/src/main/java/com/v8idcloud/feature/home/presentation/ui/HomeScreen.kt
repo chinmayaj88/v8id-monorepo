@@ -1,5 +1,6 @@
 package com.v8idcloud.feature.home.presentation.ui
 
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -47,6 +48,8 @@ import androidx.navigation.NavHostController
 import com.v8idcloud.core.ui.theme.V8idColors
 import com.v8idcloud.feature.home.presentation.viewmodel.HomeViewModel
 import com.v8idcloud.core.ui.R
+import com.v8idcloud.feature.home.presentation.viewmodel.SearchSuggestion
+import com.v8idcloud.feature.home.presentation.viewmodel.SuggestionType
 import kotlin.math.roundToInt
 
 @Composable
@@ -67,6 +70,7 @@ fun HomeScreen(
     val userEmailFlow by viewModel.userEmail.collectAsState()
     val userFirstNameFlow by viewModel.userFirstName.collectAsState()
     val userLastNameFlow by viewModel.userLastName.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
 
     // State for tracking which file card is currently swiped/revealed
     var revealedFileId by remember { mutableStateOf<String?>(null) }
@@ -143,12 +147,15 @@ fun HomeScreen(
 
             // Main Heading with Gradient
             item {
-                GradientHeading()
+                GradientHeading(screenWidth = screenWidth)
             }
 
             // Search Bar
             item {
-                SearchBar()
+                SearchBar(
+                    onSearch = { viewModel.search(it) },
+                    searchResults = searchResults
+                )
             }
 
             // Quick Access Card (Purple card with folders distributed evenly)
@@ -188,13 +195,17 @@ fun HomeScreen(
 }
 
 @Composable
-private fun GradientHeading() {
+private fun GradientHeading(screenWidth: Int) {
     val gradientColors = listOf(
         V8idColors.Gradient.LightLavender,
         V8idColors.Gradient.VibrantPurple,
         V8idColors.Gradient.RoyalBlue,
         V8idColors.Gradient.DeepNavy
     )
+
+    // Dynamic font size calculation (approx 8% of screen width)
+    // Coerced to be reasonable (between 24sp and 34sp)
+    val dynamicFontSize = (screenWidth * 0.08).coerceIn(20.0, 36.0).sp
 
     Text(
         text = buildAnnotatedString {
@@ -213,10 +224,12 @@ private fun GradientHeading() {
             }
             append(" Cloud")
         },
-        fontSize = 34.sp,
+        fontSize = dynamicFontSize,
         fontWeight = FontWeight.Bold,
         color = V8idColors.UI.TextPrimary,
-        maxLines = 1
+        maxLines = 1,
+        softWrap = false,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Visible
     )
 }
 
@@ -288,82 +301,152 @@ private fun ProfileHeader(userName: String, storagePercentage: Float) {
 private fun SearchBar(
   modifier: Modifier = Modifier,
   hint: String = "Search files",
+  searchResults: List<SearchSuggestion> = emptyList(),
+  onSearch: (String) -> Unit = {},
   onFilterClick: () -> Unit = {}
 ) {
   var searchQuery by rememberSaveable { mutableStateOf("") }
 
-  Surface(
-    modifier = modifier
-      .fillMaxWidth()
-      .height(44.dp),
-    shape = RoundedCornerShape(24.dp),
-    color = V8idColors.UI.Surface,
-    border = BorderStroke(
-      1.dp,
-      V8idColors.UI.TextTertiary.copy(alpha = 0.3f)
-    ),
-    tonalElevation = 0.dp
-  ) {
-    Row(
-      modifier = Modifier
-        .fillMaxSize()
-        .padding(horizontal = 14.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-
-      Icon(
-        imageVector = Icons.Outlined.Search,
-        contentDescription = null,
-        tint = V8idColors.UI.IconTint,
-        modifier = Modifier.size(18.dp)
-      )
-
-      Spacer(modifier = Modifier.width(8.dp))
-
-      BasicTextField(
-        value = searchQuery,
-        onValueChange = { searchQuery = it },
-        singleLine = true,
-        textStyle = TextStyle(
-          fontSize = 14.sp,
-          color = V8idColors.UI.TextPrimary
+  Column(modifier = modifier) {
+      Surface(
+        modifier = Modifier
+          .fillMaxWidth()
+          .height(44.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = V8idColors.UI.Surface,
+        border = BorderStroke(
+          1.dp,
+          V8idColors.UI.TextTertiary.copy(alpha = 0.3f)
         ),
-        modifier = Modifier.weight(1f),
-        decorationBox = { innerTextField ->
-          if (searchQuery.isEmpty()) {
-            Text(
-              text = hint,
-              fontSize = 14.sp,
-              color = V8idColors.UI.TextTertiary
-            )
-          }
-          innerTextField()
-        }
-      )
-
-      if (searchQuery.isNotEmpty()) {
-        Icon(
-          imageVector = Icons.Outlined.Close,
-          contentDescription = "Clear",
-          tint = V8idColors.UI.IconTint,
+        tonalElevation = 0.dp
+      ) {
+        Row(
           modifier = Modifier
-            .size(18.dp)
-            .clickable { searchQuery = "" }
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
+            .fillMaxSize()
+            .padding(horizontal = 14.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+    
+          Icon(
+            imageVector = Icons.Outlined.Search,
+            contentDescription = null,
+            tint = V8idColors.UI.IconTint,
+            modifier = Modifier.size(18.dp)
+          )
+    
+          Spacer(modifier = Modifier.width(8.dp))
+    
+          BasicTextField(
+            value = searchQuery,
+            onValueChange = { 
+                searchQuery = it
+                onSearch(it)
+            },
+            singleLine = true,
+            textStyle = TextStyle(
+              fontSize = 14.sp,
+              color = V8idColors.UI.TextPrimary
+            ),
+            modifier = Modifier.weight(1f),
+            decorationBox = { innerTextField ->
+              if (searchQuery.isEmpty()) {
+                Text(
+                  text = hint,
+                  fontSize = 14.sp,
+                  color = V8idColors.UI.TextTertiary
+                )
+              }
+              innerTextField()
+            }
+          )
+    
+          if (searchQuery.isNotEmpty()) {
+            Icon(
+              imageVector = Icons.Outlined.Close,
+              contentDescription = "Clear",
+              tint = V8idColors.UI.IconTint,
+              modifier = Modifier
+                .size(18.dp)
+                .clickable { 
+                    searchQuery = ""
+                    onSearch("")
+                }
+            )
+    
+            Spacer(modifier = Modifier.width(8.dp))
+          }
+    
+          Icon(
+            imageVector = Icons.Outlined.Tune,
+            contentDescription = "Filter",
+            tint = V8idColors.UI.IconTint,
+            modifier = Modifier
+              .size(18.dp)
+              .clickable { onFilterClick() }
+          )
+        }
       }
 
-      Icon(
-        imageVector = Icons.Outlined.Tune,
-        contentDescription = "Filter",
-        tint = V8idColors.UI.IconTint,
-        modifier = Modifier
-          .size(18.dp)
-          .clickable { onFilterClick() }
-      )
-    }
+      // Suggestions List
+      AnimatedVisibility(
+          visible = searchQuery.isNotEmpty() && searchResults.isNotEmpty(),
+          enter = expandVertically() + fadeIn(),
+          exit = shrinkVertically() + fadeOut()
+      ) {
+         Surface(
+             shape = RoundedCornerShape(16.dp),
+             color = V8idColors.UI.Surface,
+             shadowElevation = 8.dp,
+             modifier = Modifier.padding(top = 8.dp).fillMaxWidth()
+         ) {
+             Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                 searchResults.forEach { suggestion ->
+                     SearchSuggestionItem(suggestion)
+                 }
+             }
+         }
+      }
   }
+}
+
+@Composable
+fun SearchSuggestionItem(suggestion: SearchSuggestion) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { /* Handle click */ }
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(32.dp),
+            shape = CircleShape,
+            color = V8idColors.Purple.SubtlePurpleTint
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = if (suggestion.type == SuggestionType.FOLDER) Icons.Outlined.Folder else Icons.Outlined.Description,
+                    contentDescription = null,
+                    tint = V8idColors.Purple.VibrantPurple,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(
+                text = suggestion.title, 
+                fontWeight = FontWeight.Medium, 
+                fontSize = 14.sp,
+                color = V8idColors.UI.TextPrimary
+            )
+            Text(
+                text = suggestion.subtitle, 
+                fontSize = 12.sp, 
+                color = V8idColors.UI.TextTertiary
+            )
+        }
+    }
 }
 
 

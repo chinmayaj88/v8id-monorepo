@@ -11,17 +11,24 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 import javax.inject.Inject
+import com.v8idcloud.core.data.network.FileApiService
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authApiService: AuthApiService,
+    private val fileApiService: FileApiService,
     private val storageManager: StorageManager
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    private val _searchResults = MutableStateFlow<List<SearchSuggestion>>(emptyList())
+    val searchResults: StateFlow<List<SearchSuggestion>> = _searchResults.asStateFlow()
     
     // User info flows
     val userEmail: StateFlow<String?> = storageManager.getUserEmail().stateIn(
@@ -44,6 +51,52 @@ class HomeViewModel @Inject constructor(
     
     init {
         loadUserInfo()
+    }
+
+    /**
+     * Search files and folders
+     */
+    fun search(query: String) {
+        if (query.isBlank()) {
+            _searchResults.value = emptyList()
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                // Use unified search endpoint
+                val response = fileApiService.unifiedSearch(query = query, limit = 8)
+                val results = response.data.results
+
+                val suggestions = results.map { item ->
+                    SearchSuggestion(
+                        id = item.id,
+                        title = item.name,
+                        subtitle = if (item.type == "folder") "Folder" else formatFileSize(item.size ?: 0),
+                        type = if (item.type == "folder") SuggestionType.FOLDER else SuggestionType.FILE
+                    )
+                }
+
+                _searchResults.value = suggestions
+            } catch (e: Exception) {
+                // Handle general error by clearing suggestions
+                // In production, might want to show error state in UI
+                _searchResults.value = emptyList()
+            }
+        }
+    }
+
+    private fun formatFileSize(size: Long): String {
+        val kb = size / 1024.0
+        val mb = kb / 1024.0
+        val gb = mb / 1024.0
+        
+        return when {
+            gb >= 1 -> String.format("%.1f GB", gb)
+            mb >= 1 -> String.format("%.1f MB", mb)
+            kb >= 1 -> String.format("%.1f KB", kb)
+            else -> "$size B"
+        }
     }
     
     /**
@@ -104,4 +157,15 @@ sealed interface HomeUiState {
     object LoggingOut : HomeUiState
     object LoggedOut : HomeUiState
     data class Error(val message: String) : HomeUiState
+}
+
+data class SearchSuggestion(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val type: SuggestionType
+)
+
+enum class SuggestionType {
+    FILE, FOLDER
 }
