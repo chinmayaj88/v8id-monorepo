@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.material.icons.filled.MoreVert
 import com.v8idcloud.core.common.FolderData
 import com.v8idcloud.core.ui.theme.V8idColors
@@ -35,51 +36,58 @@ fun RecentFoldersCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        color = Color.White.copy(alpha = 0.2f), // Glassmorphic white
-        shadowElevation = 8.dp
+        color = Color.Transparent,
+        shadowElevation = 0.dp
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    style = androidx.compose.ui.text.TextStyle(
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black.copy(alpha = 0.3f),
-                            offset = androidx.compose.ui.geometry.Offset(2f, 2f),
-                            blurRadius = 4f
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF6B4EE6),
+                            Color(0xFF8B5CF6)
                         )
-                    )
+                    ),
+                    shape = RoundedCornerShape(24.dp)
                 )
-                androidx.compose.material3.IconButton(onClick = onMenuClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.Menu,
-                        contentDescription = "Menu",
-                        tint = Color.White
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Grid of folders
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
             ) {
-                folders.forEach { folder ->
-                    FolderItem(folder = folder, iconSize = iconSize)
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    androidx.compose.material3.IconButton(onClick = onMenuClick) {
+                        Icon(
+                            imageVector = Icons.Outlined.Menu,
+                            contentDescription = "Menu",
+                            tint = Color.White
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Grid of folders
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    folders.forEach { folder ->
+                        FolderItem(folder = folder, iconSize = iconSize)
+                    }
                 }
             }
         }
@@ -122,28 +130,14 @@ fun FolderItem(
             text = folder.name,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.White,
-            style = androidx.compose.ui.text.TextStyle(
-                shadow = androidx.compose.ui.graphics.Shadow(
-                    color = Color.Black.copy(alpha = 0.4f),
-                    offset = androidx.compose.ui.geometry.Offset(1f, 1f),
-                    blurRadius = 3f
-                )
-            )
+            color = Color.White
         )
 
         if (folder.size.isNotEmpty()) {
             Text(
                 text = folder.size,
                 fontSize = 11.sp,
-                color = Color.White.copy(alpha = 0.8f),
-                style = androidx.compose.ui.text.TextStyle(
-                    shadow = androidx.compose.ui.graphics.Shadow(
-                        color = Color.Black.copy(alpha = 0.3f),
-                        offset = androidx.compose.ui.geometry.Offset(1f, 1f),
-                        blurRadius = 2f
-                    )
-                )
+                color = Color.White.copy(alpha = 0.8f)
             )
         }
     }

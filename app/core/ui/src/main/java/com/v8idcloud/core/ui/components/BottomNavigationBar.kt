@@ -29,7 +29,6 @@ fun V8idBottomNavigationBar(
     onTabSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Fully transparent outer container
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -37,15 +36,20 @@ fun V8idBottomNavigationBar(
             .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // Glassmorphic floating capsule
-        Surface(
+        // Modern dark gradient capsule
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp),
-            color = Color.White.copy(alpha = 0.15f), // Glassmorphic transparent white
-            shape = RoundedCornerShape(32.dp),
-            shadowElevation = 8.dp,
-            tonalElevation = 0.dp
+                .height(64.dp)
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFF1A1A2E),
+                            Color(0xFF16213E)
+                        )
+                    ),
+                    shape = RoundedCornerShape(32.dp)
+                )
         ) {
             Row(
                 modifier = Modifier
@@ -64,7 +68,7 @@ fun V8idBottomNavigationBar(
                 // Folders
                 NavIcon(
                     icon = Icons.Outlined.Folder,
-                    isSelected = currentRoute == "folders",
+                    isSelected = currentRoute.startsWith("folders"),
                     onClick = { onTabSelected("folders") }
                 )
 
@@ -74,7 +78,7 @@ fun V8idBottomNavigationBar(
                         .size(48.dp)
                         .clickable { /* Add action */ },
                     shape = CircleShape,
-                    color = Color(0xFF4285F4), // Material Blue
+                    color = Color(0xFF6B4EE6), // Purple gradient
                     shadowElevation = 4.dp
                 ) {
                     Box(
