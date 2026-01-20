@@ -46,7 +46,7 @@ model User {
   passwordHash         String
   firstName            String?
   lastName             String?
-  avatarUrl            String?
+  avatarPath           String?   @db.VarChar(500) // OCI object path (not the full URL)
   role                 UserRole  @default(USER)
   emailVerified        Boolean   @default(true) // Admin creates verified users
   passwordResetToken   String?
