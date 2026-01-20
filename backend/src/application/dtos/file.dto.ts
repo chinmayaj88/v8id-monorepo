@@ -33,10 +33,10 @@ export interface MoveFileDTO {
 }
 
 export interface CreateFolderDTO {
-  parentId?: string | null; 
+  parentId?: string | null;
   name: string;
   description?: string;
-  color?: string; 
+  color?: string;
 }
 
 export interface UpdateFolderDTO {
@@ -49,6 +49,7 @@ export interface UpdateFolderDTO {
 export interface ListFoldersDTO {
   parentId?: string | null;
   includeDeleted?: boolean;
+  search?: string;
   page?: number;
   limit?: number;
 }
@@ -64,7 +65,7 @@ export interface FileResponseDTO {
   name: string;
   originalName: string;
   mimeType: string;
-  size: number; 
+  size: number;
   type: FileType;
   status: FileStatus;
   storageTier?: StorageTier; // Storage tier: STANDARD or ARCHIVE
@@ -74,8 +75,8 @@ export interface FileResponseDTO {
   tags?: string[];
   metadata?: Record<string, unknown>;
   expiresAt?: string;
-  createdAt: string; 
-  updatedAt: string; 
+  createdAt: string;
+  updatedAt: string;
   deletedAt?: string;
 }
 
@@ -87,7 +88,7 @@ export interface FolderResponseDTO {
   description?: string;
   color?: string;
   isDeleted: boolean;
-  createdAt: string; 
+  createdAt: string;
   updatedAt: string;
   deletedAt?: string;
 }

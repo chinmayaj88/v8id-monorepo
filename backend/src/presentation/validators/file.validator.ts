@@ -1,6 +1,6 @@
 /**
  * File Validation Schemas
- * 
+ *
  * Zod schemas for validating file-related requests.
  */
 
@@ -12,9 +12,15 @@ import { FileStatus, FileType } from '../../domain/entities/file.js';
  */
 export const createFolderSchema = z.object({
   parentId: z.string().nullable().optional(),
-  name: z.string().min(1, 'Folder name is required').max(255, 'Folder name must be less than 255 characters'),
+  name: z
+    .string()
+    .min(1, 'Folder name is required')
+    .max(255, 'Folder name must be less than 255 characters'),
   description: z.string().optional(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color code').optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Color must be a valid hex color code')
+    .optional(),
 });
 
 /**
@@ -24,7 +30,10 @@ export const updateFolderSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   parentId: z.string().nullable().optional(),
   description: z.string().optional(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/)
+    .optional(),
 });
 
 /**
@@ -58,6 +67,7 @@ export const listFilesQuerySchema = z.object({
 export const listFoldersQuerySchema = z.object({
   parentId: z.string().nullable().optional(),
   includeDeleted: z.coerce.boolean().optional(),
+  search: z.string().optional(),
   page: z.coerce.number().int().min(1).optional(),
   limit: z.coerce.number().int().min(1).max(100).optional(),
 });
@@ -73,7 +83,7 @@ export const initiateUploadSchema = z.object({
 export const chunkUploadSchema = z.object({
   sessionId: z.string().min(1),
   chunkNumber: z.coerce.number().int().min(0),
-  isLastChunk: z.union([z.boolean(), z.string()]).transform((val) => val === true || val === 'true'),
+  isLastChunk: z.union([z.boolean(), z.string()]).transform(val => val === true || val === 'true'),
 });
 
 export const completeUploadSchema = z.object({

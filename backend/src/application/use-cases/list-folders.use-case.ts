@@ -1,6 +1,6 @@
 /**
  * List Folders Use Case
- * 
+ *
  * Handles folder listing with filtering and pagination.
  */
 
@@ -17,14 +17,24 @@ export interface ListFoldersResult {
 }
 
 export class ListFoldersUseCase {
-  constructor(
-    private folderRepository: IFolderRepository
-  ) {}
+  constructor(private folderRepository: IFolderRepository) {}
 
   async execute(userId: string, dto: ListFoldersDTO): Promise<ListFoldersResult> {
     const page = dto.page || 1;
     const limit = dto.limit || 20;
     const includeDeleted = dto.includeDeleted || false;
+    const search = dto.search;
+
+    // If search is provided, perform global search (ignore parentId constraints)
+    if (search) {
+      const result = await this.folderRepository.findByUserId(userId, {
+        search,
+        includeDeleted,
+        page,
+        limit,
+      });
+      return this.formatResult(result.folders, result.total, page, limit);
+    }
 
     // If parentId is explicitly null, get root folders
     if (dto.parentId === null) {
@@ -48,7 +58,12 @@ export class ListFoldersUseCase {
     return this.formatResult(result.folders, result.total, page, limit);
   }
 
-  private formatResult(folders: Folder[], total: number, page: number, limit: number): ListFoldersResult {
+  private formatResult(
+    folders: Folder[],
+    total: number,
+    page: number,
+    limit: number
+  ): ListFoldersResult {
     return {
       folders: folders.map(this.folderToDto),
       total,

@@ -1,6 +1,6 @@
 /**
  * File Repository Implementation
- * 
+ *
  * Concrete implementation of IFileRepository using Prisma.
  */
 
@@ -31,8 +31,16 @@ export class FileRepository implements IFileRepository {
       prismaFile.thumbnailObjectName ?? undefined,
       prismaFile.thumbnailGenerated ?? false,
       prismaFile.description ?? undefined,
-      prismaFile.tags ? (Array.isArray(prismaFile.tags) ? (prismaFile.tags as string[]) : []) : undefined,
-      prismaFile.metadata ? (typeof prismaFile.metadata === 'object' ? prismaFile.metadata as Record<string, unknown> : undefined) : undefined,
+      prismaFile.tags
+        ? Array.isArray(prismaFile.tags)
+          ? (prismaFile.tags as string[])
+          : []
+        : undefined,
+      prismaFile.metadata
+        ? typeof prismaFile.metadata === 'object'
+          ? (prismaFile.metadata as Record<string, unknown>)
+          : undefined
+        : undefined,
       prismaFile.expiresAt ?? undefined,
       prismaFile.createdAt,
       prismaFile.updatedAt,
@@ -118,27 +126,32 @@ export class FileRepository implements IFileRepository {
         thumbnailGenerated: fileData.thumbnailGenerated ?? false,
         description: fileData.description ?? null,
         ...(fileData.tags !== undefined && { tags: fileData.tags as Prisma.InputJsonValue }),
-        ...(fileData.metadata !== undefined && { metadata: fileData.metadata as Prisma.InputJsonValue }),
+        ...(fileData.metadata !== undefined && {
+          metadata: fileData.metadata as Prisma.InputJsonValue,
+        }),
       },
     });
 
     return this.toDomain(file);
   }
 
-  async update(id: string, data: Partial<{
-    name?: string;
-    folderId?: string | null;
-    description?: string;
-    tags?: string[];
-    metadata?: Record<string, unknown>;
-    status?: FileStatus;
-    deletedAt?: Date | null;
-    expiresAt?: Date | null;
-    thumbnailObjectName?: string | null;
-    thumbnailGenerated?: boolean;
-  }>): Promise<File> {
+  async update(
+    id: string,
+    data: Partial<{
+      name?: string;
+      folderId?: string | null;
+      description?: string;
+      tags?: string[];
+      metadata?: Record<string, unknown>;
+      status?: FileStatus;
+      deletedAt?: Date | null;
+      expiresAt?: Date | null;
+      thumbnailObjectName?: string | null;
+      thumbnailGenerated?: boolean;
+    }>
+  ): Promise<File> {
     const updateData: Prisma.FileUpdateInput = {};
-    
+
     if (data.name !== undefined) updateData.name = data.name;
     if (data.folderId !== undefined) {
       updateData.folder = data.folderId ? { connect: { id: data.folderId } } : { disconnect: true };
@@ -162,7 +175,7 @@ export class FileRepository implements IFileRepository {
     if (data.thumbnailGenerated !== undefined) {
       updateData.thumbnailGenerated = data.thumbnailGenerated;
     }
-    
+
     const file = await prisma.file.update({
       where: { id },
       data: updateData,
@@ -213,16 +226,19 @@ export class FileRepository implements IFileRepository {
     });
   }
 
-  async findByUserId(userId: string, options?: {
-    folderId?: string | null;
-    status?: FileStatus;
-    type?: FileType;
-    search?: string;
-    page?: number;
-    limit?: number;
-    orderBy?: 'name' | 'createdAt' | 'updatedAt' | 'size';
-    orderDirection?: 'asc' | 'desc';
-  }): Promise<{ files: File[]; total: number }> {
+  async findByUserId(
+    userId: string,
+    options?: {
+      folderId?: string | null;
+      status?: FileStatus;
+      type?: FileType;
+      search?: string;
+      page?: number;
+      limit?: number;
+      orderBy?: 'name' | 'createdAt' | 'updatedAt' | 'size';
+      orderDirection?: 'asc' | 'desc';
+    }
+  ): Promise<{ files: File[]; total: number }> {
     const page = options?.page || 1;
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;
@@ -264,11 +280,15 @@ export class FileRepository implements IFileRepository {
     };
   }
 
-  async findByFolderId(folderId: string, userId: string, options?: {
-    status?: FileStatus;
-    page?: number;
-    limit?: number;
-  }): Promise<{ files: File[]; total: number }> {
+  async findByFolderId(
+    folderId: string,
+    userId: string,
+    options?: {
+      status?: FileStatus;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ files: File[]; total: number }> {
     return this.findByUserId(userId, {
       folderId,
       status: options?.status,
@@ -277,11 +297,14 @@ export class FileRepository implements IFileRepository {
     });
   }
 
-  async findRootFiles(userId: string, options?: {
-    status?: FileStatus;
-    page?: number;
-    limit?: number;
-  }): Promise<{ files: File[]; total: number }> {
+  async findRootFiles(
+    userId: string,
+    options?: {
+      status?: FileStatus;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ files: File[]; total: number }> {
     return this.findByUserId(userId, {
       folderId: null,
       status: options?.status,
@@ -326,7 +349,11 @@ export class FileRepository implements IFileRepository {
   /**
    * Batch update folder ID (optimized for bulk move)
    */
-  async batchUpdateFolder(userId: string, fileIds: string[], folderId: string | null): Promise<number> {
+  async batchUpdateFolder(
+    userId: string,
+    fileIds: string[],
+    folderId: string | null
+  ): Promise<number> {
     const result = await prisma.file.updateMany({
       where: {
         id: { in: fileIds },
@@ -340,10 +367,13 @@ export class FileRepository implements IFileRepository {
     return result.count;
   }
 
-  async findByStatus(status: FileStatus, options?: {
-    page?: number;
-    limit?: number;
-  }): Promise<{ files: File[]; total: number }> {
+  async findByStatus(
+    status: FileStatus,
+    options?: {
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ files: File[]; total: number }> {
     const page = options?.page || 1;
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;
@@ -368,7 +398,11 @@ export class FileRepository implements IFileRepository {
     return this.update(id, { status });
   }
 
-  async nameExistsInFolder(userId: string, folderId: string | null, name: string): Promise<boolean> {
+  async nameExistsInFolder(
+    userId: string,
+    folderId: string | null,
+    name: string
+  ): Promise<boolean> {
     const count = await prisma.file.count({
       where: {
         userId,

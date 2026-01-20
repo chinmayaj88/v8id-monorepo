@@ -1,7 +1,6 @@
 import { Folder } from '../../domain/entities/folder.js';
 
 export interface IFolderRepository {
-
   findById(id: string): Promise<Folder | null>;
 
   create(folderData: {
@@ -12,40 +11,54 @@ export interface IFolderRepository {
     color?: string;
   }): Promise<Folder>;
 
-  update(id: string, data: Partial<{
-    name?: string;
-    parentId?: string | null;
-    description?: string;
-    color?: string;
-    deletedAt?: Date | null;
-  }>): Promise<Folder>;
+  update(
+    id: string,
+    data: Partial<{
+      name?: string;
+      parentId?: string | null;
+      description?: string;
+      color?: string;
+      deletedAt?: Date | null;
+    }>
+  ): Promise<Folder>;
 
   delete(id: string): Promise<void>;
 
   hardDelete(id: string): Promise<void>;
 
-
   restore(id: string): Promise<Folder>;
 
+  findByUserId(
+    userId: string,
+    options?: {
+      parentId?: string | null;
+      includeDeleted?: boolean;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ folders: Folder[]; total: number }>;
 
-  findByUserId(userId: string, options?: {
-    parentId?: string | null;
-    includeDeleted?: boolean;
-    page?: number;
-    limit?: number;
-  }): Promise<{ folders: Folder[]; total: number }>;
+  findRootFolders(
+    userId: string,
+    options?: {
+      includeDeleted?: boolean;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ folders: Folder[]; total: number }>;
 
-  findRootFolders(userId: string, options?: {
-    includeDeleted?: boolean;
-    page?: number;
-    limit?: number;
-  }): Promise<{ folders: Folder[]; total: number }>;
-
-  findChildren(parentId: string, userId: string, options?: {
-    includeDeleted?: boolean;
-    page?: number;
-    limit?: number;
-  }): Promise<{ folders: Folder[]; total: number }>;
+  findChildren(
+    parentId: string,
+    userId: string,
+    options?: {
+      includeDeleted?: boolean;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ folders: Folder[]; total: number }>;
 
   getFolderPath(folderId: string): Promise<Folder[]>;
 

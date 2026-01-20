@@ -1,6 +1,6 @@
 /**
  * Get File Use Case
- * 
+ *
  * Retrieves file metadata by ID.
  */
 
@@ -29,7 +29,7 @@ export class GetFileUseCase {
     }
 
     let thumbnailUrl: string | undefined;
-    
+
     // Generate presigned URL for thumbnail if it exists
     // Thumbnails are always stored in STANDARD tier for fast access
     if (file.hasThumbnail() && file.thumbnailObjectName) {
@@ -37,16 +37,18 @@ export class GetFileUseCase {
         // Check cache first (reduces OCI API calls)
         const cacheKey = `thumbnail:${file.thumbnailObjectName}`;
         const cachedUrl = this.urlCache?.get(cacheKey);
-        
+
         if (cachedUrl) {
           thumbnailUrl = cachedUrl;
         } else {
           // Use tier-aware storage service - thumbnails are always in STANDARD tier
           const isTierAware = this.storageService instanceof TierAwareStorageService;
-          
+
           if (isTierAware) {
             // Thumbnails are always in STANDARD tier for performance
-            thumbnailUrl = await (this.storageService as TierAwareStorageService).generatePresignedUrl(
+            thumbnailUrl = await (
+              this.storageService as TierAwareStorageService
+            ).generatePresignedUrl(
               file.thumbnailObjectName,
               86400, // 24 hours
               StorageTier.STANDARD
@@ -57,7 +59,7 @@ export class GetFileUseCase {
               86400 // 24 hours
             );
           }
-          
+
           // Cache for 20 hours
           this.urlCache?.set(cacheKey, thumbnailUrl, 72000);
         }

@@ -1,6 +1,6 @@
 /**
  * File Controller
- * 
+ *
  * Handles HTTP requests related to file operations.
  */
 
@@ -48,9 +48,17 @@ import { ChunkUploadUseCase } from '../../application/use-cases/chunk-upload.use
 import { CompleteUploadUseCase } from '../../application/use-cases/complete-upload.use-case.js';
 import { ResumeUploadUseCase } from '../../application/use-cases/resume-upload.use-case.js';
 import { CreateFileVersionUseCase } from '../../application/use-cases/create-file-version.use-case.js';
+import { UnifiedSearchUseCase } from '../../application/use-cases/unified-search.use-case.js';
 import { GenerateThumbnailUseCase } from '../../application/use-cases/generate-thumbnail.use-case.js';
 import { RegenerateThumbnailUseCase } from '../../application/use-cases/regenerate-thumbnail.use-case.js';
-import { UploadFileDTO, UpdateFileDTO, ListFilesDTO, CreateFolderDTO, UpdateFolderDTO, ListFoldersDTO } from '../../application/dtos/file.dto.js';
+import {
+  UploadFileDTO,
+  UpdateFileDTO,
+  ListFilesDTO,
+  CreateFolderDTO,
+  UpdateFolderDTO,
+  ListFoldersDTO,
+} from '../../application/dtos/file.dto.js';
 import { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 import { ResponseUtil } from '../utils/response.util.js';
 
@@ -100,7 +108,8 @@ export class FileController {
     private listFoldersUseCase: ListFoldersUseCase,
     private createFileVersionUseCase: CreateFileVersionUseCase,
     private generateThumbnailUseCase: GenerateThumbnailUseCase,
-    private regenerateThumbnailUseCase: RegenerateThumbnailUseCase
+    private regenerateThumbnailUseCase: RegenerateThumbnailUseCase,
+    private unifiedSearchUseCase: UnifiedSearchUseCase
   ) {}
 
   /**
@@ -121,8 +130,16 @@ export class FileController {
         folderId: req.body.folderId || null,
         name: req.body.name,
         description: req.body.description,
-        tags: req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : JSON.parse(req.body.tags)) : undefined,
-        metadata: req.body.metadata ? (typeof req.body.metadata === 'string' ? JSON.parse(req.body.metadata) : req.body.metadata) : undefined,
+        tags: req.body.tags
+          ? Array.isArray(req.body.tags)
+            ? req.body.tags
+            : JSON.parse(req.body.tags)
+          : undefined,
+        metadata: req.body.metadata
+          ? typeof req.body.metadata === 'string'
+            ? JSON.parse(req.body.metadata)
+            : req.body.metadata
+          : undefined,
         storageTier: req.body.storageTier || undefined, // Accept storageTier from request (STANDARD or ARCHIVE)
       };
 
@@ -297,7 +314,12 @@ export class FileController {
       }
       const dto: UpdateFileDTO = {
         name: req.body.name,
-        folderId: req.body.folderId !== undefined ? (req.body.folderId === 'null' ? null : req.body.folderId) : undefined,
+        folderId:
+          req.body.folderId !== undefined
+            ? req.body.folderId === 'null'
+              ? null
+              : req.body.folderId
+            : undefined,
         description: req.body.description,
         tags: req.body.tags,
         metadata: req.body.metadata,
@@ -442,6 +464,7 @@ export class FileController {
       const dto: ListFoldersDTO = {
         parentId: req.query.parentId === 'null' ? null : (req.query.parentId as string | undefined),
         includeDeleted: req.query.includeDeleted === 'true',
+        search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
         limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
       };
@@ -515,7 +538,12 @@ export class FileController {
       }
       const dto: UpdateFolderDTO = {
         name: req.body.name,
-        parentId: req.body.parentId !== undefined ? (req.body.parentId === 'null' ? null : req.body.parentId) : undefined,
+        parentId:
+          req.body.parentId !== undefined
+            ? req.body.parentId === 'null'
+              ? null
+              : req.body.parentId
+            : undefined,
         description: req.body.description,
         color: req.body.color,
       };
@@ -583,7 +611,8 @@ export class FileController {
 
       ResponseUtil.success(res, undefined, 'Folder permanently deleted successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to permanently delete folder';
+      const message =
+        error instanceof Error ? error.message : 'Failed to permanently delete folder';
       if (message.includes('not found')) {
         ResponseUtil.notFound(res, message);
       } else if (message.includes('Access denied')) {
@@ -814,16 +843,20 @@ export class FileController {
 
       const result = await this.shareFileUseCase.execute(userId, dto);
 
-      ResponseUtil.success(res, {
-        id: result.id,
-        fileId: result.fileId,
-        folderId: result.folderId,
-        ownerId: result.ownerId,
-        sharedWithId: result.sharedWithId,
-        permission: result.permission,
-        createdAt: result.createdAt.toISOString(),
-        updatedAt: result.updatedAt.toISOString(),
-      }, 'File/folder shared successfully');
+      ResponseUtil.success(
+        res,
+        {
+          id: result.id,
+          fileId: result.fileId,
+          folderId: result.folderId,
+          ownerId: result.ownerId,
+          sharedWithId: result.sharedWithId,
+          permission: result.permission,
+          createdAt: result.createdAt.toISOString(),
+          updatedAt: result.updatedAt.toISOString(),
+        },
+        'File/folder shared successfully'
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to share file/folder';
       if (message.includes('not found')) {
@@ -895,7 +928,11 @@ export class FileController {
 
       const result = await this.bulkDeleteFilesUseCase.execute(userId, dto);
 
-      ResponseUtil.success(res, result, `Bulk delete completed. ${result.deleted} deleted, ${result.failed} failed.`);
+      ResponseUtil.success(
+        res,
+        result,
+        `Bulk delete completed. ${result.deleted} deleted, ${result.failed} failed.`
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to bulk delete files';
       ResponseUtil.error(res, 'BULK_DELETE_ERROR', message, 400);
@@ -916,7 +953,11 @@ export class FileController {
 
       const result = await this.bulkMoveFilesUseCase.execute(userId, dto);
 
-      ResponseUtil.success(res, result, `Bulk move completed. ${result.moved} moved, ${result.failed} failed.`);
+      ResponseUtil.success(
+        res,
+        result,
+        `Bulk move completed. ${result.moved} moved, ${result.failed} failed.`
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to bulk move files';
       if (message.includes('not found')) {
@@ -942,7 +983,11 @@ export class FileController {
 
       const result = await this.bulkRestoreFilesUseCase.execute(userId, dto);
 
-      ResponseUtil.success(res, result, `Bulk restore completed. ${result.restored} restored, ${result.failed} failed.`);
+      ResponseUtil.success(
+        res,
+        result,
+        `Bulk restore completed. ${result.restored} restored, ${result.failed} failed.`
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to bulk restore files';
       ResponseUtil.error(res, 'BULK_RESTORE_ERROR', message, 400);
@@ -1047,7 +1092,7 @@ export class FileController {
 
       // Get the file first
       const file = await this.getFileUseCase.execute(userId, fileId);
-      
+
       // If thumbnail exists, redirect to it
       if (file.thumbnailUrl) {
         res.redirect(file.thumbnailUrl);
@@ -1061,7 +1106,12 @@ export class FileController {
         if (result.error?.includes('not supported')) {
           ResponseUtil.error(res, 'THUMBNAIL_NOT_SUPPORTED', result.error, 400);
         } else {
-          ResponseUtil.error(res, 'THUMBNAIL_ERROR', result.error || 'Failed to generate thumbnail', 500);
+          ResponseUtil.error(
+            res,
+            'THUMBNAIL_ERROR',
+            result.error || 'Failed to generate thumbnail',
+            500
+          );
         }
         return;
       }
@@ -1109,14 +1159,23 @@ export class FileController {
         } else if (result.error?.includes('not supported')) {
           ResponseUtil.error(res, 'THUMBNAIL_NOT_SUPPORTED', result.error, 400);
         } else {
-          ResponseUtil.error(res, 'THUMBNAIL_ERROR', result.error || 'Failed to regenerate thumbnail', 500);
+          ResponseUtil.error(
+            res,
+            'THUMBNAIL_ERROR',
+            result.error || 'Failed to regenerate thumbnail',
+            500
+          );
         }
         return;
       }
 
-      ResponseUtil.success(res, {
-        thumbnailObjectName: result.thumbnailObjectName,
-      }, 'Thumbnail regenerated successfully');
+      ResponseUtil.success(
+        res,
+        {
+          thumbnailObjectName: result.thumbnailObjectName,
+        },
+        'Thumbnail regenerated successfully'
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to regenerate thumbnail';
       ResponseUtil.error(res, 'THUMBNAIL_ERROR', message, 500);
@@ -1420,16 +1479,20 @@ export class FileController {
 
       const result = await this.shareFileUseCase.execute(userId, dto);
 
-      ResponseUtil.success(res, {
-        id: result.id,
-        fileId: result.fileId,
-        folderId: result.folderId,
-        ownerId: result.ownerId,
-        sharedWithId: result.sharedWithId,
-        permission: result.permission,
-        createdAt: result.createdAt.toISOString(),
-        updatedAt: result.updatedAt.toISOString(),
-      }, 'Folder shared successfully');
+      ResponseUtil.success(
+        res,
+        {
+          id: result.id,
+          fileId: result.fileId,
+          folderId: result.folderId,
+          ownerId: result.ownerId,
+          sharedWithId: result.sharedWithId,
+          permission: result.permission,
+          createdAt: result.createdAt.toISOString(),
+          updatedAt: result.updatedAt.toISOString(),
+        },
+        'Folder shared successfully'
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to share folder';
       if (message.includes('not found')) {
@@ -1547,7 +1610,8 @@ export class FileController {
 
       ResponseUtil.created(res, { folderId: result }, 'Folder created from template successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create folder from template';
+      const message =
+        error instanceof Error ? error.message : 'Failed to create folder from template';
       if (message.includes('not found')) {
         ResponseUtil.notFound(res, message);
       } else if (message.includes('Access denied')) {
@@ -1555,6 +1619,31 @@ export class FileController {
       } else {
         ResponseUtil.error(res, 'CREATE_FROM_TEMPLATE_ERROR', message, 400);
       }
+    }
+  }
+  /**
+   * GET /api/files/search
+   * Unified search for files and folders
+   */
+  async search(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const dto = {
+        search: req.query.q as string, // 'q' is standard for search params
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
+      };
+
+      if (!dto.search) {
+        ResponseUtil.validationError(res, 'Search query (q) is required');
+        return;
+      }
+
+      const result = await this.unifiedSearchUseCase.execute(userId, dto); // Standard call
+
+      ResponseUtil.success(res, result, 'Search results retrieved successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to perform search';
+      ResponseUtil.error(res, 'SEARCH_ERROR', message, 500);
     }
   }
 }

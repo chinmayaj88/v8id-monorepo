@@ -1,6 +1,6 @@
 /**
  * Folder Repository Implementation
- * 
+ *
  * Concrete implementation of IFolderRepository using Prisma.
  */
 
@@ -61,13 +61,16 @@ export class FolderRepository implements IFolderRepository {
     return this.toDomain(folder);
   }
 
-  async update(id: string, data: Partial<{
-    name?: string;
-    parentId?: string | null;
-    description?: string;
-    color?: string;
-    deletedAt?: Date | null;
-  }>): Promise<Folder> {
+  async update(
+    id: string,
+    data: Partial<{
+      name?: string;
+      parentId?: string | null;
+      description?: string;
+      color?: string;
+      deletedAt?: Date | null;
+    }>
+  ): Promise<Folder> {
     const folder = await prisma.folder.update({
       where: { id },
       data: {
@@ -75,7 +78,10 @@ export class FolderRepository implements IFolderRepository {
         ...(data.parentId !== undefined && { parentId: data.parentId ?? null }),
         ...(data.description !== undefined && { description: data.description }),
         ...(data.color !== undefined && { color: data.color }),
-        ...(data.deletedAt !== undefined && { deletedAt: data.deletedAt ?? null, isDeleted: data.deletedAt !== null }),
+        ...(data.deletedAt !== undefined && {
+          deletedAt: data.deletedAt ?? null,
+          isDeleted: data.deletedAt !== null,
+        }),
       },
     });
 
@@ -105,12 +111,16 @@ export class FolderRepository implements IFolderRepository {
     });
   }
 
-  async findByUserId(userId: string, options?: {
-    parentId?: string | null;
-    includeDeleted?: boolean;
-    page?: number;
-    limit?: number;
-  }): Promise<{ folders: Folder[]; total: number }> {
+  async findByUserId(
+    userId: string,
+    options?: {
+      parentId?: string | null;
+      includeDeleted?: boolean;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ folders: Folder[]; total: number }> {
     const page = options?.page || 1;
     const limit = options?.limit || 20;
     const skip = (page - 1) * limit;
@@ -119,6 +129,11 @@ export class FolderRepository implements IFolderRepository {
       userId,
       ...(options?.parentId !== undefined && { parentId: options.parentId ?? null }),
       ...(options?.includeDeleted === false && { isDeleted: false }),
+      ...(options?.search && {
+        name: {
+          contains: options.search,
+        },
+      }),
     };
 
     const [folders, total] = await Promise.all([
@@ -137,27 +152,38 @@ export class FolderRepository implements IFolderRepository {
     };
   }
 
-  async findRootFolders(userId: string, options?: {
-    includeDeleted?: boolean;
-    page?: number;
-    limit?: number;
-  }): Promise<{ folders: Folder[]; total: number }> {
+  async findRootFolders(
+    userId: string,
+    options?: {
+      includeDeleted?: boolean;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ folders: Folder[]; total: number }> {
     return this.findByUserId(userId, {
       parentId: null,
       includeDeleted: options?.includeDeleted,
+      search: options?.search,
       page: options?.page,
       limit: options?.limit,
     });
   }
 
-  async findChildren(parentId: string, userId: string, options?: {
-    includeDeleted?: boolean;
-    page?: number;
-    limit?: number;
-  }): Promise<{ folders: Folder[]; total: number }> {
+  async findChildren(
+    parentId: string,
+    userId: string,
+    options?: {
+      includeDeleted?: boolean;
+      search?: string;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ folders: Folder[]; total: number }> {
     return this.findByUserId(userId, {
       parentId,
       includeDeleted: options?.includeDeleted,
+      search: options?.search,
       page: options?.page,
       limit: options?.limit,
     });
@@ -177,21 +203,23 @@ export class FolderRepository implements IFolderRepository {
     // Collect folder IDs and fetch them efficiently
     while (currentId && !visitedIds.has(currentId)) {
       visitedIds.add(currentId);
-      
+
       // Check if we already have this folder
       if (!folderMap.has(currentId)) {
-        const folder: Awaited<ReturnType<typeof prisma.folder.findUnique>> = await prisma.folder.findUnique({
-          where: { id: currentId },
-        });
-        
+        const folder: Awaited<ReturnType<typeof prisma.folder.findUnique>> =
+          await prisma.folder.findUnique({
+            where: { id: currentId },
+          });
+
         if (!folder) break;
-        
+
         folderMap.set(currentId, folder);
         path.unshift(this.toDomain(folder));
         currentId = folder.parentId;
       } else {
         // Already fetched, just get parent
-        const folder: Awaited<ReturnType<typeof prisma.folder.findUnique>> | undefined = folderMap.get(currentId);
+        const folder: Awaited<ReturnType<typeof prisma.folder.findUnique>> | undefined =
+          folderMap.get(currentId);
         if (!folder) break;
         path.unshift(this.toDomain(folder));
         currentId = folder.parentId;
@@ -201,7 +229,11 @@ export class FolderRepository implements IFolderRepository {
     return path;
   }
 
-  async nameExistsInParent(userId: string, parentId: string | null, name: string): Promise<boolean> {
+  async nameExistsInParent(
+    userId: string,
+    parentId: string | null,
+    name: string
+  ): Promise<boolean> {
     const count = await prisma.folder.count({
       where: {
         userId,
@@ -242,7 +274,10 @@ export class FolderRepository implements IFolderRepository {
     });
   }
 
-  async wouldCreateCircularReference(folderId: string, newParentId: string | null): Promise<boolean> {
+  async wouldCreateCircularReference(
+    folderId: string,
+    newParentId: string | null
+  ): Promise<boolean> {
     if (!newParentId) {
       return false; // Moving to root is always safe
     }
