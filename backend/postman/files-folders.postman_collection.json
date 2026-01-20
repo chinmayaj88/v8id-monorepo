@@ -657,6 +657,66 @@
 					"response": []
 				},
 				{
+					"name": "Unified Search",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify search results",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Search performed successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.results).to.be.an('array');",
+									"        pm.expect(jsonData.data.total).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Search successful\");",
+									"    console.log(\"🔍 Total results: \" + jsonData.data.total);",
+									"    console.log(\"📄 Results in this page: \" + jsonData.data.results.length);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/search?q=test&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "test",
+									"description": "Search query"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Max results (default: 20)"
+								}
+							]
+						},
+						"description": "**Unified Search for Files and Folders**\n\nSearch across both files and folders with relevance ranking.\n\n**Query Parameters:**\n- `q`: Search query string (required)\n- `limit`: Maximum number of results to return (default: 20)\n\n**Response:**\n- `results`: Array of mixed file and folder objects\n- `total`: Total number of matches found"
+					},
+					"response": []
+				},
+				{
 					"name": "Update File",
 					"event": [
 						{
@@ -1154,87 +1214,6 @@
 					"response": []
 				},
 				{
-					"name": "Share Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder sharing",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder shared successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.folderId).to.exist;",
-									"        pm.expect(jsonData.data.sharedWithId).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder shared successfully\");",
-									"    console.log(\"📁 Folder ID: \" + jsonData.data.folderId);",
-									"    console.log(\"👤 Shared with user ID: \" + jsonData.data.sharedWithId);",
-									"    console.log(\"🔐 Permission: \" + jsonData.data.permission);",
-									"    ",
-									"    // Save share ID for unshare",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"shareId\", jsonData.data.id);",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder or user not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Share failed: \" + jsonData.error.message);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"sharedWithId\": \"user-id-to-share-with\",\n  \"permission\": \"READ\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId/share",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId",
-								"share"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to share"
-								}
-							]
-						},
-						"description": "**Share a folder with another user**\n\nShare a folder with another user, granting them access to all files in the folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can share\n- Folder must be active (not deleted)\n- Cannot share with yourself\n\n**Permissions:**\n- `READ`: Read-only access (can view and download files in folder)\n- `WRITE`: Read and write access (can edit, delete files in folder)\n- `VIEW_ONLY`: View-only access (can preview, cannot download)\n\n**Request Body (JSON):**\n- `sharedWithId` (required): User ID of the user to share with\n- `permission` (required): Permission level - 'READ', 'WRITE', or 'VIEW_ONLY'\n\n**Path Parameter:**\n- `folderId`: ID of the folder to share\n\n**Response:**\n- Share object with:\n  - `id`: Share ID (use for unsharing)\n  - `folderId`: Folder ID\n  - `ownerId`: Owner user ID\n  - `sharedWithId`: User ID who has access\n  - `permission`: Permission level\n  - `createdAt`, `updatedAt`: Timestamps\n\n**Note:**\n- If share already exists, it will be updated with new permission\n- Shared folders appear in recipient's \"Shared Files\" list\n- Access applies to all files within the folder"
-					},
-					"response": []
-				},
-				{
 					"name": "List Shared Files",
 					"event": [
 						{
@@ -1287,627 +1266,6 @@
 							]
 						},
 						"description": "**List files and folders shared with you**\n\nGet a list of all files and folders that other users have shared with you.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows files/folders shared with the authenticated user\n\n**Response Structure:**\n- `files`: Array of shared file objects\n- `folders`: Array of shared folder objects\n- `total`: Total count of shared items\n\n**File Objects Include:**\n- All standard file metadata\n- `storageTier`: Storage tier (STANDARD or ARCHIVE)\n- File owner information\n- Share permission level\n\n**Folder Objects Include:**\n- All standard folder metadata\n- Folder owner information\n- Share permission level\n\n**Use Cases:**\n- View files shared with you\n- Access shared content\n- Check shared folder contents\n\n**Response:**\n- Array of shared files with `storageTier` field\n- Array of shared folders\n- Total count of shared items"
-					},
-					"response": []
-				},
-				{
-					"name": "Unshare File/Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify unshare",
-									"if (pm.response.code === 200) {",
-									"    pm.test(\"Share removed successfully\", function () {",
-									"        pm.expect(pm.response.json().success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Share removed successfully\");",
-									"    console.log(\"🔒 Access revoked for the shared user\");",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Share not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied - only owner can unshare\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Unshare failed: \" + jsonData.error.message);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/shares/:shareId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"shares",
-								":shareId"
-							],
-							"variable": [
-								{
-									"key": "shareId",
-									"value": "{{shareId}}",
-									"description": "Share ID (from share response)"
-								}
-							]
-						},
-						"description": "**Revoke access to a shared file or folder**\n\nRemove a share, revoking access for the shared user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only the owner can unshare\n- Share must exist\n\n**Path Parameter:**\n- `shareId`: Share ID (returned when sharing a file/folder)\n\n**Response:**\n- Success message confirming share removed\n\n**Note:**\n- After unsharing, the user loses access immediately\n- Shared user can no longer see the file/folder in their shared list\n- This action cannot be undone (must share again to restore access)\n\n**To Get Share ID:**\n1. Share a file/folder using \"Share File\" or \"Share Folder\" endpoint\n2. Save the `id` field from the response\n3. Use that ID in this endpoint to unshare"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder retrieval",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.name).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder retrieved successfully\");",
-									"    console.log(\"📁 Folder: \" + jsonData.data.name);",
-									"    console.log(\"📂 ID: \" + jsonData.data.id);",
-									"    ",
-									"    // Save folder ID for subsequent requests",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"folderId\", jsonData.data.id);",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to retrieve"
-								}
-							]
-						},
-						"description": "**Get folder metadata by ID**\n\nRetrieve detailed metadata for a specific folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can access\n- Folder must exist\n\n**Path Parameter:**\n- `folderId`: ID of the folder to retrieve\n\n**Response:**\n- Complete folder object with all metadata\n- Includes: `id`, `name`, `description`, `color`, `parentId`, `userId`\n- Includes: `isDeleted`, `createdAt`, `updatedAt`, `deletedAt`"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder creation",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder created successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.name).to.exist;",
-									"    });",
-									"    ",
-									"    // Save folder ID for subsequent requests",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"folderId\", jsonData.data.id);",
-									"        console.log(\"✅ Folder created successfully\");",
-									"        console.log(\"📁 Folder ID: \" + jsonData.data.id);",
-									"        console.log(\"📂 Name: \" + jsonData.data.name);",
-									"    }",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Folder creation failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"already exists\")) {",
-									"            console.log(\"💡 A folder with this name already exists in the parent\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"parentId\": null,\n  \"name\": \"My New Folder\",\n  \"description\": \"Folder description\",\n  \"color\": \"#FF5733\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders"
-							]
-						},
-						"description": "**Create a new folder**\n\nCreate a new folder in the user's storage. Folders can be nested (hierarchical structure).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Folder name must be unique in parent folder\n- Parent folder must exist and belong to user (if specified)\n\n**Request Body:**\n- `parentId` (optional): Parent folder ID (null for root folder)\n- `name` (required): Folder name (max 255 characters)\n- `description` (optional): Folder description\n- `color` (optional): Hex color code for UI (e.g., #FF5733)\n\n**Validation:**\n- Name is required and cannot be empty\n- Name must be unique within the parent folder\n- Name length must be <= 255 characters\n- Parent folder must exist if provided\n\n**Response:**\n- Created folder object with all metadata"
-					},
-					"response": []
-				},
-				{
-					"name": "List Folders",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folders list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folders retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.be.an('array');",
-									"        pm.expect(jsonData.meta.pagination).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folders retrieved successfully\");",
-									"    console.log(\"📁 Total folders: \" + jsonData.meta.pagination.total);",
-									"    console.log(\"📂 Folders in this page: \" + jsonData.data.length);",
-									"    ",
-									"    if (jsonData.data.length > 0) {",
-									"        pm.environment.set(\"folderId\", jsonData.data[0].id);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders?parentId=&includeDeleted=false&page=1&limit=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders"
-							],
-							"query": [
-								{
-									"key": "parentId",
-									"value": "",
-									"description": "Filter by parent folder ID (null for root folders, omit for all)",
-									"disabled": true
-								},
-								{
-									"key": "includeDeleted",
-									"value": "false",
-									"description": "Include deleted folders (default: false)"
-								},
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number (default: 1)"
-								},
-								{
-									"key": "limit",
-									"value": "20",
-									"description": "Items per page (default: 20, max: 100)"
-								}
-							]
-						},
-						"description": "**List folders with filtering and pagination**\n\nGet a list of folders for the authenticated user with optional filtering.\n\n**Query Parameters:**\n- `parentId`: Filter by parent folder ID (null for root folders, omit for all folders)\n- `includeDeleted`: Include deleted folders (default: false)\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of folder objects\n- Pagination information in `meta.pagination`"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder update",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder updated successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder updated successfully\");",
-									"    console.log(\"📂 Folder: \" + jsonData.data.name);",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Update failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"circular\")) {",
-									"            console.log(\"💡 Cannot move folder into itself or its subfolders\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Updated Folder Name\",\n  \"parentId\": null,\n  \"description\": \"Updated description\",\n  \"color\": \"#33FF57\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to update"
-								}
-							]
-						},
-						"description": "**Update folder metadata**\n\nUpdate folder metadata (name, parent, description, color). Can also move folder to different parent.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can update\n- Folder must be active (not deleted)\n- Cannot create circular references (cannot move folder into itself or its subfolders)\n\n**Allowed Fields:**\n- `name`: Folder name (must be unique in new parent if moving)\n- `parentId`: Move to different parent (null for root)\n- `description`: Folder description\n- `color`: Hex color code\n\n**Validation:**\n- Name must be unique in target parent folder\n- Cannot move folder into itself\n- Cannot move folder into any of its subfolders (circular reference prevention)\n- New parent must exist and belong to user (if moving)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to update\n\n**Response:**\n- Updated folder object with all metadata"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder deletion",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder deleted successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder moved to trash successfully\");",
-									"    console.log(\"🗑️ Folder is now in trash (soft delete)\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"subfolders\")) {",
-									"            console.log(\"💡 Folder contains subfolders. Delete them first or use force delete.\");",
-									"        }",
-									"        if (jsonData.error.message.includes(\"files\")) {",
-									"            console.log(\"💡 Folder contains files. Delete them first or use force delete.\");",
-									"        }",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId?forceDelete=false",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId"
-							],
-							"query": [
-								{
-									"key": "forceDelete",
-									"value": "false",
-									"description": "Set to true to delete folder even if it contains active files/subfolders"
-								}
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to delete"
-								}
-							]
-						},
-						"description": "**Delete a folder (move to trash)**\n\nDelete a folder - always performs soft delete (moves folder to trash).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can delete\n- Folder must be empty (no active files or subfolders) unless `forceDelete=true`\n\n**Trash System:**\n- Folders are always soft-deleted (moved to trash)\n- `isDeleted` set to true\n- `deletedAt` timestamp set\n- Folder can be restored from trash\n- Use \"Permanent Delete Folder\" endpoint to permanently delete from trash\n\n**Validation:**\n- By default, folder must be empty (no active files, no active subfolders)\n- Use `forceDelete=true` to delete folder with active contents\n  - ⚠️ This will delete the folder even if it contains active files/subfolders\n\n**Query Parameter:**\n- `forceDelete`: Set to `true` to delete even if folder contains active files/subfolders (default: `false`)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to delete\n\n**Related Endpoints:**\n- `GET /api/files/folders/trash` - List folders in trash\n- `POST /api/files/folders/:id/restore` - Restore folder from trash\n- `DELETE /api/files/folders/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Success message confirming folder moved to trash"
-					},
-					"response": []
-				},
-				{
-					"name": "Permanent Delete Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify permanent deletion",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder permanently deleted successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder permanently deleted from trash\");",
-									"    console.log(\"⚠️ This action cannot be undone\");",
-									"    console.log(\"📊 All files in folder and subfolders are also permanently deleted\");",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"must be in trash\")) {",
-									"            console.log(\"💡 Folder must be in trash first. Delete the folder to move it to trash.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId/permanent",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId",
-								"permanent"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to permanently delete"
-								}
-							]
-						},
-						"description": "**Permanently delete a folder from trash**\n\nPermanently delete a folder that is already in trash. This action cannot be undone.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can delete\n- Folder MUST be in trash (soft-deleted) first\n\n**Permanent Deletion:**\n- Folder and all subfolders removed from database\n- All files in folder and subfolders permanently deleted from storage and database\n- User's `storageUsed` is updated (storage freed)\n- **This action cannot be undone**\n\n**Validation:**\n- Folder must be in trash (isDeleted = true)\n- If folder is not in trash, you'll get error: \"Folder must be in trash before it can be permanently deleted\"\n- Delete the folder first to move it to trash, then use this endpoint\n\n**Path Parameter:**\n- `folderId`: ID of the folder to permanently delete\n\n**Related Endpoints:**\n- `DELETE /api/files/folders/:id` - Move folder to trash\n- `GET /api/files/folders/trash` - List folders in trash\n- `POST /api/files/folders/:id/restore` - Restore folder from trash\n\n**Response:**\n- Success message confirming permanent deletion"
-					},
-					"response": []
-				},
-				{
-					"name": "Restore Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder restoration",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder restored successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.isDeleted).to.be.false;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder restored from trash successfully\");",
-									"    console.log(\"📁 Folder: \" + jsonData.data.name);",
-									"    console.log(\"📊 Is Deleted: \" + jsonData.data.isDeleted);",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Restore failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"cannot be restored\")) {",
-									"            console.log(\"💡 Only deleted folders can be restored from trash.\");",
-									"        }",
-									"        if (jsonData.error.message.includes(\"Parent folder\")) {",
-									"            console.log(\"💡 Parent folder must be restored first.\");",
-									"        }",
-									"        if (jsonData.error.message.includes(\"already exists\")) {",
-									"            console.log(\"💡 A folder with this name already exists in the parent.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId/restore",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId",
-								"restore"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to restore"
-								}
-							]
-						},
-						"description": "**Restore a folder from trash**\n\nRestore a soft-deleted folder back to active status.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can restore\n- Folder must be in trash (soft-deleted)\n\n**Restoration:**\n- Folder `isDeleted` set to false\n- `deletedAt` field cleared\n- Folder becomes visible in regular folder list\n\n**Validation:**\n- Folder must be in trash (isDeleted = true)\n- If folder is not deleted, you'll get error: \"Folder cannot be restored. Only deleted folders can be restored.\"\n- Parent folder must not be deleted (if parent exists)\n- Folder name must not conflict with existing folder in parent\n\n**Path Parameter:**\n- `folderId`: ID of the folder to restore\n\n**Related Endpoints:**\n- `DELETE /api/files/folders/:id` - Move folder to trash\n- `GET /api/files/folders/trash` - List folders in trash\n- `DELETE /api/files/folders/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Restored folder object with isDeleted = false"
-					},
-					"response": []
-				},
-				{
-					"name": "List Trash Folders",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify trash folders list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Trash folders retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.be.an('array');",
-									"        pm.expect(jsonData.meta.pagination).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Trash folders retrieved successfully\");",
-									"    console.log(\"🗑️ Total folders in trash: \" + jsonData.meta.pagination.total);",
-									"    console.log(\"📂 Folders in this page: \" + jsonData.data.length);",
-									"    console.log(\"📊 Page: \" + jsonData.meta.pagination.page + \" / \" + jsonData.meta.pagination.totalPages);",
-									"    ",
-									"    if (jsonData.data.length > 0) {",
-									"        console.log(\"\\nFirst folder in trash: \" + jsonData.data[0].name);",
-									"        pm.environment.set(\"folderId\", jsonData.data[0].id);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/trash?page=1&limit=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								"trash"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number (default: 1)"
-								},
-								{
-									"key": "limit",
-									"value": "20",
-									"description": "Items per page (default: 20, max: 100)"
-								}
-							]
-						},
-						"description": "**List folders in trash**\n\nGet a list of soft-deleted folders (folders in trash) for the authenticated user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows folders owned by the authenticated user\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n\n**Note:**\n- Only folders with isDeleted = true are returned\n- Folders remain in database until permanently deleted\n- Use \"Restore Folder\" endpoint to restore folders from trash\n- Use \"Permanent Delete Folder\" endpoint to permanently delete from trash\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of deleted folder objects with metadata\n- Pagination information in `meta.pagination`"
 					},
 					"response": []
 				},
@@ -2165,82 +1523,6 @@
 							]
 						},
 						"description": "**Copy a file**\n\nCreate a copy of a file. The copied file inherits the source file's storage tier.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can copy\n- Storage quota is checked before copy\n\n**Request Body (JSON):**\n- `targetFolderId` (optional): Target folder ID (null for root, defaults to same folder)\n- `newName` (optional): New name for copied file (defaults to \"Copy of {originalName}\")\n\n**Path Parameter:**\n- `fileId`: ID of the file to copy\n\n**Response:**\n- New file object with:\n  - `id`: New file ID\n  - `storageTier`: Inherited from source file (STANDARD or ARCHIVE)\n  - All file metadata\n\n**Note:**\n- Copied file uses same storage tier as source\n- Storage quota is checked before copy\n- File is copied within the same tier bucket"
-					},
-					"response": []
-				},
-				{
-					"name": "Copy Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder copy",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder copied successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder copied successfully\");",
-									"    console.log(\"📁 New Folder ID: \" + jsonData.data.id);",
-									"    console.log(\"📂 Name: \" + jsonData.data.name);",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Copy failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"quota\")) {",
-									"            console.log(\"💡 Storage quota exceeded\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"targetParentId\": null,\n  \"newName\": \"Copy of folder\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId/copy",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId",
-								"copy"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to copy"
-								}
-							]
-						},
-						"description": "**Copy a folder**\n\nCreate a copy of a folder and all its contents. Files in copied folder preserve their storage tier.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can copy\n- Storage quota is checked before copy\n\n**Request Body (JSON):**\n- `targetParentId` (optional): Target parent folder ID (null for root, defaults to same parent)\n- `newName` (optional): New name for copied folder (defaults to \"Copy of {originalName}\")\n\n**Path Parameter:**\n- `folderId`: ID of the folder to copy\n\n**Response:**\n- New folder object with all metadata\n\n**Note:**\n- All files in folder are copied recursively\n- Files preserve their `storageTier`\n- Storage quota is checked before copy"
 					},
 					"response": []
 				},
@@ -3041,6 +2323,790 @@
 						"description": "**Get file activity log**\n\nGet activity log/history for a file.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can view activity\n- File must exist\n\n**Path Parameter:**\n- `fileId`: ID of the file to get activity for\n\n**Response:**\n- Activity log data with file history and events"
 					},
 					"response": []
+				}
+			],
+			"description": "Endpoints for file management, uploading, downloading, and searching."
+		},
+		{
+			"name": "Folders",
+			"item": [
+				{
+					"name": "Share Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder sharing",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder shared successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.folderId).to.exist;",
+									"        pm.expect(jsonData.data.sharedWithId).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder shared successfully\");",
+									"    console.log(\"📁 Folder ID: \" + jsonData.data.folderId);",
+									"    console.log(\"👤 Shared with user ID: \" + jsonData.data.sharedWithId);",
+									"    console.log(\"🔐 Permission: \" + jsonData.data.permission);",
+									"    ",
+									"    // Save share ID for unshare",
+									"    if (jsonData.data.id) {",
+									"        pm.environment.set(\"shareId\", jsonData.data.id);",
+									"    }",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder or user not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Share failed: \" + jsonData.error.message);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sharedWithId\": \"user-id-to-share-with\",\n  \"permission\": \"READ\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId/share",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId",
+								"share"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to share"
+								}
+							]
+						},
+						"description": "**Share a folder with another user**\n\nShare a folder with another user, granting them access to all files in the folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can share\n- Folder must be active (not deleted)\n- Cannot share with yourself\n\n**Permissions:**\n- `READ`: Read-only access (can view and download files in folder)\n- `WRITE`: Read and write access (can edit, delete files in folder)\n- `VIEW_ONLY`: View-only access (can preview, cannot download)\n\n**Request Body (JSON):**\n- `sharedWithId` (required): User ID of the user to share with\n- `permission` (required): Permission level - 'READ', 'WRITE', or 'VIEW_ONLY'\n\n**Path Parameter:**\n- `folderId`: ID of the folder to share\n\n**Response:**\n- Share object with:\n  - `id`: Share ID (use for unsharing)\n  - `folderId`: Folder ID\n  - `ownerId`: Owner user ID\n  - `sharedWithId`: User ID who has access\n  - `permission`: Permission level\n  - `createdAt`, `updatedAt`: Timestamps\n\n**Note:**\n- If share already exists, it will be updated with new permission\n- Shared folders appear in recipient's \"Shared Files\" list\n- Access applies to all files within the folder"
+					},
+					"response": []
+				},
+				{
+					"name": "Unshare File/Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify unshare",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Share removed successfully\", function () {",
+									"        pm.expect(pm.response.json().success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Share removed successfully\");",
+									"    console.log(\"🔒 Access revoked for the shared user\");",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Share not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied - only owner can unshare\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Unshare failed: \" + jsonData.error.message);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/shares/:shareId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"shares",
+								":shareId"
+							],
+							"variable": [
+								{
+									"key": "shareId",
+									"value": "{{shareId}}",
+									"description": "Share ID (from share response)"
+								}
+							]
+						},
+						"description": "**Revoke access to a shared file or folder**\n\nRemove a share, revoking access for the shared user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only the owner can unshare\n- Share must exist\n\n**Path Parameter:**\n- `shareId`: Share ID (returned when sharing a file/folder)\n\n**Response:**\n- Success message confirming share removed\n\n**Note:**\n- After unsharing, the user loses access immediately\n- Shared user can no longer see the file/folder in their shared list\n- This action cannot be undone (must share again to restore access)\n\n**To Get Share ID:**\n1. Share a file/folder using \"Share File\" or \"Share Folder\" endpoint\n2. Save the `id` field from the response\n3. Use that ID in this endpoint to unshare"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder retrieval",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.name).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder retrieved successfully\");",
+									"    console.log(\"📁 Folder: \" + jsonData.data.name);",
+									"    console.log(\"📂 ID: \" + jsonData.data.id);",
+									"    ",
+									"    // Save folder ID for subsequent requests",
+									"    if (jsonData.data.id) {",
+									"        pm.environment.set(\"folderId\", jsonData.data.id);",
+									"    }",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to retrieve"
+								}
+							]
+						},
+						"description": "**Get folder metadata by ID**\n\nRetrieve detailed metadata for a specific folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can access\n- Folder must exist\n\n**Path Parameter:**\n- `folderId`: ID of the folder to retrieve\n\n**Response:**\n- Complete folder object with all metadata\n- Includes: `id`, `name`, `description`, `color`, `parentId`, `userId`\n- Includes: `isDeleted`, `createdAt`, `updatedAt`, `deletedAt`"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder creation",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder created successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.name).to.exist;",
+									"    });",
+									"    ",
+									"    // Save folder ID for subsequent requests",
+									"    if (jsonData.data.id) {",
+									"        pm.environment.set(\"folderId\", jsonData.data.id);",
+									"        console.log(\"✅ Folder created successfully\");",
+									"        console.log(\"📁 Folder ID: \" + jsonData.data.id);",
+									"        console.log(\"📂 Name: \" + jsonData.data.name);",
+									"    }",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Folder creation failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"already exists\")) {",
+									"            console.log(\"💡 A folder with this name already exists in the parent\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"parentId\": null,\n  \"name\": \"My New Folder\",\n  \"description\": \"Folder description\",\n  \"color\": \"#FF5733\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders"
+							]
+						},
+						"description": "**Create a new folder**\n\nCreate a new folder in the user's storage. Folders can be nested (hierarchical structure).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Folder name must be unique in parent folder\n- Parent folder must exist and belong to user (if specified)\n\n**Request Body:**\n- `parentId` (optional): Parent folder ID (null for root folder)\n- `name` (required): Folder name (max 255 characters)\n- `description` (optional): Folder description\n- `color` (optional): Hex color code for UI (e.g., #FF5733)\n\n**Validation:**\n- Name is required and cannot be empty\n- Name must be unique within the parent folder\n- Name length must be <= 255 characters\n- Parent folder must exist if provided\n\n**Response:**\n- Created folder object with all metadata"
+					},
+					"response": []
+				},
+				{
+					"name": "List Folders",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folders list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folders retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data).to.be.an('array');",
+									"        pm.expect(jsonData.meta.pagination).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folders retrieved successfully\");",
+									"    console.log(\"📁 Total folders: \" + jsonData.meta.pagination.total);",
+									"    console.log(\"📂 Folders in this page: \" + jsonData.data.length);",
+									"    ",
+									"    if (jsonData.data.length > 0) {",
+									"        pm.environment.set(\"folderId\", jsonData.data[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders?parentId=&includeDeleted=false&page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders"
+							],
+							"query": [
+								{
+									"key": "parentId",
+									"value": "",
+									"description": "Filter by parent folder ID (null for root folders, omit for all)",
+									"disabled": true
+								},
+								{
+									"key": "includeDeleted",
+									"value": "false",
+									"description": "Include deleted folders (default: false)"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Items per page (default: 20, max: 100)"
+								}
+							]
+						},
+						"description": "**List folders with filtering and pagination**\n\nGet a list of folders for the authenticated user with optional filtering.\n\n**Query Parameters:**\n- `parentId`: Filter by parent folder ID (null for root folders, omit for all folders)\n- `includeDeleted`: Include deleted folders (default: false)\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of folder objects\n- Pagination information in `meta.pagination`"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder update",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder updated successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder updated successfully\");",
+									"    console.log(\"📂 Folder: \" + jsonData.data.name);",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Update failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"circular\")) {",
+									"            console.log(\"💡 Cannot move folder into itself or its subfolders\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Folder Name\",\n  \"parentId\": null,\n  \"description\": \"Updated description\",\n  \"color\": \"#33FF57\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to update"
+								}
+							]
+						},
+						"description": "**Update folder metadata**\n\nUpdate folder metadata (name, parent, description, color). Can also move folder to different parent.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can update\n- Folder must be active (not deleted)\n- Cannot create circular references (cannot move folder into itself or its subfolders)\n\n**Allowed Fields:**\n- `name`: Folder name (must be unique in new parent if moving)\n- `parentId`: Move to different parent (null for root)\n- `description`: Folder description\n- `color`: Hex color code\n\n**Validation:**\n- Name must be unique in target parent folder\n- Cannot move folder into itself\n- Cannot move folder into any of its subfolders (circular reference prevention)\n- New parent must exist and belong to user (if moving)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to update\n\n**Response:**\n- Updated folder object with all metadata"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder deletion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder deleted successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder moved to trash successfully\");",
+									"    console.log(\"🗑️ Folder is now in trash (soft delete)\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"subfolders\")) {",
+									"            console.log(\"💡 Folder contains subfolders. Delete them first or use force delete.\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"files\")) {",
+									"            console.log(\"💡 Folder contains files. Delete them first or use force delete.\");",
+									"        }",
+									"    }",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder not found\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId?forceDelete=false",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId"
+							],
+							"query": [
+								{
+									"key": "forceDelete",
+									"value": "false",
+									"description": "Set to true to delete folder even if it contains active files/subfolders"
+								}
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to delete"
+								}
+							]
+						},
+						"description": "**Delete a folder (move to trash)**\n\nDelete a folder - always performs soft delete (moves folder to trash).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can delete\n- Folder must be empty (no active files or subfolders) unless `forceDelete=true`\n\n**Trash System:**\n- Folders are always soft-deleted (moved to trash)\n- `isDeleted` set to true\n- `deletedAt` timestamp set\n- Folder can be restored from trash\n- Use \"Permanent Delete Folder\" endpoint to permanently delete from trash\n\n**Validation:**\n- By default, folder must be empty (no active files, no active subfolders)\n- Use `forceDelete=true` to delete folder with active contents\n  - ⚠️ This will delete the folder even if it contains active files/subfolders\n\n**Query Parameter:**\n- `forceDelete`: Set to `true` to delete even if folder contains active files/subfolders (default: `false`)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to delete\n\n**Related Endpoints:**\n- `GET /api/files/folders/trash` - List folders in trash\n- `POST /api/files/folders/:id/restore` - Restore folder from trash\n- `DELETE /api/files/folders/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Success message confirming folder moved to trash"
+					},
+					"response": []
+				},
+				{
+					"name": "Permanent Delete Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify permanent deletion",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder permanently deleted successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder permanently deleted from trash\");",
+									"    console.log(\"⚠️ This action cannot be undone\");",
+									"    console.log(\"📊 All files in folder and subfolders are also permanently deleted\");",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"must be in trash\")) {",
+									"            console.log(\"💡 Folder must be in trash first. Delete the folder to move it to trash.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId/permanent",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId",
+								"permanent"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to permanently delete"
+								}
+							]
+						},
+						"description": "**Permanently delete a folder from trash**\n\nPermanently delete a folder that is already in trash. This action cannot be undone.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can delete\n- Folder MUST be in trash (soft-deleted) first\n\n**Permanent Deletion:**\n- Folder and all subfolders removed from database\n- All files in folder and subfolders permanently deleted from storage and database\n- User's `storageUsed` is updated (storage freed)\n- **This action cannot be undone**\n\n**Validation:**\n- Folder must be in trash (isDeleted = true)\n- If folder is not in trash, you'll get error: \"Folder must be in trash before it can be permanently deleted\"\n- Delete the folder first to move it to trash, then use this endpoint\n\n**Path Parameter:**\n- `folderId`: ID of the folder to permanently delete\n\n**Related Endpoints:**\n- `DELETE /api/files/folders/:id` - Move folder to trash\n- `GET /api/files/folders/trash` - List folders in trash\n- `POST /api/files/folders/:id/restore` - Restore folder from trash\n\n**Response:**\n- Success message confirming permanent deletion"
+					},
+					"response": []
+				},
+				{
+					"name": "Restore Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder restoration",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder restored successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"        pm.expect(jsonData.data.isDeleted).to.be.false;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder restored from trash successfully\");",
+									"    console.log(\"📁 Folder: \" + jsonData.data.name);",
+									"    console.log(\"📊 Is Deleted: \" + jsonData.data.isDeleted);",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Restore failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"cannot be restored\")) {",
+									"            console.log(\"💡 Only deleted folders can be restored from trash.\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"Parent folder\")) {",
+									"            console.log(\"💡 Parent folder must be restored first.\");",
+									"        }",
+									"        if (jsonData.error.message.includes(\"already exists\")) {",
+									"            console.log(\"💡 A folder with this name already exists in the parent.\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId/restore",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId",
+								"restore"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to restore"
+								}
+							]
+						},
+						"description": "**Restore a folder from trash**\n\nRestore a soft-deleted folder back to active status.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can restore\n- Folder must be in trash (soft-deleted)\n\n**Restoration:**\n- Folder `isDeleted` set to false\n- `deletedAt` field cleared\n- Folder becomes visible in regular folder list\n\n**Validation:**\n- Folder must be in trash (isDeleted = true)\n- If folder is not deleted, you'll get error: \"Folder cannot be restored. Only deleted folders can be restored.\"\n- Parent folder must not be deleted (if parent exists)\n- Folder name must not conflict with existing folder in parent\n\n**Path Parameter:**\n- `folderId`: ID of the folder to restore\n\n**Related Endpoints:**\n- `DELETE /api/files/folders/:id` - Move folder to trash\n- `GET /api/files/folders/trash` - List folders in trash\n- `DELETE /api/files/folders/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Restored folder object with isDeleted = false"
+					},
+					"response": []
+				},
+				{
+					"name": "List Trash Folders",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify trash folders list",
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Trash folders retrieved successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data).to.be.an('array');",
+									"        pm.expect(jsonData.meta.pagination).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Trash folders retrieved successfully\");",
+									"    console.log(\"🗑️ Total folders in trash: \" + jsonData.meta.pagination.total);",
+									"    console.log(\"📂 Folders in this page: \" + jsonData.data.length);",
+									"    console.log(\"📊 Page: \" + jsonData.meta.pagination.page + \" / \" + jsonData.meta.pagination.totalPages);",
+									"    ",
+									"    if (jsonData.data.length > 0) {",
+									"        console.log(\"\\nFirst folder in trash: \" + jsonData.data[0].name);",
+									"        pm.environment.set(\"folderId\", jsonData.data[0].id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/trash?page=1&limit=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								"trash"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number (default: 1)"
+								},
+								{
+									"key": "limit",
+									"value": "20",
+									"description": "Items per page (default: 20, max: 100)"
+								}
+							]
+						},
+						"description": "**List folders in trash**\n\nGet a list of soft-deleted folders (folders in trash) for the authenticated user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows folders owned by the authenticated user\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n\n**Note:**\n- Only folders with isDeleted = true are returned\n- Folders remain in database until permanently deleted\n- Use \"Restore Folder\" endpoint to restore folders from trash\n- Use \"Permanent Delete Folder\" endpoint to permanently delete from trash\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of deleted folder objects with metadata\n- Pagination information in `meta.pagination`"
+					},
+					"response": []
+				},
+				{
+					"name": "Copy Folder",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Verify folder copy",
+									"if (pm.response.code === 201) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.test(\"Folder copied successfully\", function () {",
+									"        pm.expect(jsonData.success).to.be.true;",
+									"        pm.expect(jsonData.data.id).to.exist;",
+									"    });",
+									"    ",
+									"    console.log(\"✅ Folder copied successfully\");",
+									"    console.log(\"📁 New Folder ID: \" + jsonData.data.id);",
+									"    console.log(\"📂 Name: \" + jsonData.data.name);",
+									"} else if (pm.response.code === 404) {",
+									"    console.log(\"❌ Folder not found\");",
+									"} else if (pm.response.code === 403) {",
+									"    console.log(\"❌ Access denied\");",
+									"} else if (pm.response.code === 400) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.error && jsonData.error.message) {",
+									"        console.log(\"❌ Copy failed: \" + jsonData.error.message);",
+									"        if (jsonData.error.message.includes(\"quota\")) {",
+									"            console.log(\"💡 Storage quota exceeded\");",
+									"        }",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"targetParentId\": null,\n  \"newName\": \"Copy of folder\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/files/folders/:folderId/copy",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"files",
+								"folders",
+								":folderId",
+								"copy"
+							],
+							"variable": [
+								{
+									"key": "folderId",
+									"value": "{{folderId}}",
+									"description": "Folder ID to copy"
+								}
+							]
+						},
+						"description": "**Copy a folder**\n\nCreate a copy of a folder and all its contents. Files in copied folder preserve their storage tier.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can copy\n- Storage quota is checked before copy\n\n**Request Body (JSON):**\n- `targetParentId` (optional): Target parent folder ID (null for root, defaults to same parent)\n- `newName` (optional): New name for copied folder (defaults to \"Copy of {originalName}\")\n\n**Path Parameter:**\n- `folderId`: ID of the folder to copy\n\n**Response:**\n- New folder object with all metadata\n\n**Note:**\n- All files in folder are copied recursively\n- Files preserve their `storageTier`\n- Storage quota is checked before copy"
+					},
+					"response": []
 				},
 				{
 					"name": "Create Folder Template",
@@ -3232,7 +3298,7 @@
 					"response": []
 				}
 			],
-			"description": "File and folder management endpoints for uploading, downloading, organizing, and managing files.\n\nAll endpoints include:\n- **Authentication required** (Bearer token)\n- **Rate limiting** protection\n- **Storage quota** validation\n- **File deduplication** (SHA-256 hash)\n- **OCI Object Storage** integration for actual file storage\n\n### Storage Features:\n- **Two-Tier Storage System**:\n  - **STANDARD Tier**: For frequently accessed files (documents, photos, CVs)\n    - Fast retrieval, low latency\n    - Thumbnails generated automatically\n    - Higher storage cost\n  - **ARCHIVE Tier**: For rarely accessed files (family photos, videos, bulk data)\n    - Lower storage cost\n    - Acceptable latency for rare access\n    - Thumbnails skipped during upload (lazy generation)\n  - Users can select tier during upload\n  - All file responses include `storageTier` field\n- **Hierarchical folders**: Create nested folder structures\n- **File metadata**: Name, description, tags, custom metadata\n- **File types**: Automatic detection (DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER)\n- **Trash system**: All deletions are soft-deletes (move to trash)\n  - Files and folders can be restored from trash\n  - Permanent deletion only available from trash\n  - Storage is freed only when permanently deleted\n- **Storage quota**: Default 10GB per user, checked before upload\n- **Storage tracking**: User's `storageUsed` is automatically updated"
+			"description": "Endpoints for folder management and organization."
 		}
 	],
 	"variable": [
