@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { Server } from './framework/server/server.js';
 import { ConfigServiceFactory } from './infrastructure/config/config-service.factory.js';
 import { validateEnvironment } from './infrastructure/config/env-validator.js';

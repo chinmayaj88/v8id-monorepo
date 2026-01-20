@@ -51,6 +51,7 @@ import { CreateFileVersionUseCase } from '../../application/use-cases/create-fil
 import { UnifiedSearchUseCase } from '../../application/use-cases/unified-search.use-case.js';
 import { GenerateThumbnailUseCase } from '../../application/use-cases/generate-thumbnail.use-case.js';
 import { RegenerateThumbnailUseCase } from '../../application/use-cases/regenerate-thumbnail.use-case.js';
+import { GetDashboardDataUseCase } from '../../application/use-cases/get-dashboard-data.use-case.js';
 import {
   UploadFileDTO,
   UpdateFileDTO,
@@ -109,7 +110,8 @@ export class FileController {
     private createFileVersionUseCase: CreateFileVersionUseCase,
     private generateThumbnailUseCase: GenerateThumbnailUseCase,
     private regenerateThumbnailUseCase: RegenerateThumbnailUseCase,
-    private unifiedSearchUseCase: UnifiedSearchUseCase
+    private unifiedSearchUseCase: UnifiedSearchUseCase,
+    private getDashboardDataUseCase: GetDashboardDataUseCase
   ) {}
 
   /**
@@ -1644,6 +1646,20 @@ export class FileController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to perform search';
       ResponseUtil.error(res, 'SEARCH_ERROR', message, 500);
+    }
+  }
+
+  /**
+   * GET /api/files/dashboard
+   */
+  async dashboard(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user.id;
+      const result = await this.getDashboardDataUseCase.execute(userId);
+      ResponseUtil.success(res, result, 'Dashboard data retrieved successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to retrieve dashboard data';
+      ResponseUtil.error(res, 'DASHBOARD_ERROR', message);
     }
   }
 }

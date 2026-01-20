@@ -47,6 +47,7 @@ import { UpdateFileUseCase } from '../../application/use-cases/update-file.use-c
 import { GenerateThumbnailUseCase } from '../../application/use-cases/generate-thumbnail.use-case.js';
 import { RegenerateThumbnailUseCase } from '../../application/use-cases/regenerate-thumbnail.use-case.js';
 import { UnifiedSearchUseCase } from '../../application/use-cases/unified-search.use-case.js';
+import { GetDashboardDataUseCase } from '../../application/use-cases/get-dashboard-data.use-case.js';
 import { ThumbnailService } from '../../infrastructure/services/thumbnail.service.js';
 import { UrlCacheService } from '../../infrastructure/services/url-cache.service.js';
 import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
@@ -119,6 +120,14 @@ const regenerateThumbnailUseCase = new RegenerateThumbnailUseCase(
 const unifiedSearchUseCase = new UnifiedSearchUseCase(
   fileRepository,
   folderRepository,
+  storageService,
+  urlCache
+);
+
+const getDashboardDataUseCase = new GetDashboardDataUseCase(
+  fileRepository,
+  folderRepository,
+  userRepository,
   storageService,
   urlCache
 );
@@ -295,7 +304,8 @@ const fileController = new FileController(
   createFileVersionUseCase,
   generateThumbnailUseCase,
   regenerateThumbnailUseCase,
-  unifiedSearchUseCase
+  unifiedSearchUseCase,
+  getDashboardDataUseCase
 );
 
 const upload = multer({
@@ -340,6 +350,9 @@ router.post(
 
 // Unified search
 router.get('/search', authenticate, (req, res) => fileController.search(req as any, res));
+
+// Dashboard data
+router.get('/dashboard', authenticate, (req, res) => fileController.dashboard(req as any, res));
 
 // Specific routes before generic :id routes (order matters in Express)
 router.get('/:id/download', authenticate, (req, res) => fileController.download(req as any, res));
