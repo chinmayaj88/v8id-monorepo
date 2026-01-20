@@ -1,6 +1,6 @@
 /**
  * User Entity
- * 
+ *
  * Represents a user in the system with business logic.
  * This is a pure domain entity with no external dependencies.
  */
@@ -15,7 +15,7 @@ export class User {
     public readonly role: UserRole,
     public readonly firstName?: string,
     public readonly lastName?: string,
-    public readonly avatarUrl?: string,
+    public readonly avatarPath?: string,
     public readonly emailVerified: boolean = true,
     public readonly storageQuota: bigint = BigInt(10737418240), // 10GB default
     public readonly storageUsed: bigint = BigInt(0),
@@ -106,4 +106,3 @@ export class User {
     return available > BigInt(0) ? available : BigInt(0);
   }
 }
-

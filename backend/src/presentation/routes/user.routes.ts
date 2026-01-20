@@ -1,13 +1,15 @@
 /**
  * User Routes
- * 
+ *
  * Defines user-related API routes.
  */
 
 import { Router, type IRouter } from 'express';
+import multer from 'multer';
 import { UserController } from '../controllers/user.controller.js';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case.js';
 import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case.js';
+import { UpdateUserProfileUseCase } from '../../application/use-cases/update-user-profile.use-case.js';
 import { UserRepository } from '../../infrastructure/repositories/user.repository.js';
 import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository.js';
 import { TotpBackupCodeRepository } from '../../infrastructure/repositories/totp-backup-code.repository.js';
@@ -17,13 +19,13 @@ import { EmailServiceFactory } from '../../infrastructure/services/email.service
 import { PasswordService } from '../../infrastructure/services/password.service.js';
 import { TotpService } from '../../infrastructure/services/totp.service.js';
 import { JwtService } from '../../infrastructure/services/jwt.service.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware.js';
 import {
   validateBody,
   validateQuery,
   validateParams,
   createUserSchema,
-  updateCurrentUserSchema,
   listUsersSchema,
   revokeSessionSchema,
 } from '../validators/index.js';
@@ -49,13 +51,17 @@ const createUserUseCase = new CreateUserUseCase(
   totpService
 );
 const getLoginHistoryUseCase = new GetLoginHistoryUseCase(auditLogRepository);
+const storageService = new TierAwareStorageService();
+const updateUserProfileUseCase = new UpdateUserProfileUseCase(userRepository, storageService);
 
 const userController = new UserController(
   createUserUseCase,
   getLoginHistoryUseCase,
+  updateUserProfileUseCase,
   userRepository,
   deviceSessionRepository,
-  auditLogService
+  auditLogService,
+  storageService
 );
 
 router.post(
@@ -74,16 +80,31 @@ router.get(
 );
 
 // User routes
-router.get(
-  '/me',
-  authMiddleware(userRepository, deviceSessionRepository, jwtService),
-  (req, res) => userController.getCurrentUser(req, res)
+router.get('/me', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) =>
+  userController.getCurrentUser(req, res)
 );
-router.patch(
-  '/me',
+// Multer config for avatar upload
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB limit for avatars
+  },
+  fileFilter: (_req, file, cb) => {
+    // Only allow image files
+    const allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed for avatars'));
+    }
+  },
+});
+
+router.put(
+  '/me/profile',
   authMiddleware(userRepository, deviceSessionRepository, jwtService),
-  validateBody(updateCurrentUserSchema),
-  (req, res) => userController.updateCurrentUser(req, res)
+  upload.single('avatar'),
+  (req, res) => userController.updateProfile(req, res)
 );
 
 // Session management routes
@@ -111,4 +132,3 @@ router.get(
 );
 
 export default router;
-

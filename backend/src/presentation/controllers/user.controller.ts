@@ -1,14 +1,16 @@
 /**
  * User Controller
- * 
+ *
  * Handles user-related HTTP requests.
  */
 
 import { Response } from 'express';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case.js';
 import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case.js';
+import { UpdateUserProfileUseCase } from '../../application/use-cases/update-user-profile.use-case.js';
 import { IUserRepository } from '../../application/interfaces/user-repository.interface.js';
 import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface.js';
+import { IStorageService } from '../../application/interfaces/storage-service.interface.js';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service.js';
 import { UpdateUserDTO, ListUsersDTO } from '../../application/dtos/user.dto.js';
 import { CreateUserDTO } from '../../application/dtos/auth.dto.js';
@@ -20,9 +22,11 @@ export class UserController {
   constructor(
     private createUserUseCase: CreateUserUseCase,
     private getLoginHistoryUseCase: GetLoginHistoryUseCase,
+    private updateUserProfileUseCase: UpdateUserProfileUseCase,
     private userRepository: IUserRepository,
     private deviceSessionRepository: IDeviceSessionRepository,
-    private auditLogService: AuditLogService
+    private auditLogService: AuditLogService,
+    private storageService: IStorageService
   ) {}
 
   /**
@@ -68,17 +72,27 @@ export class UserController {
         return;
       }
 
+      // Generate fresh pre-signed URL for avatar
+      let avatarUrl: string | undefined;
+      if (user.avatarPath) {
+        try {
+          avatarUrl = await this.storageService.generatePresignedUrl(user.avatarPath, 3600);
+        } catch {
+          // URL generation failed - continue without avatar
+        }
+      }
+
       ResponseUtil.success(res, {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        avatarUrl: user.avatarUrl,
+        avatarUrl,
         role: user.role,
         storageQuota: user.storageQuota.toString(),
         storageUsed: user.storageUsed.toString(),
         emailVerified: user.emailVerified,
-        totpEnabled: !!user.totpSecret, // TOTP is enabled if secret exists
+        totpEnabled: !!user.totpSecret,
         totpVerified: user.totpVerified,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -90,29 +104,33 @@ export class UserController {
   }
 
   /**
-   * PATCH /api/users/me
+   * PUT /api/users/me/profile
+   * Update user profile with avatar upload
    */
-  async updateCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async updateProfile(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         ResponseUtil.unauthorized(res);
         return;
       }
 
-      const dto: UpdateUserDTO = req.body;
+      const file = req.file;
+      const { firstName, lastName } = req.body;
 
-      const user = await this.userRepository.update(req.user.id, dto);
+      const dto = {
+        firstName,
+        lastName,
+        avatarBuffer: file?.buffer,
+        avatarFileName: file?.originalname,
+        avatarMimeType: file?.mimetype,
+      };
 
-      ResponseUtil.success(res, {
-        id: user.id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        avatarUrl: user.avatarUrl,
-        updatedAt: user.updatedAt,
-      });
+      const result = await this.updateUserProfileUseCase.execute(req.user.id, dto);
+
+      ResponseUtil.success(res, result, 'Profile updated successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update user';
-      ResponseUtil.error(res, 'UPDATE_ERROR', message);
+      const message = error instanceof Error ? error.message : 'Failed to update profile';
+      ResponseUtil.error(res, 'UPDATE_PROFILE_ERROR', message);
     }
   }
 
@@ -140,7 +158,7 @@ export class UserController {
       ResponseUtil.successWithPagination(
         res,
         {
-          users: result.users.map((user) => ({
+          users: result.users.map(user => ({
             id: user.id,
             email: user.email,
             firstName: user.firstName,
@@ -180,7 +198,7 @@ export class UserController {
       const sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(req.user.id);
 
       ResponseUtil.success(res, {
-        sessions: sessions.map((session) => ({
+        sessions: sessions.map(session => ({
           id: session.id,
           deviceType: session.deviceType,
           deviceName: session.deviceName,
@@ -270,7 +288,11 @@ export class UserController {
         });
       }
 
-      ResponseUtil.success(res, undefined, `All ${sessions.length} session(s) revoked successfully`);
+      ResponseUtil.success(
+        res,
+        undefined,
+        `All ${sessions.length} session(s) revoked successfully`
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to revoke sessions';
       ResponseUtil.error(res, 'REVOKE_SESSIONS_ERROR', message);
@@ -305,4 +327,3 @@ export class UserController {
     }
   }
 }
-

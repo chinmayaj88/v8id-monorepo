@@ -1,6 +1,6 @@
 /**
  * User Repository Implementation
- * 
+ *
  * Concrete implementation of IUserRepository using Prisma.
  */
 
@@ -22,7 +22,7 @@ export class UserRepository implements IUserRepository {
       prismaUser.role as UserRole,
       prismaUser.firstName ?? undefined,
       prismaUser.lastName ?? undefined,
-      prismaUser.avatarUrl ?? undefined,
+      prismaUser.avatarPath ?? undefined,
       prismaUser.emailVerified,
       prismaUser.storageQuota,
       prismaUser.storageUsed,
@@ -92,7 +92,7 @@ export class UserRepository implements IUserRepository {
     data: Partial<{
       firstName?: string;
       lastName?: string;
-      avatarUrl?: string;
+      avatarPath?: string;
       passwordHash?: string;
       storageQuota?: bigint;
       storageUsed?: bigint;
@@ -185,9 +185,8 @@ export class UserRepository implements IUserRepository {
     ]);
 
     return {
-      users: users.map((user) => this.toDomain(user)),
+      users: users.map(user => this.toDomain(user)),
       total,
     };
   }
 }
-
