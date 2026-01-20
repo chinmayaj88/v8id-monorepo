@@ -66,10 +66,19 @@ fun AppNavGraph(
             }
         }
         
-        composable("folders") {
-            val homeViewModel: HomeViewModel = hiltViewModel()
+        composable(
+            route = "folders?folderId={folderId}",
+            arguments = listOf(
+                navArgument("folderId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val folderId = backStackEntry.arguments?.getString("folderId")
             MainScreen(navController = navController) {
-                FoldersScreen(navController = navController)
+                FoldersScreen(navController = navController) // Pass folderId if needed
             }
         }
         

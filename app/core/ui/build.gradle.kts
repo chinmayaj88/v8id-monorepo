@@ -40,4 +40,7 @@ dependencies {
     
     // Navigation
     implementation(libs.navigation.compose)
+
+    // Image Loading
+    implementation(libs.coil.compose)
 }

@@ -5,14 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -22,18 +20,20 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.v8idcloud.core.ui.theme.V8idColors
 import com.v8idcloud.core.ui.R
+import com.v8idcloud.core.common.FolderData
+import com.v8idcloud.core.ui.components.FolderRowItem
 
 @Composable
 fun FoldersScreen(navController: NavHostController) {
-    // Mock folders data
+    // Mock folders data - in a real app this would come from a ViewModel
     val folders = remember {
         listOf(
-            FolderData("Documents", 45, Icons.Default.Description, "12.5 GB"),
-            FolderData("Photos", 128, Icons.Default.PhotoLibrary, "8.2 GB"),
-            FolderData("Videos", 23, Icons.Default.VideoLibrary, "15.3 GB"),
-            FolderData("Music", 67, Icons.Default.LibraryMusic, "3.1 GB"),
-            FolderData("Downloads", 12, Icons.Default.Download, "1.8 GB"),
-            FolderData("Archive", 8, Icons.Default.Archive, "2.4 GB")
+            FolderData(id = "1", name = "Documents", size = "12.5 GB", icon = Icons.Default.Description, iconColor = Color(0xFF4285F4)),
+            FolderData(id = "2", name = "Photos", size = "8.2 GB", icon = Icons.Default.PhotoLibrary, iconColor = Color(0xFFEA4335)),
+            FolderData(id = "3", name = "Videos", size = "15.3 GB", icon = Icons.Default.VideoLibrary, iconColor = Color(0xFFFBBC04)),
+            FolderData(id = "4", name = "Music", size = "3.1 GB", icon = Icons.Default.LibraryMusic, iconColor = Color(0xFF34A853)),
+            FolderData(id = "5", name = "Downloads", size = "1.8 GB", icon = Icons.Default.Download, iconColor = Color(0xFF673AB7)),
+            FolderData(id = "6", name = "Archive", size = "2.4 GB", icon = Icons.Default.Archive, iconColor = Color(0xFF607D8B))
         )
     }
 
@@ -42,7 +42,7 @@ fun FoldersScreen(navController: NavHostController) {
             .fillMaxSize()
             .background(V8idColors.UI.Background)
     ) {
-        // Full Screen Background (bg2.jpg) - No blur, same as Home
+        // Full Screen Background (bg2.jpg)
         Image(
             painter = painterResource(id = R.drawable.bg2),
             contentDescription = "Background",
@@ -85,79 +85,15 @@ fun FoldersScreen(navController: NavHostController) {
                 }
             }
 
-            // Folders Grid
+            // Folders List
             items(folders) { folder ->
-                FolderItemCard(folder = folder)
-            }
-        }
-    }
-}
-
-@Composable
-private fun FolderItemCard(folder: FolderData) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = V8idColors.UI.Surface,
-        shadowElevation = 2.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Folder Icon
-            Surface(
-                modifier = Modifier.size(56.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = V8idColors.UI.SearchBackground
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        imageVector = folder.icon,
-                        contentDescription = folder.name,
-                        modifier = Modifier.size(28.dp),
-                        tint = V8idColors.Purple.VibrantPurple
-                    )
-                }
-            }
-
-            // Folder Info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = folder.name,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = V8idColors.UI.TextPrimary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${folder.itemCount} items • ${folder.size}",
-                    fontSize = 13.sp,
-                    color = V8idColors.UI.TextSecondary
-                )
-            }
-
-            // More Options
-            IconButton(onClick = { /* More options */ }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More",
-                    tint = V8idColors.UI.IconTint
+                FolderRowItem(
+                    folder = folder,
+                    itemCount = (10..50).random(), // Mock item count
+                    onFolderClick = { /* Navigate to folder content */ },
+                    onMoreClick = { /* Show options */ }
                 )
             }
         }
     }
 }
-
-data class FolderData(
-    val name: String,
-    val itemCount: Int,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val size: String
-)

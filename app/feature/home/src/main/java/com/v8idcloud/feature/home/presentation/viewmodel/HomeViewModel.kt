@@ -15,16 +15,23 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.async
 import javax.inject.Inject
 import com.v8idcloud.core.data.network.FileApiService
+import com.v8idcloud.core.common.FileItem
+import com.v8idcloud.core.common.FolderData
+import com.v8idcloud.core.common.SearchSuggestion
+import com.v8idcloud.core.common.SuggestionType
+import com.v8idcloud.core.data.network.DashboardResponseDto
+import com.v8idcloud.core.common.formatFileSize
+import com.v8idcloud.core.common.formatTimeAgo
+import com.v8idcloud.core.ui.utils.UiUtils
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
-import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.outlined.Folder
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val authApiService: AuthApiService,
     private val fileApiService: FileApiService,
-    private val storageManager: StorageManager
+    private val storageManager: StorageManager,
+    private val configProvider: com.v8idcloud.core.common.ConfigProvider
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -32,6 +39,20 @@ class HomeViewModel @Inject constructor(
 
     private val _searchResults = MutableStateFlow<List<SearchSuggestion>>(emptyList())
     val searchResults: StateFlow<List<SearchSuggestion>> = _searchResults.asStateFlow()
+
+    private val _selectedFilter = MutableStateFlow("All")
+    val selectedFilter: StateFlow<String> = _selectedFilter.asStateFlow()
+
+    private val _downloadEvent = MutableStateFlow<DownloadEvent?>(null)
+    val downloadEvent: StateFlow<DownloadEvent?> = _downloadEvent.asStateFlow()
+
+    private val _shareEvent = MutableStateFlow<ShareEvent?>(null)
+    val shareEvent: StateFlow<ShareEvent?> = _shareEvent.asStateFlow()
+
+    fun clearDownloadEvent() { _downloadEvent.value = null }
+    fun clearShareEvent() { _shareEvent.value = null }
+
+    private val _dashboardData = MutableStateFlow<DashboardResponseDto?>(null)
     
     // User info flows
     val userEmail: StateFlow<String?> = storageManager.getUserEmail().stateIn(
@@ -56,75 +77,75 @@ class HomeViewModel @Inject constructor(
         loadDashboardData()
     }
 
+    fun setFilter(filter: String) {
+        _selectedFilter.value = filter
+        updateUiState()
+    }
+
     /**
      * Load dashboard data (storage, recent files, folders)
      */
     fun loadDashboardData() {
         viewModelScope.launch {
             try {
-                // Keep the current loaded state if we are just refreshing
                 if (_uiState.value !is HomeUiState.Loaded) {
                     _uiState.value = HomeUiState.Loading
                 }
                 
                 val response = fileApiService.getDashboardData()
                 val data = response.data
+                _dashboardData.value = data
                 
-                val recentFiles = data.recentFiles.map { item ->
-                    FileItem(
-                        id = item.id,
-                        name = item.name,
-                        size = formatFileSize(item.size ?: 0),
-                        timeAgo = "Recently", 
-                        icon = getFileIcon(item.mimeType ?: ""),
-                        thumbnailUrl = item.thumbnailUrl
-                    )
-                }
-                
-                val folders = data.folders.map { folder ->
-                    FolderData(
-                        id = folder.id,
-                        name = folder.name,
-                        size = "", 
-                        icon = Icons.Outlined.Folder,
-                        iconColor = parseColor(folder.color)
-                    )
-                }
-                
-                _uiState.value = HomeUiState.Loaded(
-                    storageUsedPercentage = data.storage.percentage.toFloat(),
-                    storageUsedText = "${String.format("%.1f", data.storage.used / (1024.0 * 1024.0 * 1024.0))} GB used",
-                    recentFiles = recentFiles,
-                    folders = folders,
-                    totalFiles = data.stats.totalFiles,
-                    totalFolders = data.stats.totalFolders
-                )
+                updateUiState()
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error(e.message ?: "Failed to load dashboard")
             }
         }
     }
 
-    private fun parseColor(colorString: String?): Color {
-        return try {
-            if (colorString != null && colorString.startsWith("#")) {
-                Color(android.graphics.Color.parseColor(colorString))
-            } else {
-                Color(0xFF6B4EE6) // Default V8id purple
+    private fun updateUiState() {
+        val data = _dashboardData.value ?: return
+        val filter = _selectedFilter.value
+
+        val filteredRecentFiles = data.recentFiles.filter { item ->
+            when (filter) {
+                "Images" -> item.mimeType?.startsWith("image/") == true
+                "Videos" -> item.mimeType?.startsWith("video/") == true
+                "Docs" -> item.mimeType?.contains("pdf") == true || item.mimeType?.contains("word") == true
+                else -> true
             }
-        } catch (e: Exception) {
-            Color(0xFF6B4EE6)
+        }.map { item ->
+            FileItem(
+                id = item.id,
+                name = item.name,
+                size = (item.size ?: 0L).formatFileSize(),
+                timeAgo = item.updatedAt.formatTimeAgo(),
+                icon = UiUtils.getFileIcon(item.mimeType),
+                thumbnailUrl = item.thumbnailUrl,
+                mimeType = item.mimeType
+            )
         }
+
+        val folders = data.folders.map { folder ->
+            FolderData(
+                id = folder.id,
+                name = folder.name,
+                size = "",
+                icon = Icons.Outlined.Folder,
+                iconColor = UiUtils.parseColor(folder.color)
+            )
+        }
+
+        _uiState.value = HomeUiState.Loaded(
+            storageUsedPercentage = data.storage.percentage.toFloat(),
+            storageUsedText = "${String.format("%.1f", data.storage.used / (1024.0 * 1024.0 * 1024.0))} GB used",
+            recentFiles = filteredRecentFiles,
+            folders = folders,
+            totalFiles = data.stats.totalFiles,
+            totalFolders = data.stats.totalFolders
+        )
     }
 
-    private fun getFileIcon(mimeType: String): androidx.compose.ui.graphics.vector.ImageVector {
-        return when {
-            mimeType.startsWith("image/") -> Icons.Default.Image
-            mimeType.startsWith("video/") -> Icons.Default.VideoFile
-            mimeType.contains("pdf") -> Icons.Default.Description
-            else -> Icons.Default.InsertDriveFile
-        }
-    }
 
     /**
      * Search files and folders
@@ -144,7 +165,7 @@ class HomeViewModel @Inject constructor(
                     SearchSuggestion(
                         id = item.id,
                         title = item.name,
-                        subtitle = if (item.type == "folder") "Folder" else formatFileSize(item.size ?: 0),
+                        subtitle = if (item.type == "folder") "Folder" else (item.size ?: 0L).formatFileSize(),
                         type = if (item.type == "folder") SuggestionType.FOLDER else SuggestionType.FILE
                     )
                 }
@@ -156,28 +177,68 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    private fun formatFileSize(size: Long): String {
-        val kb = size / 1024.0
-        val mb = kb / 1024.0
-        val gb = mb / 1024.0
-        
-        return when {
-            gb >= 1 -> String.format("%.1f GB", gb)
-            mb >= 1 -> String.format("%.1f MB", mb)
-            kb >= 1 -> String.format("%.1f KB", kb)
-            else -> "$size B"
-        }
-    }
-
     /**
      * File Actions
      */
     fun downloadFile(fileId: String) {
-        // Implementation for downloading
+        viewModelScope.launch {
+            try {
+                _uiState.value.let { state ->
+                    if (state is HomeUiState.Loaded) {
+                        val fileItem = state.recentFiles.find { it.id == fileId }
+                        val response = fileApiService.generateLink(fileId)
+                        val linkData = response.data
+                        
+                        // Construct full URL
+                        val fullUrl = if (linkData.linkUrl.startsWith("http")) {
+                            linkData.linkUrl
+                        } else {
+                            "${configProvider.baseUrl.trimEnd('/')}${linkData.linkUrl}"
+                        }
+
+                        // We will need a way to trigger the actual download from the UI
+                        // For now, let's use a side effect or a simple Event
+                        _downloadEvent.value = DownloadEvent(
+                            url = fullUrl,
+                            fileName = fileItem?.name ?: "downloaded_file"
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Download error", e)
+            }
+        }
     }
 
     fun deleteFile(fileId: String) {
-        // Implementation for deleting
+        viewModelScope.launch {
+            try {
+                fileApiService.deleteFile(fileId)
+                // Refresh dashboard after deletion
+                loadDashboardData()
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Delete error", e)
+            }
+        }
+    }
+
+    fun shareFile(fileId: String) {
+        viewModelScope.launch {
+            try {
+                val response = fileApiService.generateLink(fileId)
+                val linkData = response.data
+                
+                val fullUrl = if (linkData.linkUrl.startsWith("http")) {
+                    linkData.linkUrl
+                } else {
+                    "${configProvider.baseUrl.trimEnd('/')}${linkData.linkUrl}"
+                }
+
+                _shareEvent.value = ShareEvent(url = fullUrl)
+            } catch (e: Exception) {
+                android.util.Log.e("HomeViewModel", "Share error", e)
+            }
+        }
     }
 
     /**
@@ -228,30 +289,9 @@ sealed interface HomeUiState {
     data class Error(val message: String) : HomeUiState
 }
 
-data class SearchSuggestion(
-    val id: String,
-    val title: String,
-    val subtitle: String,
-    val type: SuggestionType
-)
+data class DownloadEvent(val url: String, val fileName: String)
+data class ShareEvent(val url: String)
 
-enum class SuggestionType {
-    FILE, FOLDER
-}
 
-data class FileItem(
-    val id: String,
-    val name: String,
-    val size: String,
-    val timeAgo: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val thumbnailUrl: String? = null
-)
 
-data class FolderData(
-    val id: String,
-    val name: String,
-    val size: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val iconColor: Color
-)
+

@@ -1,60 +1,35 @@
 package com.v8idcloud.feature.home.presentation.ui
 
 import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.v8idcloud.core.ui.theme.V8idColors
 import com.v8idcloud.feature.home.presentation.viewmodel.HomeViewModel
-import com.v8idcloud.core.ui.R
-import com.v8idcloud.feature.home.presentation.viewmodel.SearchSuggestion
-import com.v8idcloud.feature.home.presentation.viewmodel.SuggestionType
-import androidx.compose.ui.text.style.TextAlign
-import com.v8idcloud.feature.home.presentation.viewmodel.FileItem
-import com.v8idcloud.feature.home.presentation.viewmodel.FolderData
+import com.v8idcloud.core.common.SearchSuggestion
+import com.v8idcloud.core.common.SuggestionType
 import com.v8idcloud.feature.home.presentation.viewmodel.HomeUiState
-import kotlin.math.roundToInt
+import com.v8idcloud.core.ui.components.*
+import com.v8idcloud.core.ui.R
 
 @Composable
 fun HomeScreen(
@@ -76,9 +51,40 @@ fun HomeScreen(
     val userEmailFlow by viewModel.userEmail.collectAsState()
     val userFirstNameFlow by viewModel.userFirstName.collectAsState()
     val userLastNameFlow by viewModel.userLastName.collectAsState()
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
+    
+    // State for filter menu visibility
+    var showFilters by remember { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
     // State for tracking which file card is currently swiped/revealed
     var revealedFileId by remember { mutableStateOf<String?>(null) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val downloadEvent by viewModel.downloadEvent.collectAsState()
+    val shareEvent by viewModel.shareEvent.collectAsState()
+
+    // Handle Download Event
+    LaunchedEffect(downloadEvent) {
+        downloadEvent?.let { event ->
+            com.v8idcloud.core.ui.utils.UiUtils.downloadFile(context, event.url, event.fileName)
+            viewModel.clearDownloadEvent()
+        }
+    }
+
+    // Handle Share Event
+    LaunchedEffect(shareEvent) {
+        shareEvent?.let { event ->
+            val sendIntent: android.content.Intent = android.content.Intent().apply {
+                action = android.content.Intent.ACTION_SEND
+                putExtra(android.content.Intent.EXTRA_TEXT, "Check out this file from V8id Cloud: ${event.url}")
+                type = "text/plain"
+            }
+            val shareIntent = android.content.Intent.createChooser(sendIntent, null)
+            context.startActivity(shareIntent)
+            viewModel.clearShareEvent()
+        }
+    }
 
     // Compute user name
     val userEmail = userEmailFlow ?: ""
@@ -138,16 +144,45 @@ fun HomeScreen(
             // Search Bar
             item {
                 SearchBar(
-                    onSearch = { viewModel.search(it) },
+                    searchQuery = searchQuery,
+                    onQueryChange = { 
+                        searchQuery = it
+                        viewModel.search(it)
+                    },
                     searchResults = searchResults,
                     onSuggestionClick = { suggestion ->
                         if (suggestion.type == SuggestionType.FOLDER) {
-                            navController.navigate("folders/${suggestion.id}")
+                            navController.navigate("folders?folderId=${suggestion.id}")
                         } else {
                             // File preview could be handled here
                         }
-                    }
+                    },
+                    onFilterClick = { showFilters = !showFilters }
                 )
+            }
+
+            // Optional Filter Chips Row (Visible when showFilters is true or always)
+            item {
+                AnimatedVisibility(visible = showFilters) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf("All", "Images", "Videos", "Docs").forEach { filter ->
+                            FilterChip(
+                                selected = selectedFilter == filter,
+                                onClick = { viewModel.setFilter(filter) },
+                                label = { Text(filter) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = V8idColors.Purple.VibrantPurple.copy(alpha = 0.1f),
+                                    selectedLabelColor = V8idColors.Purple.VibrantPurple
+                                )
+                            )
+                        }
+                    }
+                }
             }
 
             if (uiState is HomeUiState.Loaded) {
@@ -155,9 +190,10 @@ fun HomeScreen(
                 
                 // Quick Access Card
                 item {
-                    QuickAccessCard(
+                    RecentFoldersCard(
                         folders = state.folders,
-                        iconSize = dynamicFolderIconSize
+                        iconSize = dynamicFolderIconSize,
+                        onMenuClick = { /* Handle menu */ }
                     )
                 }
 
@@ -177,14 +213,15 @@ fun HomeScreen(
                 }
 
                 items(state.recentFiles, key = { it.id }) { file ->
-                    RecentFileCard(
+                    FileItemCard(
                         file = file,
                         iconSize = dynamicIconSize,
                         isRevealed = revealedFileId == file.id,
                         onExpand = { revealedFileId = file.id },
                         onCollapse = { if (revealedFileId == file.id) revealedFileId = null },
                         onDownload = { viewModel.downloadFile(file.id) },
-                        onDelete = { viewModel.deleteFile(file.id) }
+                        onDelete = { viewModel.deleteFile(file.id) },
+                        onShare = { viewModel.shareFile(file.id) }
                     )
                 }
             } else if (uiState is HomeUiState.Loading) {
@@ -216,539 +253,5 @@ fun HomeScreen(
     }
 }
 
-@Composable
-private fun GradientHeading(screenWidth: Int) {
-    val gradientColors = listOf(
-        V8idColors.Gradient.LightLavender,
-        V8idColors.Gradient.VibrantPurple,
-        V8idColors.Gradient.RoyalBlue,
-        V8idColors.Gradient.DeepNavy
-    )
-
-    // Dynamic font size calculation (approx 8% of screen width)
-    // Coerced to be reasonable (between 24sp and 34sp)
-    val dynamicFontSize = (screenWidth * 0.08).coerceIn(20.0, 36.0).sp
-
-    Text(
-        text = buildAnnotatedString {
-            append("Save With ")
-            withStyle(
-                style = SpanStyle(
-                    brush = Brush.linearGradient(
-                        colors = gradientColors,
-                        start = Offset(0f, 0f),
-                        end = Offset(800f, 0f)
-                    ),
-                    fontWeight = FontWeight.Bold
-                )
-            ) {
-                append("V8id")
-            }
-            append(" Cloud")
-        },
-        fontSize = dynamicFontSize,
-        fontWeight = FontWeight.Bold,
-        color = V8idColors.UI.TextPrimary,
-        maxLines = 1,
-        softWrap = false,
-        overflow = androidx.compose.ui.text.style.TextOverflow.Visible
-    )
-}
-
-@Composable
-private fun ProfileHeader(
-    userName: String, 
-    storagePercentage: Float,
-    onLogout: () -> Unit = {}
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Surface(
-                modifier = Modifier.size(40.dp).clickable { onLogout() },
-                shape = CircleShape,
-                color = V8idColors.UI.ProfileGreen
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Profile",
-                        modifier = Modifier.size(24.dp),
-                        tint = V8idColors.UI.ProfileGreenDark
-                    )
-                }
-            }
-
-            // User Info
-            Column {
-                Text(
-                    text = "Hi, $userName",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = V8idColors.UI.TextPrimary
-                )
-                Text(
-                    text = "Storage Used: ${String.format("%.0f", storagePercentage)}%",
-                    fontSize = 13.sp,
-                    color = V8idColors.UI.TextSecondary
-                )
-            }
-        }
-
-        // Notification Icon
-        Surface(
-            modifier = Modifier.size(40.dp),
-            shape = CircleShape,
-            color = V8idColors.UI.Surface,
-            shadowElevation = 2.dp
-        ) {
-            IconButton(onClick = { /* Notifications */ }) {
-                Icon(
-                    imageVector = Icons.Outlined.Notifications,
-                    contentDescription = "Notifications",
-                    tint = V8idColors.UI.TextPrimary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SearchBar(
-  modifier: Modifier = Modifier,
-  hint: String = "Search files",
-  searchResults: List<SearchSuggestion> = emptyList(),
-  onSearch: (String) -> Unit = {},
-  onFilterClick: () -> Unit = {},
-  onSuggestionClick: (SearchSuggestion) -> Unit = {}
-) {
-  var searchQuery by rememberSaveable { mutableStateOf("") }
-
-  Column(modifier = modifier) {
-      Surface(
-        modifier = Modifier
-          .fillMaxWidth()
-          .height(44.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = V8idColors.UI.Surface,
-        border = BorderStroke(
-          1.dp,
-          V8idColors.UI.TextTertiary.copy(alpha = 0.3f)
-        ),
-        tonalElevation = 0.dp
-      ) {
-        Row(
-          modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 14.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-    
-          Icon(
-            imageVector = Icons.Outlined.Search,
-            contentDescription = null,
-            tint = V8idColors.UI.IconTint,
-            modifier = Modifier.size(18.dp)
-          )
-    
-          Spacer(modifier = Modifier.width(8.dp))
-    
-          BasicTextField(
-            value = searchQuery,
-            onValueChange = { 
-                searchQuery = it
-                onSearch(it)
-            },
-            singleLine = true,
-            textStyle = TextStyle(
-              fontSize = 14.sp,
-              color = V8idColors.UI.TextPrimary
-            ),
-            modifier = Modifier.weight(1f),
-            decorationBox = { innerTextField ->
-              if (searchQuery.isEmpty()) {
-                Text(
-                  text = hint,
-                  fontSize = 14.sp,
-                  color = V8idColors.UI.TextTertiary
-                )
-              }
-              innerTextField()
-            }
-          )
-    
-          if (searchQuery.isNotEmpty()) {
-            Icon(
-              imageVector = Icons.Outlined.Close,
-              contentDescription = "Clear",
-              tint = V8idColors.UI.IconTint,
-              modifier = Modifier
-                .size(18.dp)
-                .clickable { 
-                    searchQuery = ""
-                    onSearch("")
-                }
-            )
-    
-            Spacer(modifier = Modifier.width(8.dp))
-          }
-    
-          Icon(
-            imageVector = Icons.Outlined.Tune,
-            contentDescription = "Filter",
-            tint = V8idColors.UI.IconTint,
-            modifier = Modifier
-              .size(18.dp)
-              .clickable { onFilterClick() }
-          )
-        }
-      }
-
-      // Suggestions List
-      AnimatedVisibility(
-          visible = searchQuery.isNotEmpty() && searchResults.isNotEmpty(),
-          enter = expandVertically() + fadeIn(),
-          exit = shrinkVertically() + fadeOut()
-      ) {
-         Surface(
-             shape = RoundedCornerShape(16.dp),
-             color = V8idColors.UI.Surface,
-             shadowElevation = 8.dp,
-             modifier = Modifier.padding(top = 8.dp).fillMaxWidth()
-         ) {
-             Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                 searchResults.forEach { suggestion ->
-                     SearchSuggestionItem(suggestion)
-                 }
-             }
-         }
-      }
-  }
-}
-
-@Composable
-fun SearchSuggestionItem(suggestion: SearchSuggestion, onClick: () -> Unit = {}) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            modifier = Modifier.size(32.dp),
-            shape = CircleShape,
-            color = V8idColors.Purple.SubtlePurpleTint
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = if (suggestion.type == SuggestionType.FOLDER) Icons.Outlined.Folder else Icons.Outlined.Description,
-                    contentDescription = null,
-                    tint = V8idColors.Purple.VibrantPurple,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(
-                text = suggestion.title, 
-                fontWeight = FontWeight.Medium, 
-                fontSize = 14.sp,
-                color = V8idColors.UI.TextPrimary
-            )
-            Text(
-                text = suggestion.subtitle, 
-                fontSize = 12.sp, 
-                color = V8idColors.UI.TextTertiary
-            )
-        }
-    }
-}
-
-
-
-@Composable
-private fun QuickAccessCard(
-    folders: List<FolderData>,
-    iconSize: Dp
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = Color(0xFFD4BDFF),
-        shadowElevation = 4.dp
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Recent Files & Folders",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1A1A)
-                )
-                Icon(
-                    imageVector = Icons.Outlined.Menu,
-                    contentDescription = "Menu",
-                    tint = Color(0xFF1A1A1A)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Distributed Row for folders to fill the available width evenly
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                folders.forEach { folder ->
-                    FolderIconItem(folder = folder, iconSize = iconSize)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FolderIconItem(folder: FolderData, iconSize: Dp) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Circular Icon Background with dynamic size
-        Surface(
-            modifier = Modifier.size(iconSize),
-            shape = CircleShape,
-            color = Color.White
-        ) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Icon(
-                    imageVector = folder.icon,
-                    contentDescription = folder.name,
-                    modifier = Modifier.size(iconSize * 0.45f),
-                    tint = folder.iconColor
-                )
-            }
-        }
-
-        // Folder Name
-        Text(
-            text = folder.name,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFF1A1A1A)
-        )
-
-        // Folder Size
-        Text(
-            text = folder.size,
-            fontSize = 11.sp,
-            color = Color(0xFF666666)
-        )
-    }
-}
-
-@Composable
-private fun FileSummaryChip(fileCount: Int, folderCount: Int) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = Color.White,
-            shadowElevation = 2.dp
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "$fileCount Files",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF1A1A1A)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(4.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF999999))
-                )
-                Text(
-                    text = "$folderCount Folder",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF1A1A1A)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecentFileCard(
-    file: FileItem,
-    iconSize: Dp,
-    isRevealed: Boolean,
-    onExpand: () -> Unit,
-    onCollapse: () -> Unit,
-    onDownload: () -> Unit = {},
-    onDelete: () -> Unit = {}
-) {
-    // Menu width - fixed to ensure it doesn't go "out of view"
-    val menuWidth = 160.dp
-
-    // Smooth animation for the swipe offset
-    val offset by animateDpAsState(
-        targetValue = if (isRevealed) -menuWidth else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessLow
-        ),
-        label = "swipeOffset"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min),
-        contentAlignment = Alignment.CenterEnd
-    ) {
-        // Swipe actions background (Revealed buttons)
-        Row(
-            modifier = Modifier
-                .padding(end = 8.dp)
-                .width(menuWidth),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ActionIconButton(icon = Icons.Outlined.Download, color = V8idColors.Purple.VibrantPurple) {
-                onCollapse()
-                onDownload()
-            }
-            ActionIconButton(icon = Icons.Outlined.Link, color = V8idColors.Purple.Indigo) {
-                onCollapse()
-                /* Handle link */
-            }
-            ActionIconButton(icon = Icons.Outlined.Delete, color = V8idColors.Semantic.Error) {
-                onCollapse()
-                onDelete()
-            }
-        }
-
-        // Main card content (Foreground)
-        Surface(
-            modifier = Modifier
-                .offset(x = offset)
-                .fillMaxWidth()
-                .pointerInput(Unit) {
-                    detectHorizontalDragGestures { change, dragAmount ->
-                        change.consume()
-                        if (dragAmount < -15) onExpand() // Swipe left to reveal
-                        if (dragAmount > 15) onCollapse() // Swipe right to hide
-                    }
-                },
-            shape = RoundedCornerShape(16.dp),
-            color = V8idColors.UI.Surface,
-            shadowElevation = 2.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // File Icon
-                Surface(
-                    modifier = Modifier.size(iconSize),
-                    shape = RoundedCornerShape(10.dp),
-                    color = V8idColors.UI.SearchBackground
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            imageVector = file.icon,
-                            contentDescription = file.name,
-                            modifier = Modifier.size(iconSize * 0.5f),
-                            tint = V8idColors.Purple.VibrantPurple
-                        )
-                    }
-                }
-
-                // File Info
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = file.name,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = V8idColors.UI.TextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${file.size} • ${file.timeAgo}",
-                        fontSize = 13.sp,
-                        color = V8idColors.UI.TextTertiary
-                    )
-                }
-
-                IconButton(onClick = { /* More options */ }) {
-                    Icon(
-                        imageVector = Icons.Outlined.MoreVert,
-                        contentDescription = "More",
-                        tint = V8idColors.UI.IconTint
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ActionIconButton(icon: ImageVector, color: Color, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        shape = CircleShape,
-        color = color,
-        modifier = Modifier.size(44.dp)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
 
 
