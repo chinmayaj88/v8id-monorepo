@@ -52,10 +52,17 @@ fun GradientHeading(
         },
         fontSize = dynamicFontSize,
         fontWeight = FontWeight.Bold,
-        color = V8idColors.UI.TextPrimary,
+        color = androidx.compose.ui.graphics.Color.White,
         maxLines = 1,
         softWrap = false,
         overflow = androidx.compose.ui.text.style.TextOverflow.Visible,
+        style = androidx.compose.ui.text.TextStyle(
+            shadow = androidx.compose.ui.graphics.Shadow(
+                color = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.5f),
+                offset = androidx.compose.ui.geometry.Offset(3f, 3f),
+                blurRadius = 8f
+            )
+        ),
         modifier = modifier
     )
 }

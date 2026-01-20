@@ -123,7 +123,7 @@ fun HomeScreen(
                 .padding(horizontal = dynamicPadding),
             contentPadding = PaddingValues(
                 top = dynamicVerticalSpacing + statusBarHeight,
-                bottom = dynamicVerticalSpacing
+                bottom = 96.dp // Bottom nav bar height (64dp) + padding (16dp) + extra spacing (16dp)
             ),
             verticalArrangement = Arrangement.spacedBy(dynamicVerticalSpacing)
         ) {
@@ -208,7 +208,14 @@ fun HomeScreen(
                         text = "Recent Files",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1A1A1A)
+                        color = Color.White,
+                        style = androidx.compose.ui.text.TextStyle(
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color.Black.copy(alpha = 0.4f),
+                                offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                                blurRadius = 4f
+                            )
+                        )
                     )
                 }
 

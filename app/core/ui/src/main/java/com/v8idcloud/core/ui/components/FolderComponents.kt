@@ -35,8 +35,8 @@ fun RecentFoldersCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
-        color = Color(0xFFD4BDFF), // Light purple background
-        shadowElevation = 4.dp
+        color = Color.White.copy(alpha = 0.2f), // Glassmorphic white
+        shadowElevation = 8.dp
     ) {
         Column(
             modifier = Modifier
@@ -53,13 +53,20 @@ fun RecentFoldersCard(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1A1A1A)
+                    color = Color.White,
+                    style = androidx.compose.ui.text.TextStyle(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black.copy(alpha = 0.3f),
+                            offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                            blurRadius = 4f
+                        )
+                    )
                 )
                 androidx.compose.material3.IconButton(onClick = onMenuClick) {
                     Icon(
                         imageVector = Icons.Outlined.Menu,
                         contentDescription = "Menu",
-                        tint = Color(0xFF1A1A1A)
+                        tint = Color.White
                     )
                 }
             }
@@ -115,14 +122,28 @@ fun FolderItem(
             text = folder.name,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = Color(0xFF1A1A1A)
+            color = Color.White,
+            style = androidx.compose.ui.text.TextStyle(
+                shadow = androidx.compose.ui.graphics.Shadow(
+                    color = Color.Black.copy(alpha = 0.4f),
+                    offset = androidx.compose.ui.geometry.Offset(1f, 1f),
+                    blurRadius = 3f
+                )
+            )
         )
 
         if (folder.size.isNotEmpty()) {
             Text(
                 text = folder.size,
                 fontSize = 11.sp,
-                color = Color(0xFF666666)
+                color = Color.White.copy(alpha = 0.8f),
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color.Black.copy(alpha = 0.3f),
+                        offset = androidx.compose.ui.geometry.Offset(1f, 1f),
+                        blurRadius = 2f
+                    )
+                )
             )
         }
     }

@@ -29,7 +29,7 @@ fun V8idBottomNavigationBar(
     onTabSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Outer surface is completely transparent to blend with screen
+    // Fully transparent outer container
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -37,14 +37,15 @@ fun V8idBottomNavigationBar(
             .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // Floating Capsule for the actual bar
+        // Glassmorphic floating capsule
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp),
-            color = Color(0xFF121212).copy(alpha = 0.9f), // Dark semi-transparent capsule
+            color = Color.White.copy(alpha = 0.15f), // Glassmorphic transparent white
             shape = RoundedCornerShape(32.dp),
-            shadowElevation = 0.dp // Remove shadow to avoid line/border appearance
+            shadowElevation = 8.dp,
+            tonalElevation = 0.dp
         ) {
             Row(
                 modifier = Modifier
@@ -114,15 +115,15 @@ private fun NavIcon(
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) {
-        Color.White
+        Color.White.copy(alpha = 0.25f)
     } else {
         Color.Transparent
     }
 
     val iconColor = if (isSelected) {
-        Color.Black
+        Color.White
     } else {
-        Color.White.copy(alpha = 0.7f)
+        Color.White.copy(alpha = 0.6f)
     }
 
     Surface(

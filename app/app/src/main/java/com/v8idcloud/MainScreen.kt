@@ -41,13 +41,8 @@ fun MainScreen(
             )
         }
     ) { paddingValues ->
-        // Use Box to overlay content and let it expand behind the bottom bar
-        // Apply bottom padding to respect the navigation bar, but ignore top padding
-        // so that screens can draw their backgrounds behind the status bar.
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(bottom = paddingValues.calculateBottomPadding())
-        ) {
+        // Let content extend fully behind bottom bar for seamless background
+        Box(modifier = Modifier.fillMaxSize()) {
             content()
         }
     }

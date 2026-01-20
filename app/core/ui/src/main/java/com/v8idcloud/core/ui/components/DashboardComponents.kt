@@ -92,13 +92,27 @@ fun ProfileHeader(
                 Text(
                     text = "Hello,",
                     fontSize = 14.sp,
-                    color = V8idColors.UI.TextTertiary
+                    color = Color.White.copy(alpha = 0.9f),
+                    style = androidx.compose.ui.text.TextStyle(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black.copy(alpha = 0.3f),
+                            offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                            blurRadius = 4f
+                        )
+                    )
                 )
                 Text(
                     text = userName,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = Color.White,
+                    style = androidx.compose.ui.text.TextStyle(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black.copy(alpha = 0.4f),
+                            offset = androidx.compose.ui.geometry.Offset(2f, 2f),
+                            blurRadius = 6f
+                        )
+                    )
                 )
             }
         }
@@ -136,8 +150,8 @@ fun FileSummaryChip(
     Surface(
         modifier = modifier.wrapContentSize(),
         shape = RoundedCornerShape(20.dp),
-        color = Color.White,
-        shadowElevation = 2.dp
+        color = Color.White.copy(alpha = 0.2f),
+        shadowElevation = 4.dp
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -148,19 +162,33 @@ fun FileSummaryChip(
                 text = "$fileCount Files",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.Black
+                color = Color.White,
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color.Black.copy(alpha = 0.3f),
+                        offset = androidx.compose.ui.geometry.Offset(1f, 1f),
+                        blurRadius = 3f
+                    )
+                )
             )
             Box(
                 modifier = Modifier
                     .size(4.dp)
                     .clip(CircleShape)
-                    .background(Color.Gray)
+                    .background(Color.White.copy(alpha = 0.6f))
             )
             Text(
                 text = "$folderCount Folders",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.Black
+                color = Color.White,
+                style = androidx.compose.ui.text.TextStyle(
+                    shadow = androidx.compose.ui.graphics.Shadow(
+                        color = Color.Black.copy(alpha = 0.3f),
+                        offset = androidx.compose.ui.geometry.Offset(1f, 1f),
+                        blurRadius = 3f
+                    )
+                )
             )
         }
     }
