@@ -39,9 +39,10 @@ fun VaultScreen(navController: NavHostController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(V8idColors.DarkBlueBackground)
     ) {
-        // Background Image
+        // Background Image - Commented out
+        /*
         Image(
             painter = painterResource(id = R.drawable.bg1),
             contentDescription = "Background",
@@ -50,6 +51,7 @@ fun VaultScreen(navController: NavHostController) {
                 .fillMaxSize()
                 .alpha(0.05f)
         )
+        */
 
         val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
@@ -76,13 +78,13 @@ fun VaultScreen(navController: NavHostController) {
                                 text = "Secure Vault",
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = V8idColors.Purple.DarkNavy
+                                color = V8idColors.White
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Encrypted storage for sensitive files",
                                 fontSize = 14.sp,
-                                color = V8idColors.Purple.Indigo
+                                color = V8idColors.LightGray
                             )
                         }
                         Icon(
@@ -106,7 +108,7 @@ fun VaultScreen(navController: NavHostController) {
                     text = "Protected Files",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = V8idColors.Purple.DarkNavy
+                    color = V8idColors.White
                 )
             }
 

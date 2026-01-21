@@ -1,6 +1,6 @@
 /**
  * Auth Validation Schemas
- * 
+ *
  * Zod schemas for validating authentication-related requests.
  */
 
@@ -138,9 +138,11 @@ export const resetupTotpSchema = z.object({
  * POST /api/auth/logout
  * Note: sessionId can come from body or x-session-id header, so body validation is optional
  */
-export const logoutSchema = z.object({
-  sessionId: z.string().uuid('Invalid session ID format').optional(),
-}).passthrough();
+export const logoutSchema = z
+  .object({
+    sessionId: z.string().cuid('Invalid session ID format').optional(),
+  })
+  .passthrough();
 
 // Type exports for TypeScript inference
 export type VerifyCredentialsInput = z.infer<typeof verifyCredentialsSchema>;

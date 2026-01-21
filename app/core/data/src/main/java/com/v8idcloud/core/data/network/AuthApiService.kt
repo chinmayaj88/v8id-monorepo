@@ -77,7 +77,17 @@ data class DeviceSessionDto(
     val id: String,
     val deviceType: String,
     val deviceName: String,
-    val location: String?
+    val deviceId: String?,
+    val ipAddress: String?,
+    val userAgent: String?,
+    val location: String?,
+    val lastActiveAt: String?,
+    val createdAt: String?,
+    val expiresAt: String?
+)
+
+data class DeviceSessionsResponse(
+    val sessions: List<DeviceSessionDto>
 )
 
 data class StorageAnalyticsDto(

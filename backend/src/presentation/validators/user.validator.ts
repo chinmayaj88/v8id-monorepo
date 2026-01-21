@@ -1,6 +1,6 @@
 /**
  * User Validation Schemas
- * 
+ *
  * Zod schemas for validating user-related requests.
  */
 
@@ -30,11 +30,7 @@ const passwordSchema = z
 /**
  * Name validation schema
  */
-const nameSchema = z
-  .string()
-  .max(100, 'Name must be less than 100 characters')
-  .trim()
-  .optional();
+const nameSchema = z.string().max(100, 'Name must be less than 100 characters').trim().optional();
 
 /**
  * Avatar URL validation schema
@@ -83,7 +79,7 @@ export const listUsersSchema = z.object({
  * DELETE /api/users/me/sessions/:sessionId
  */
 export const revokeSessionSchema = z.object({
-  sessionId: z.string().uuid('Invalid session ID format'),
+  sessionId: z.string().cuid('Invalid session ID format'),
 });
 
 // Type exports for TypeScript inference (available for future use)

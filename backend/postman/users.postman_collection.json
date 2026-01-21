@@ -209,6 +209,70 @@
             "description": "**Update current user's profile with avatar upload**\n\nUpdate the current authenticated user's profile information and optionally upload a new avatar image.\n\n**Request Type:** `multipart/form-data`\n\n**Form Fields:**\n- `avatar` (file, optional): Avatar image file\n  - **Allowed formats:** JPG, PNG, GIF, WEBP\n  - **Max size:** 5MB\n  - **Storage:** Uploaded to OCI Object Storage bucket under `avatars/{userId}/`\n  - **URL:** 7-day presigned URL returned\n- `firstName` (text, optional): User's first name\n- `lastName` (text, optional): User's last name\n\n**How to Test:**\n1. Click on the `avatar` field in Body > form-data\n2. Click 'Select Files' and choose an image from your computer\n3. Optionally update firstName and lastName fields\n4. Send the request\n\n**Avatar Storage:**\n- Avatar is uploaded to OCI Object Storage\n- Old avatar is automatically deleted when new one is uploaded\n- A presigned URL (valid for 7 days) is generated and stored in user profile\n- Avatar path: `avatars/{userId}/{timestamp}-{filename}`\n\n**Token Versioning:**\n- Token version is validated before allowing update\n- If token is invalid (password changed), returns 401\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- `id`: User ID\n- `email`: User email\n- `firstName`: Updated first name\n- `lastName`: Updated last name\n- `avatarUrl`: Presigned URL to the uploaded avatar (valid for 7 days)\n- `updatedAt`: Timestamp of the update\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"user-id\",\n    \"email\": \"user@example.com\",\n    \"firstName\": \"Updated\",\n    \"lastName\": \"Name\",\n    \"avatarUrl\": \"https://objectstorage.region.oci.customer-oci.com/p/{presigned-token}/...\",\n    \"updatedAt\": \"2026-01-20T18:00:00.000Z\"\n  },\n  \"message\": \"Profile updated successfully\"\n}\n```\n\n**⚠️ NOTES:**\n- All fields are optional - you can update just the avatar, just the name, or both\n- If you don't select an avatar file, only text fields will be updated\n- Presigned URLs expire after 7 days - frontend should handle renewal"
           },
           "response": []
+        },
+        {
+          "name": "List Active Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "sessions"]
+            },
+            "description": "**List all active sessions**\n\nReturns a list of all active sessions for the current user, including session ID, device info, location, and timestamps."
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Session",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/sessions/:sessionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "sessions", ":sessionId"],
+              "variable": [
+                {
+                  "key": "sessionId",
+                  "value": "",
+                  "description": "ID of the session to revoke"
+                }
+              ]
+            },
+            "description": "**Revoke a specific session**\n\nLogs out the device associated with the given session ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke All Other Sessions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/sessions/revoke-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "sessions", "revoke-all"]
+            },
+            "description": "**Revoke all other sessions**\n\nLogs out all devices except the current one."
+          },
+          "response": []
         }
       ],
       "description": "User management and profile endpoints"

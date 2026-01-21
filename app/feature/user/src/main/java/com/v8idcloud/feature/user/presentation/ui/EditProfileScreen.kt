@@ -97,13 +97,15 @@ fun EditProfileScreen(
         containerColor = V8idColors.DarkBlueBackground
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background Image
+            // Background Image - Commented out
+            /*
             Image(
                 painter = painterResource(id = R.drawable.bg2),
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier.fillMaxSize()
             )
+            */
 
             Column(
                 modifier = Modifier

@@ -17,6 +17,7 @@ import com.v8idcloud.feature.folders.presentation.ui.FoldersScreen
 import com.v8idcloud.feature.user.presentation.ui.UserScreen
 import com.v8idcloud.feature.user.presentation.ui.EditProfileScreen
 import com.v8idcloud.feature.user.presentation.ui.StorageAnalyticsScreen
+import com.v8idcloud.feature.user.presentation.ui.ActiveSessionsScreen
 import com.v8idcloud.feature.vault.presentation.ui.VaultScreen
 import coil.ImageLoader
 
@@ -101,6 +102,11 @@ fun AppNavGraph(
         composable("user/storage") {
             val homeViewModel: HomeViewModel = hiltViewModel()
             StorageAnalyticsScreen(navController = navController, viewModel = homeViewModel)
+        }
+
+        composable("user/active-sessions") {
+            val homeViewModel: HomeViewModel = hiltViewModel()
+            ActiveSessionsScreen(navController = navController, viewModel = homeViewModel)
         }
         
         composable("vault") {

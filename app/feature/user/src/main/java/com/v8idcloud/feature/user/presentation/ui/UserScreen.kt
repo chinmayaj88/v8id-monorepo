@@ -82,13 +82,15 @@ fun UserScreen(
             .fillMaxSize()
             .background(V8idColors.DarkBlueBackground)
     ) {
-        // Background Image (bg2.jpg)
+        // Background Image (bg2.jpg) - Commented out
+        /*
         Image(
             painter = painterResource(id = R.drawable.bg2),
             contentDescription = "Background",
             contentScale = ContentScale.FillBounds,
             modifier = Modifier.fillMaxSize()
         )
+        */
 
         val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
@@ -192,7 +194,7 @@ fun UserScreen(
                         icon = Icons.Outlined.Security,
                         title = "Active Sessions",
                         subtitle = "Manage your logged-in devices",
-                        onClick = { /* Navigate to sessions */ }
+                        onClick = { navController.navigate("user/active-sessions") }
                     )
                     
                     MenuItem(

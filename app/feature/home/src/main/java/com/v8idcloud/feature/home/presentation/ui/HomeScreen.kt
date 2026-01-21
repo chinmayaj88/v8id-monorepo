@@ -179,15 +179,17 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(V8idColors.UI.Background)
+            .background(V8idColors.DarkBlueBackground)
     ) {
-        // Full Screen Background (bg2.jpg)
+        // Full Screen Background (bg2.jpg) - Commented out
+        /*
         Image(
             painter = painterResource(id = R.drawable.bg2),
             contentDescription = "Background",
             contentScale = ContentScale.FillBounds, // Fill bounds to fit perfectly without cropping
             modifier = Modifier.fillMaxSize()
         )
+        */
 
         val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 

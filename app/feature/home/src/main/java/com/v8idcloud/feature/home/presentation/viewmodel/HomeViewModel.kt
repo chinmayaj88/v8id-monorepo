@@ -437,6 +437,71 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+    // Active Sessions Flow
+    private val _activeSessions = MutableStateFlow<List<com.v8idcloud.core.data.network.DeviceSessionDto>>(emptyList())
+    val activeSessions: StateFlow<List<com.v8idcloud.core.data.network.DeviceSessionDto>> = _activeSessions.asStateFlow()
+
+    private val _sessionError = MutableStateFlow<String?>(null)
+    val sessionError: StateFlow<String?> = _sessionError.asStateFlow()
+
+    private val _sessionMessage = MutableStateFlow<String?>(null)
+    val sessionMessage: StateFlow<String?> = _sessionMessage.asStateFlow()
+    
+    fun clearSessionMessage() { _sessionMessage.value = null }
+    fun clearSessionError() { _sessionError.value = null }
+
+    fun loadActiveSessions() {
+        viewModelScope.launch {
+            _sessionError.value = null
+            try {
+                val response = userApiService.listSessions()
+                val data = response.data
+                if (response.success && data != null) {
+                    _activeSessions.value = data.sessions
+                } else {
+                    _sessionError.value = response.message ?: "Failed to load sessions"
+                }
+            } catch (e: Exception) {
+                _sessionError.value = "Error: ${e.message}"
+            }
+        }
+    }
+
+    fun revokeSession(sessionId: String) {
+        viewModelScope.launch {
+            try {
+                val response = userApiService.revokeSession(sessionId)
+                if (response.success) {
+                    _sessionMessage.value = "Session revoked successfully"
+                    loadActiveSessions() // Refresh list
+                } else {
+                    _sessionError.value = response.message ?: "Failed to revoke session"
+                }
+            } catch (e: Exception) {
+                _sessionError.value = "Error: ${e.message}"
+            }
+        }
+    }
+
+    fun revokeAllSessions() {
+        viewModelScope.launch {
+            try {
+                val response = userApiService.revokeAllSessions()
+                if (response.success) {
+                    _sessionMessage.value = "All other sessions revoked"
+                    loadActiveSessions()
+                } else {
+                    _sessionError.value = response.message ?: "Failed to revoke sessions"
+                }
+            } catch (e: Exception) {
+                _sessionError.value = "Error: ${e.message}"
+            }
+        }
+    }
+
+    suspend fun getCurrentSessionId(): String? {
+        return storageManager.getSessionIdSync()
+    }
 }
 
 /**
