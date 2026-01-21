@@ -1,6 +1,6 @@
 package com.v8idcloud.feature.user.presentation.ui
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -31,7 +30,6 @@ import coil.compose.AsyncImagePainter
 import coil.ImageLoader
 import com.v8idcloud.core.ui.theme.V8idColors
 import com.v8idcloud.feature.home.presentation.viewmodel.HomeViewModel
-import com.v8idcloud.core.ui.R
 
 @Composable
 fun UserScreen(
@@ -74,35 +72,22 @@ fun UserScreen(
             .takeIf { it.isNotBlank() } ?: userName.take(1).uppercase()
     }
 
-    // Mock admin status - in real app, fetch from backend/viewmodel
-    val isAdmin = false // TODO: Get from backend
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(V8idColors.DarkBlueBackground)
+            .background(V8idColors.UI.Background)
     ) {
-        // Background Image (bg2.jpg) - Commented out
-        /*
-        Image(
-            painter = painterResource(id = R.drawable.bg2),
-            contentDescription = "Background",
-            contentScale = ContentScale.FillBounds,
-            modifier = Modifier.fillMaxSize()
-        )
-        */
-
         val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .padding(horizontal = 20.dp),
             contentPadding = PaddingValues(
-                top = 24.dp + statusBarHeight,
-                bottom = 96.dp // Bottom nav padding
+                top = 16.dp + statusBarHeight,
+                bottom = 96.dp
             ),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Header with back arrow, title, and edit button
             item {
@@ -112,47 +97,55 @@ fun UserScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Back button
-                    IconButton(
-                        onClick = { navController.popBackStack() },
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(
-                                color = Color.White.copy(alpha = 0.1f),
-                                shape = CircleShape
-                            )
+                    Surface(
+                        modifier = Modifier.size(44.dp),
+                        shape = CircleShape,
+                        color = V8idColors.UI.Surface,
+                        border = BorderStroke(1.dp, V8idColors.UI.TextTertiary.copy(alpha = 0.2f))
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { navController.popBackStack() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = V8idColors.UI.TextPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                     
                     // Title
                     Text(
                         text = "Account",
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = V8idColors.UI.TextPrimary
                     )
                     
                     // Edit button
-                    IconButton(
-                        onClick = { navController.navigate("user/edit") },
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(
-                                color = Color.White.copy(alpha = 0.1f),
-                                shape = CircleShape
-                            )
+                    Surface(
+                        modifier = Modifier.size(44.dp),
+                        shape = CircleShape,
+                        color = V8idColors.UI.Surface,
+                        border = BorderStroke(1.dp, V8idColors.UI.TextTertiary.copy(alpha = 0.2f))
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Edit,
-                            contentDescription = "Edit Profile",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { navController.navigate("user/edit") },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Edit,
+                                contentDescription = "Edit Profile",
+                                tint = V8idColors.UI.TextPrimary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -168,81 +161,67 @@ fun UserScreen(
                 )
             }
 
-            // Storage Section
+            // Your Plan Card
             item {
-                StorageCard(
+                PlanCard(
+                    planName = "V8id Cloud Basic",
+                    isFree = true,
                     usedGB = usedGB,
                     totalGB = totalGB,
                     onClick = { navController.navigate("user/storage") }
                 )
             }
 
-            // Menu Sections
+            // Menu Items
             item {
-                Text(
-                    text = "Settings",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            item {
-                MenuSection {
-                    MenuItem(
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AccountMenuItem(
+                        icon = Icons.Outlined.PhotoCamera,
+                        iconColor = Color(0xFF2196F3), // Blue
+                        title = "Camera Uploads",
+                        subtitle = "Auto-backup your photos",
+                        onClick = { /* Navigate */ }
+                    )
+                    
+                    AccountMenuItem(
+                        icon = Icons.Outlined.DesktopWindows,
+                        iconColor = Color(0xFF2196F3), // Blue
+                        title = "Link your desktop",
+                        subtitle = "Sync files with your computer",
+                        onClick = { /* Navigate */ }
+                    )
+                    
+                    AccountMenuItem(
+                        icon = Icons.Outlined.Restore,
+                        iconColor = Color(0xFF9C27B0), // Purple
+                        title = "Recover deleted files",
+                        subtitle = "Restore files from trash",
+                        onClick = { /* Navigate */ }
+                    )
+                    
+                    AccountMenuItem(
                         icon = Icons.Outlined.Security,
+                        iconColor = V8idColors.Purple.VibrantPurple,
                         title = "Active Sessions",
                         subtitle = "Manage your logged-in devices",
                         onClick = { navController.navigate("user/active-sessions") }
                     )
                     
-                    MenuItem(
-                        icon = Icons.Outlined.Share,
-                        title = "File Permissions",
-                        subtitle = "Track shared files and folders",
-                        onClick = { /* Navigate to permissions */ }
+                    AccountMenuItem(
+                        icon = Icons.Outlined.Storage,
+                        iconColor = Color(0xFF4CAF50), // Green
+                        title = "Storage Details",
+                        subtitle = "${"%.1f".format(usedGB)} GB of ${"%.0f".format(totalGB)} GB used",
+                        onClick = { navController.navigate("user/storage") }
                     )
                     
-                    MenuItem(
+                    AccountMenuItem(
                         icon = Icons.Outlined.Lock,
+                        iconColor = Color(0xFFFFC107), // Amber
                         title = "Security Settings",
                         subtitle = "Password and 2FA",
-                        onClick = { /* Navigate to security */ }
+                        onClick = { /* Navigate */ }
                     )
-                }
-            }
-
-            // Admin Section (conditional)
-            if (isAdmin) {
-                item {
-                    Text(
-                        text = "Admin",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color.White,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-
-                item {
-                    MenuSection {
-                        MenuItem(
-                            icon = Icons.Outlined.PersonAdd,
-                            title = "Add Users",
-                            subtitle = "Invite new team members",
-                            onClick = { /* Navigate to add users */ },
-                            iconTint = V8idColors.Purple.VibrantPurple
-                        )
-                        
-                        MenuItem(
-                            icon = Icons.Outlined.AccountBox,
-                            title = "Manage Users",
-                            subtitle = "View and manage all users",
-                            onClick = { /* Navigate to manage users */ },
-                            iconTint = V8idColors.Purple.VibrantPurple
-                        )
-                    }
                 }
             }
 
@@ -276,7 +255,7 @@ private fun ProfileCard(
             .padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Avatar with gradient border
+        // Avatar with green gradient border
         Box(
             modifier = Modifier
                 .size(100.dp)
@@ -296,7 +275,7 @@ private fun ProfileCard(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
-                    .background(V8idColors.DarkBlueBackground),
+                    .background(V8idColors.UI.Surface),
                 contentAlignment = Alignment.Center
             ) {
                 if (!avatarUrl.isNullOrBlank()) {
@@ -314,7 +293,7 @@ private fun ProfileCard(
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(24.dp),
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = V8idColors.Purple.VibrantPurple,
                                         strokeWidth = 2.dp
                                     )
                                 }
@@ -324,7 +303,7 @@ private fun ProfileCard(
                                     text = initials,
                                     fontSize = 36.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = V8idColors.Purple.VibrantPurple
                                 )
                             }
                             else -> SubcomposeAsyncImageContent()
@@ -335,7 +314,7 @@ private fun ProfileCard(
                         text = initials,
                         fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = V8idColors.Purple.VibrantPurple
                     )
                 }
             }
@@ -348,7 +327,7 @@ private fun ProfileCard(
             text = userName,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = V8idColors.UI.TextPrimary
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -357,169 +336,194 @@ private fun ProfileCard(
         Text(
             text = userEmail,
             fontSize = 14.sp,
-            color = V8idColors.LightGray
+            color = V8idColors.UI.TextSecondary
         )
     }
 }
 
 @Composable
-private fun StorageCard(usedGB: Float, totalGB: Float, onClick: () -> Unit) {
-    val usagePercentage = (usedGB / totalGB).coerceIn(0f, 1f)
-    
+private fun PlanCard(
+    planName: String,
+    isFree: Boolean,
+    usedGB: Float,
+    totalGB: Float,
+    onClick: () -> Unit
+) {
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = V8idColors.DarkBlueSurface,
-        shadowElevation = 6.dp
+        color = V8idColors.UI.Surface,
+        shadowElevation = 2.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Purple cloud icon
+                Surface(
+                    modifier = Modifier.size(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = V8idColors.Purple.SubtlePurpleTint
                 ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = V8idColors.PrimaryBlue.copy(alpha = 0.2f),
-                        modifier = Modifier.size(48.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = Icons.Outlined.Storage,
-                                contentDescription = "Storage",
-                                modifier = Modifier.size(24.dp),
-                                tint = V8idColors.PrimaryBlue
-                            )
-                        }
-                    }
-                    
-                    Column {
-                        Text(
-                            text = "Storage",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "${"%.1f".format(usedGB)} GB of ${"%.0f".format(totalGB)} GB used",
-                            fontSize = 13.sp,
-                            color = V8idColors.LightGray
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.Cloud,
+                            contentDescription = null,
+                            tint = V8idColors.Purple.VibrantPurple,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
                 
-                Icon(
-                    imageVector = Icons.Default.ArrowForward,
-                    contentDescription = "View Details",
-                    tint = V8idColors.LightGray,
-                    modifier = Modifier.size(20.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Your Plan",
+                        fontSize = 13.sp,
+                        color = V8idColors.UI.TextSecondary
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = planName,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = V8idColors.UI.TextPrimary
+                        )
+                        if (isFree) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFE8F5E9) // Light green
+                            ) {
+                                Text(
+                                    text = "Free",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF4CAF50), // Green
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = "Manage your plan details here.",
+                        fontSize = 13.sp,
+                        color = V8idColors.UI.TextTertiary
+                    )
+                }
+            }
+            
+            // Manage Your Plan button
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onClick),
+                shape = RoundedCornerShape(12.dp),
+                color = V8idColors.UI.SearchBackground
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Manage Your Plan",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = V8idColors.UI.TextPrimary
+                    )
+                    
+                    Surface(
+                        modifier = Modifier.size(32.dp),
+                        shape = CircleShape,
+                        color = V8idColors.UI.TextPrimary
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowForward,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AccountMenuItem(
+    icon: ImageVector,
+    iconColor: Color,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
+        color = iconColor.copy(alpha = 0.08f)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icon
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(10.dp),
+                color = iconColor.copy(alpha = 0.15f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            
+            // Text
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = V8idColors.UI.TextPrimary
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = V8idColors.UI.TextTertiary
                 )
             }
             
-            // Progress Bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(4.dp))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(usagePercentage)
-                        .fillMaxHeight()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    V8idColors.PrimaryBlue,
-                                    V8idColors.Purple.VibrantPurple
-                                )
-                            ),
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun MenuSection(content: @Composable () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        color = V8idColors.DarkBlueSurface,
-        shadowElevation = 4.dp
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            content()
-        }
-    }
-}
-
-@Composable
-private fun MenuItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    iconTint: Color = Color.White
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            shape = CircleShape,
-            color = iconTint.copy(alpha = 0.15f),
-            modifier = Modifier.size(44.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = title,
-                    modifier = Modifier.size(22.dp),
-                    tint = iconTint
-                )
-            }
-        }
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.White
-            )
-            Text(
-                text = subtitle,
-                fontSize = 13.sp,
-                color = V8idColors.LightGray
+            // Arrow
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = null,
+                tint = V8idColors.UI.TextTertiary,
+                modifier = Modifier.size(18.dp)
             )
         }
-        
-        Icon(
-            imageVector = Icons.Default.ArrowForward,
-            contentDescription = "Navigate",
-            tint = V8idColors.LightGray.copy(alpha = 0.5f),
-            modifier = Modifier.size(20.dp)
-        )
     }
 }
 
@@ -530,28 +534,27 @@ private fun LogoutButton(onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        color = V8idColors.DarkBlueSurface,
-        shadowElevation = 6.dp,
-        border = androidx.compose.foundation.BorderStroke(2.dp, V8idColors.Semantic.Error)
+        color = Color(0xFFFCE4EC), // Light red/pink
+        border = BorderStroke(1.dp, Color(0xFFE91E63).copy(alpha = 0.3f))
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Outlined.Logout,
                 contentDescription = "Logout",
-                tint = V8idColors.Semantic.Error,
-                modifier = Modifier.size(24.dp)
+                tint = Color(0xFFE91E63),
+                modifier = Modifier.size(22.dp)
             )
             Text(
                 text = "Log Out",
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = V8idColors.Semantic.Error
+                color = Color(0xFFE91E63)
             )
             Spacer(modifier = Modifier.weight(1f))
         }

@@ -21,7 +21,6 @@ import com.v8idcloud.core.ui.theme.V8idColors
 /**
  * Bottom Navigation Bar
  * Matches Dropbox-style design with black capsule background
- * Made transparent and floating to blend with screen background
  */
 @Composable
 fun V8idBottomNavigationBar(
@@ -33,28 +32,23 @@ fun V8idBottomNavigationBar(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // Modern dark gradient capsule
+        // Solid black capsule
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(72.dp)
                 .background(
-                    brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                        colors = listOf(
-                            Color(0xFF1A1A2E),
-                            Color(0xFF16213E)
-                        )
-                    ),
-                    shape = RoundedCornerShape(32.dp)
+                    color = Color.Black,
+                    shape = RoundedCornerShape(36.dp)
                 )
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 12.dp),
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -72,13 +66,13 @@ fun V8idBottomNavigationBar(
                     onClick = { onTabSelected("folders") }
                 )
 
-                // Add button (FAB)
+                // Add button (Large Blue FAB)
                 Surface(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(56.dp)
                         .clickable { /* Add action */ },
                     shape = CircleShape,
-                    color = Color(0xFF6B4EE6), // Purple gradient
+                    color = Color(0xFF2D6AFA), // Dropbox Blue
                     shadowElevation = 4.dp
                 ) {
                     Box(
@@ -89,16 +83,16 @@ fun V8idBottomNavigationBar(
                             imageVector = Icons.Outlined.Add,
                             contentDescription = "Add",
                             tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(28.dp)
                         )
                     }
                 }
 
-                // Messages/Vault
+                // Photos / Gallery
                 NavIcon(
-                    icon = Icons.Outlined.Lock,
-                    isSelected = currentRoute == "vault",
-                    onClick = { onTabSelected("vault") }
+                    icon = Icons.Outlined.Image,
+                    isSelected = currentRoute == "photos", // Placeholder route
+                    onClick = { /* onTabSelected("photos") */ }
                 )
 
                 // Profile
@@ -119,20 +113,20 @@ private fun NavIcon(
     onClick: () -> Unit
 ) {
     val backgroundColor = if (isSelected) {
-        Color.White.copy(alpha = 0.25f)
+        Color.White
     } else {
         Color.Transparent
     }
 
     val iconColor = if (isSelected) {
-        Color.White
+        Color.Black
     } else {
-        Color.White.copy(alpha = 0.6f)
+        Color.White.copy(alpha = 0.7f)
     }
 
     Surface(
         modifier = Modifier
-            .size(42.dp)
+            .size(48.dp)
             .clickable(onClick = onClick),
         shape = CircleShape,
         color = backgroundColor
@@ -145,7 +139,7 @@ private fun NavIcon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconColor,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
     }
