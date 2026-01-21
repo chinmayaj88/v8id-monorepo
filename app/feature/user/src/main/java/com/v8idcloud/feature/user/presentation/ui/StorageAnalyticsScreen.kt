@@ -1,7 +1,11 @@
 package com.v8idcloud.feature.user.presentation.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -33,219 +38,339 @@ fun StorageAnalyticsScreen(
         viewModel.loadStorageAnalytics()
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(V8idColors.DarkBlueBackground)
-            .padding(24.dp)
+            .background(V8idColors.UI.Background)
     ) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            contentPadding = PaddingValues(
+                top = 16.dp + statusBarHeight,
+                bottom = 32.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            IconButton(
-                onClick = { navController.popBackStack() },
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(
-                        color = Color.White.copy(alpha = 0.1f),
-                        shape = CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            Text(
-                text = "Storage",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        if (analytics == null) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                if (error != null) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Warning,
-                            contentDescription = "Error",
-                            tint = V8idColors.Semantic.Error,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = error ?: "Unknown error",
-                            color = Color.White,
-                            fontSize = 16.sp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = { viewModel.loadStorageAnalytics() },
-                            colors = ButtonDefaults.buttonColors(containerColor = V8idColors.PrimaryBlue)
-                        ) {
-                            Text("Retry")
-                        }
-                    }
-                } else {
-                    CircularProgressIndicator(color = V8idColors.PrimaryBlue)
-                }
-            }
-        } else {
-            val totalUsed = analytics!!.usedStorage ?: 0L
-            val totalQuota = analytics!!.totalStorage ?: (10L * 1024 * 1024 * 1024)
-            val percentage = if (totalQuota > 0) (totalUsed.toFloat() / totalQuota.toFloat()).coerceIn(0f, 1f) else 0f
-            
-            val breakdown = analytics!!.breakdownByType ?: emptyList()
-            val images = breakdown.find { it.type == "IMAGE" }?.size ?: 0L
-            val videos = breakdown.find { it.type == "VIDEO" }?.size ?: 0L
-            val audio = breakdown.find { it.type == "AUDIO" }?.size ?: 0L
-            val docs = breakdown.find { it.type == "DOCUMENT" }?.size ?: 0L
-            val archives = breakdown.find { it.type == "ARCHIVE" }?.size ?: 0L
-            val others = breakdown.find { it.type == "OTHER" }?.size ?: 0L
-
-            // Storage Overview Card
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                color = V8idColors.DarkBlueSurface,
-                shadowElevation = 8.dp
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+            // Header
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "${formatSize(totalUsed)} used of ${formatSize(totalQuota)}",
-                        fontSize = 16.sp,
-                        color = Color.White.copy(alpha = 0.7f)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(24.dp))
-                    
-                    // Circular Progress (Simplified as Box with thick border)
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(180.dp)
+                    Surface(
+                        modifier = Modifier.size(44.dp),
+                        shape = CircleShape,
+                        color = V8idColors.UI.Surface,
+                        border = BorderStroke(1.dp, V8idColors.UI.TextTertiary.copy(alpha = 0.2f))
                     ) {
-                        CircularProgressIndicator(
-                            progress = 1f,
-                            modifier = Modifier.size(180.dp),
-                            color = Color.White.copy(alpha = 0.1f),
-                            strokeWidth = 16.dp
-                        )
-                        CircularProgressIndicator(
-                            progress = percentage,
-                            modifier = Modifier.size(180.dp),
-                            color = V8idColors.PrimaryBlue,
-                            strokeWidth = 16.dp
-                        )
-                        
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "${(percentage * 100).toInt()}%",
-                                fontSize = 42.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "Used",
-                                fontSize = 14.sp,
-                                color = V8idColors.LightGray
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { navController.popBackStack() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back",
+                                tint = V8idColors.UI.TextPrimary,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    Text(
+                        text = "Storage",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = V8idColors.UI.TextPrimary
+                    )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(32.dp))
-            
-            Text(
-                text = "Details",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                StorageCategoryItem("Images", images, Color(0xFF42A5F5), Icons.Outlined.Image)
-                StorageCategoryItem("Videos", videos, Color(0xFFEF5350), Icons.Outlined.Videocam)
-                StorageCategoryItem("Documents", docs, Color(0xFFFFCA28), Icons.Outlined.Description)
-                StorageCategoryItem("Audio", audio, Color(0xFF66BB6A), Icons.Outlined.AudioFile)
-                StorageCategoryItem("Others", others + archives, Color(0xFFBDBDBD), Icons.Outlined.Folder)
+
+            if (analytics == null) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (error != null) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = "Error",
+                                    tint = V8idColors.Semantic.Error,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = error ?: "Unknown error",
+                                    color = V8idColors.UI.TextSecondary
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { viewModel.loadStorageAnalytics() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = V8idColors.Purple.VibrantPurple)
+                                ) {
+                                    Text("Retry")
+                                }
+                            }
+                        } else {
+                            CircularProgressIndicator(color = V8idColors.Purple.VibrantPurple)
+                        }
+                    }
+                }
+            } else {
+                val totalUsed = analytics!!.usedStorage ?: 0L
+                val totalQuota = analytics!!.totalStorage ?: (10L * 1024 * 1024 * 1024)
+                val usedPercentage = if (totalQuota > 0) (totalUsed.toFloat() / totalQuota.toFloat()).coerceIn(0f, 1f) else 0f
+                val totalItems = analytics!!.breakdownByType?.sumOf { it.count ?: 0 } ?: 0
+                
+                // Exact UI Match for Storage Card
+                item {
+                    StorageOverviewCard(
+                        totalUsed = totalUsed,
+                        totalQuota = totalQuota,
+                        percentage = usedPercentage,
+                        totalItems = totalItems
+                    )
+                }
+                
+                // Breakdown Details
+                item {
+                    Text(
+                        text = "Details",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = V8idColors.UI.TextPrimary,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
+                val breakdown = analytics!!.breakdownByType ?: emptyList()
+                val imageStats = breakdown.find { it.type == "IMAGE" }
+                val videoStats = breakdown.find { it.type == "VIDEO" }
+                val docStats = breakdown.find { it.type == "DOCUMENT" }
+                val musicStats = breakdown.find { it.type == "AUDIO" }
+                val otherStats = breakdown.find { it.type == "OTHER" }
+                val archiveStats = breakdown.find { it.type == "ARCHIVE" }
+
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        StorageDetailRow(
+                            name = "Images",
+                            size = imageStats?.size ?: 0L,
+                            count = imageStats?.count ?: 0,
+                            icon = Icons.Outlined.Image,
+                            color = Color(0xFF2196F3) // Blue
+                        )
+                        StorageDetailRow(
+                            name = "Videos",
+                            size = videoStats?.size ?: 0L,
+                            count = videoStats?.count ?: 0,
+                            icon = Icons.Outlined.Videocam,
+                            color = Color(0xFFE91E63) // Pink
+                        )
+                        StorageDetailRow(
+                            name = "Documents",
+                            size = docStats?.size ?: 0L,
+                            count = docStats?.count ?: 0,
+                            icon = Icons.Outlined.Description,
+                            color = Color(0xFFFFC107) // Amber
+                        )
+                        StorageDetailRow(
+                            name = "Music",
+                            size = musicStats?.size ?: 0L,
+                            count = musicStats?.count ?: 0,
+                            icon = Icons.Outlined.LibraryMusic,
+                            color = Color(0xFF4CAF50) // Green
+                        )
+                        StorageDetailRow(
+                            name = "Others",
+                            size = (otherStats?.size ?: 0L) + (archiveStats?.size ?: 0L),
+                            count = (otherStats?.count ?: 0) + (archiveStats?.count ?: 0),
+                            icon = Icons.Outlined.Folder,
+                            color = V8idColors.UI.TextTertiary
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun StorageCategoryItem(
-    name: String,
-    size: Long,
-    color: Color,
-    icon: ImageVector
+private fun StorageOverviewCard(
+    totalUsed: Long,
+    totalQuota: Long,
+    percentage: Float,
+    totalItems: Int
 ) {
-    Row(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        shape = RoundedCornerShape(24.dp),
+        color = V8idColors.UI.Surface,
+        shadowElevation = 2.dp
     ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .background(color.copy(alpha = 0.2f), CircleShape),
-            contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = name,
-                tint = color,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(16.dp))
-        
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = name,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White
-            )
+            // Top Section: Circle + Title
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // Circular Progress (Left)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(80.dp)
+                ) {
+                    CircularProgressIndicator(
+                        progress = 1f,
+                        modifier = Modifier.size(80.dp),
+                        color = V8idColors.UI.SearchBackground,
+                        strokeWidth = 10.dp,
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                    CircularProgressIndicator(
+                        progress = percentage,
+                        modifier = Modifier.size(80.dp),
+                        color = Color(0xFF2D6AFA), // Match image blue
+                        strokeWidth = 10.dp,
+                        strokeCap = androidx.compose.ui.graphics.StrokeCap.Round
+                    )
+                }
+                
+                Column {
+                    Text(
+                        text = "V8id Cloud",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = V8idColors.UI.TextPrimary
+                    )
+                    Text(
+                        text = "$totalItems items",
+                        fontSize = 15.sp,
+                        color = V8idColors.UI.TextSecondary
+                    )
+                }
+            }
             
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            // tiny progress bar
+            // Middle Section: Horizontal Progress Bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(4.dp)
-                    .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(2.dp))
+                    .height(10.dp)
+                    .background(V8idColors.UI.SearchBackground, RoundedCornerShape(5.dp))
             ) {
-                // Determine usage scale relative to "some" max? 
-                // Or just show full bar with color? Let's just show color bar as decoration
-                // Actually, let's just show size text instead of bar for cleaner look
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(percentage)
+                        .fillMaxHeight()
+                        .background(Color(0xFF424242), RoundedCornerShape(5.dp)) // Dark gray bar like image
+                )
+            }
+            
+            // Bottom Section: Stats Labels
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = formatSize(totalUsed),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = V8idColors.UI.TextPrimary
+                    )
+                    Text(
+                        text = "$totalItems items",
+                        fontSize = 13.sp,
+                        color = V8idColors.UI.TextTertiary
+                    )
+                }
+                
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = formatSize(totalQuota),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = V8idColors.UI.TextPrimary
+                    )
+                    Text(
+                        text = "Free Space",
+                        fontSize = 13.sp,
+                        color = V8idColors.UI.TextTertiary
+                    )
+                }
             }
         }
-        
-        Text(
-            text = formatSize(size),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color.White
-        )
+    }
+}
+
+@Composable
+private fun StorageDetailRow(
+    name: String,
+    size: Long,
+    count: Int,
+    icon: ImageVector,
+    color: Color
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = color.copy(alpha = 0.08f)
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Surface(
+                modifier = Modifier.size(44.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = color.copy(alpha = 0.15f)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = name,
+                        tint = color,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = V8idColors.UI.TextPrimary
+                )
+                Text(
+                    text = "$count files",
+                    fontSize = 12.sp,
+                    color = V8idColors.UI.TextTertiary
+                )
+            }
+            
+            Text(
+                text = formatSize(size),
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = V8idColors.UI.TextPrimary
+            )
+        }
     }
 }
 
