@@ -8,6 +8,7 @@ import { Response } from 'express';
 import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case.js';
 import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case.js';
 import { UpdateUserProfileUseCase } from '../../application/use-cases/update-user-profile.use-case.js';
+import { StorageAnalyticsUseCase } from '../../application/use-cases/storage-analytics.use-case.js';
 import { IUserRepository } from '../../application/interfaces/user-repository.interface.js';
 import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface.js';
 import { IStorageService } from '../../application/interfaces/storage-service.interface.js';
@@ -23,6 +24,7 @@ export class UserController {
     private createUserUseCase: CreateUserUseCase,
     private getLoginHistoryUseCase: GetLoginHistoryUseCase,
     private updateUserProfileUseCase: UpdateUserProfileUseCase,
+    private storageAnalyticsUseCase: StorageAnalyticsUseCase,
     private userRepository: IUserRepository,
     private deviceSessionRepository: IDeviceSessionRepository,
     private auditLogService: AuditLogService,
@@ -131,6 +133,25 @@ export class UserController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update profile';
       ResponseUtil.error(res, 'UPDATE_PROFILE_ERROR', message);
+    }
+  }
+
+  /**
+   * GET /api/users/me/storage
+   * Get storage analytics for current user
+   */
+  async getStorageAnalytics(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const analytics = await this.storageAnalyticsUseCase.execute(req.user.id);
+      ResponseUtil.success(res, analytics);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get storage analytics';
+      ResponseUtil.internalError(res, message);
     }
   }
 

@@ -329,6 +329,37 @@ export class FileRepository implements IFileRepository {
     return result._sum.size || BigInt(0);
   }
 
+  async getStorageAnalytics(userId: string): Promise<Record<FileType, bigint>> {
+    const result = await prisma.file.groupBy({
+      by: ['type'],
+      where: {
+        userId,
+        status: FileStatus.ACTIVE,
+      },
+      _sum: {
+        size: true,
+      },
+    });
+
+    const analytics: Record<FileType, bigint> = {
+      [FileType.DOCUMENT]: BigInt(0),
+      [FileType.IMAGE]: BigInt(0),
+      [FileType.VIDEO]: BigInt(0),
+      [FileType.AUDIO]: BigInt(0),
+      [FileType.ARCHIVE]: BigInt(0),
+      [FileType.OTHER]: BigInt(0),
+    };
+
+    result.forEach(item => {
+      const type = item.type as FileType;
+      if (item._sum.size) {
+        analytics[type] = item._sum.size;
+      }
+    });
+
+    return analytics;
+  }
+
   /**
    * Batch update file status (optimized for bulk operations)
    */

@@ -24,19 +24,21 @@ export interface IFileRepository {
     metadata?: Record<string, unknown>;
   }): Promise<File>;
 
-
-  update(id: string, data: Partial<{
-    name?: string;
-    folderId?: string | null;
-    description?: string;
-    tags?: string[];
-    metadata?: Record<string, unknown>;
-    status?: FileStatus;
-    deletedAt?: Date | null;
-    expiresAt?: Date | null;
-    thumbnailObjectName?: string | null;
-    thumbnailGenerated?: boolean;
-  }>): Promise<File>;
+  update(
+    id: string,
+    data: Partial<{
+      name?: string;
+      folderId?: string | null;
+      description?: string;
+      tags?: string[];
+      metadata?: Record<string, unknown>;
+      status?: FileStatus;
+      deletedAt?: Date | null;
+      expiresAt?: Date | null;
+      thumbnailObjectName?: string | null;
+      thumbnailGenerated?: boolean;
+    }>
+  ): Promise<File>;
 
   delete(id: string): Promise<void>;
 
@@ -49,35 +51,50 @@ export interface IFileRepository {
 
   restore(id: string): Promise<File>;
 
-  findByUserId(userId: string, options?: {
-    folderId?: string | null;
-    status?: FileStatus;
-    type?: FileType;
-    search?: string;
-    page?: number;
-    limit?: number;
-    orderBy?: 'name' | 'createdAt' | 'updatedAt' | 'size';
-    orderDirection?: 'asc' | 'desc';
-  }): Promise<{ files: File[]; total: number }>;
+  findByUserId(
+    userId: string,
+    options?: {
+      folderId?: string | null;
+      status?: FileStatus;
+      type?: FileType;
+      search?: string;
+      page?: number;
+      limit?: number;
+      orderBy?: 'name' | 'createdAt' | 'updatedAt' | 'size';
+      orderDirection?: 'asc' | 'desc';
+    }
+  ): Promise<{ files: File[]; total: number }>;
 
-  findByFolderId(folderId: string, userId: string, options?: {
-    status?: FileStatus;
-    page?: number;
-    limit?: number;
-  }): Promise<{ files: File[]; total: number }>;
+  findByFolderId(
+    folderId: string,
+    userId: string,
+    options?: {
+      status?: FileStatus;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ files: File[]; total: number }>;
 
-  findRootFiles(userId: string, options?: {
-    status?: FileStatus;
-    page?: number;
-    limit?: number;
-  }): Promise<{ files: File[]; total: number }>;
+  findRootFiles(
+    userId: string,
+    options?: {
+      status?: FileStatus;
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ files: File[]; total: number }>;
 
   getStorageUsedByUser(userId: string): Promise<bigint>;
 
-  findByStatus(status: FileStatus, options?: {
-    page?: number;
-    limit?: number;
-  }): Promise<{ files: File[]; total: number }>;
+  getStorageAnalytics(userId: string): Promise<Record<FileType, bigint>>;
+
+  findByStatus(
+    status: FileStatus,
+    options?: {
+      page?: number;
+      limit?: number;
+    }
+  ): Promise<{ files: File[]; total: number }>;
 
   updateStatus(id: string, status: FileStatus): Promise<File>;
 

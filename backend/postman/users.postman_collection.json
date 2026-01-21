@@ -150,6 +150,25 @@
           "response": []
         },
         {
+          "name": "Get Storage Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/storage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "storage"]
+            },
+            "description": "**Get storage usage analytics**\n\nReturns detailed storage usage breakdown by file type for the current user.\n\n**Response:**\n- `totalUsed`: Total storage used in bytes\n- `totalQuota`: Total storage quota in bytes\n- `usageByType`: Breakdown by file type (images, videos, audio, documents, archives, others)"
+          },
+          "response": []
+        },
+        {
           "name": "Update Profile (with Avatar Upload)",
           "request": {
             "method": "PUT",

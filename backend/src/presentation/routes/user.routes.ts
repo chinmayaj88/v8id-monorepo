@@ -14,6 +14,9 @@ import { UserRepository } from '../../infrastructure/repositories/user.repositor
 import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository.js';
 import { TotpBackupCodeRepository } from '../../infrastructure/repositories/totp-backup-code.repository.js';
 import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository.js';
+import { FileRepository } from '../../infrastructure/repositories/file.repository.js';
+import { FolderRepository } from '../../infrastructure/repositories/folder.repository.js';
+import { StorageAnalyticsUseCase } from '../../application/use-cases/storage-analytics.use-case.js';
 import { AuditLogService } from '../../infrastructure/services/audit-log.service.js';
 import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory.js';
 import { PasswordService } from '../../infrastructure/services/password.service.js';
@@ -38,6 +41,8 @@ const userRepository = new UserRepository();
 const totpBackupCodeRepository = new TotpBackupCodeRepository(passwordService);
 const deviceSessionRepository = new DeviceSessionRepository();
 const auditLogRepository = new AuditLogRepository();
+const fileRepository = new FileRepository();
+const folderRepository = new FolderRepository();
 const totpService = new TotpService();
 const jwtService = new JwtService();
 const auditLogService = new AuditLogService(auditLogRepository);
@@ -52,12 +57,19 @@ const createUserUseCase = new CreateUserUseCase(
 );
 const getLoginHistoryUseCase = new GetLoginHistoryUseCase(auditLogRepository);
 const storageService = new TierAwareStorageService();
+
 const updateUserProfileUseCase = new UpdateUserProfileUseCase(userRepository, storageService);
+const storageAnalyticsUseCase = new StorageAnalyticsUseCase(
+  fileRepository,
+  folderRepository,
+  userRepository
+);
 
 const userController = new UserController(
   createUserUseCase,
   getLoginHistoryUseCase,
   updateUserProfileUseCase,
+  storageAnalyticsUseCase,
   userRepository,
   deviceSessionRepository,
   auditLogService,
@@ -80,9 +92,18 @@ router.get(
 );
 
 // User routes
-router.get('/me', authMiddleware(userRepository, deviceSessionRepository, jwtService), (req, res) =>
-  userController.getCurrentUser(req, res)
+router.get(
+  '/me/profile',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  (req, res) => userController.getCurrentUser(req as any, res)
 );
+
+router.get(
+  '/me/storage',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  (req, res) => userController.getStorageAnalytics(req as any, res)
+);
+
 // Multer config for avatar upload
 const upload = multer({
   storage: multer.memoryStorage(),
