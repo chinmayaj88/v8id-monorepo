@@ -21,6 +21,7 @@ import com.v8idcloud.core.common.FolderData
 import com.v8idcloud.core.common.SearchSuggestion
 import com.v8idcloud.core.common.SuggestionType
 import com.v8idcloud.core.data.network.DashboardResponseDto
+import com.v8idcloud.core.data.network.StorageAnalyticsDto
 import com.v8idcloud.core.common.formatFileSize
 import com.v8idcloud.core.common.formatTimeAgo
 import com.v8idcloud.core.ui.utils.UiUtils
@@ -59,6 +60,13 @@ class HomeViewModel @Inject constructor(
 
     private val _shareEvent = MutableStateFlow<ShareEvent?>(null)
     val shareEvent: StateFlow<ShareEvent?> = _shareEvent.asStateFlow()
+    
+    // Storage Analytics Flow
+    private val _storageAnalytics = MutableStateFlow<StorageAnalyticsDto?>(null)
+    val storageAnalytics: StateFlow<StorageAnalyticsDto?> = _storageAnalytics.asStateFlow()
+
+    private val _storageAnalyticsError = MutableStateFlow<String?>(null)
+    val storageAnalyticsError: StateFlow<String?> = _storageAnalyticsError.asStateFlow()
 
     fun clearDownloadEvent() { _downloadEvent.value = null }
     fun clearShareEvent() { _shareEvent.value = null }
@@ -84,7 +92,20 @@ class HomeViewModel @Inject constructor(
         initialValue = null
     )
     
+    
     val userAvatarUrl: StateFlow<String?> = storageManager.getUserAvatarUrl().stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+    
+    val userStorageQuota: StateFlow<String?> = storageManager.getUserStorageQuota().stateIn(
+        scope = viewModelScope,
+        started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
+    
+    val userStorageUsed: StateFlow<String?> = storageManager.getUserStorageUsed().stateIn(
         scope = viewModelScope,
         started = kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000),
         initialValue = null
@@ -123,6 +144,31 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+    
+    /**
+     * Load storage analytics breakdown
+     */
+    fun loadStorageAnalytics() {
+        viewModelScope.launch {
+            _storageAnalyticsError.value = null
+            try {
+                android.util.Log.d(TAG, "Fetching storage analytics...")
+                val response = userApiService.getStorageAnalytics()
+                android.util.Log.d(TAG, "Storage analytics response: success=${response.success}")
+                
+                if (response.success && response.data != null) {
+                    _storageAnalytics.value = response.data
+                } else {
+                    val msg = response.message ?: "Unknown API Error (Data is null)"
+                    android.util.Log.e(TAG, "Backend error: $msg")
+                    _storageAnalyticsError.value = msg
+                }
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Exception loading analytics", e)
+                _storageAnalyticsError.value = "Error: ${e.message}"
+            }
+        }
+    }
 
     /**
      * Sync user profile from backend to local storage
@@ -141,7 +187,9 @@ class HomeViewModel @Inject constructor(
                     email = user.email,
                     firstName = user.firstName,
                     lastName = user.lastName,
-                    avatarUrl = user.avatarUrl
+                    avatarUrl = user.avatarUrl,
+                    storageQuota = user.storageQuota,
+                    storageUsed = user.storageUsed
                 )
             } else {
                 android.util.Log.e(TAG, "Failed to sync profile: ${response.message}")

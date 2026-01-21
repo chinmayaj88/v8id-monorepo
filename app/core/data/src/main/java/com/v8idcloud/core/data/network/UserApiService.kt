@@ -19,4 +19,6 @@ interface UserApiService {
         @Part("firstName") firstName: RequestBody? = null,
         @Part("lastName") lastName: RequestBody? = null
     ): ApiResponse<UserDto>
+    @GET("users/me/storage")
+    suspend fun getStorageAnalytics(): ApiResponse<StorageAnalyticsDto>
 }

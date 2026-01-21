@@ -43,6 +43,18 @@ fun UserScreen(
     val userFirstNameFlow by viewModel.userFirstName.collectAsState()
     val userLastNameFlow by viewModel.userLastName.collectAsState()
     val userAvatarUrlFlow by viewModel.userAvatarUrl.collectAsState()
+    val userStorageQuotaFlow by viewModel.userStorageQuota.collectAsState()
+    val userStorageUsedFlow by viewModel.userStorageUsed.collectAsState()
+    
+    val usedGB = remember(userStorageUsedFlow) {
+        val bytes = userStorageUsedFlow?.toLongOrNull() ?: 0L
+        bytes.toFloat() / (1024 * 1024 * 1024)
+    }
+
+    val totalGB = remember(userStorageQuotaFlow) {
+        val bytes = userStorageQuotaFlow?.toLongOrNull() ?: (10L * 1024 * 1024 * 1024) // 10GB default
+        bytes.toFloat() / (1024 * 1024 * 1024)
+    }
     
     val actualImageLoader = imageLoader ?: coil.compose.LocalImageLoader.current
 
@@ -90,34 +102,76 @@ fun UserScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            // Header
+            // Header with back arrow, title, and edit button
             item {
-                Text(
-                    text = "Account",
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Back button
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                color = Color.White.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    
+                    // Title
+                    Text(
+                        text = "Account",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                    
+                    // Edit button
+                    IconButton(
+                        onClick = { navController.navigate("user/edit") },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                color = Color.White.copy(alpha = 0.1f),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Edit,
+                            contentDescription = "Edit Profile",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
             }
 
-            // Profile Card
+            // Profile Card (centered avatar with name below)
             item {
                 ProfileCard(
                     userName = userName,
                     userEmail = userEmail,
                     avatarUrl = userAvatarUrlFlow,
                     initials = initials,
-                    imageLoader = actualImageLoader,
-                    onEditClick = { navController.navigate("user/edit") }
+                    imageLoader = actualImageLoader
                 )
             }
 
             // Storage Section
             item {
                 StorageCard(
-                    usedGB = 23.4f,
-                    totalGB = 50f,
-                    onClick = { /* Navigate to storage details */ }
+                    usedGB = usedGB,
+                    totalGB = totalGB,
+                    onClick = { navController.navigate("user/storage") }
                 )
             }
 
@@ -146,13 +200,6 @@ fun UserScreen(
                         title = "File Permissions",
                         subtitle = "Track shared files and folders",
                         onClick = { /* Navigate to permissions */ }
-                    )
-                    
-                    MenuItem(
-                        icon = Icons.Outlined.Edit,
-                        title = "Edit Profile",
-                        subtitle = "Update your account information",
-                        onClick = { navController.navigate("user/edit") }
                     )
                     
                     MenuItem(
@@ -219,37 +266,35 @@ private fun ProfileCard(
     userEmail: String,
     avatarUrl: String?,
     initials: String,
-    imageLoader: ImageLoader,
-    onEditClick: () -> Unit
+    imageLoader: ImageLoader
 ) {
-    Surface(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onEditClick),
-        shape = RoundedCornerShape(24.dp),
-        color = V8idColors.DarkBlueSurface,
-        shadowElevation = 8.dp
+            .padding(vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
+        // Avatar with gradient border
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(100.dp)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF7CB342), // Light green
+                            Color(0xFF558B2F)  // Dark green
+                        )
+                    ),
+                    shape = CircleShape
+                )
+                .padding(4.dp), // Border width
+            contentAlignment = Alignment.Center
         ) {
-            // Avatar with Gradient or AsyncImage
             Box(
                 modifier = Modifier
-                    .size(70.dp)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                V8idColors.Purple.VibrantPurple,
-                                V8idColors.PrimaryBlue
-                            )
-                        ),
-                        shape = CircleShape
-                    ),
+                    .fillMaxSize()
+                    .clip(CircleShape)
+                    .background(V8idColors.DarkBlueBackground),
                 contentAlignment = Alignment.Center
             ) {
                 if (!avatarUrl.isNullOrBlank()) {
@@ -273,11 +318,11 @@ private fun ProfileCard(
                                 }
                             }
                             is AsyncImagePainter.State.Error -> {
-                                Icon(
-                                    imageVector = Icons.Default.Error,
-                                    contentDescription = "Error loading avatar",
-                                    tint = Color.White.copy(alpha = 0.5f),
-                                    modifier = Modifier.size(32.dp)
+                                Text(
+                                    text = initials,
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
                                 )
                             }
                             else -> SubcomposeAsyncImageContent()
@@ -286,50 +331,32 @@ private fun ProfileCard(
                 } else {
                     Text(
                         text = initials,
-                        fontSize = 28.sp,
+                        fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                 }
             }
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = userName,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = userEmail,
-                    fontSize = 14.sp,
-                    color = V8idColors.LightGray
-                )
-            }
-
-            // Edit button
-            IconButton(
-                onClick = onEditClick,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        color = V8idColors.Purple.VibrantPurple.copy(alpha = 0.2f),
-                        shape = CircleShape
-                    )
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit Profile",
-                    tint = V8idColors.Purple.VibrantPurple,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // User Name
+        Text(
+            text = userName,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // User Email
+        Text(
+            text = userEmail,
+            fontSize = 14.sp,
+            color = V8idColors.LightGray
+        )
     }
 }
 

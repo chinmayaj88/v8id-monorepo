@@ -68,7 +68,9 @@ data class UserDto(
     val firstName: String?,
     val lastName: String?,
     val avatarUrl: String?,
-    val role: String
+    val role: String,
+    val storageQuota: String? = null,
+    val storageUsed: String? = null
 )
 
 data class DeviceSessionDto(
@@ -77,6 +79,22 @@ data class DeviceSessionDto(
     val deviceName: String,
     val location: String?
 )
+
+data class StorageAnalyticsDto(
+    val totalStorage: Long? = null, // Changed from totalQuota (String)
+    val usedStorage: Long? = null,  // Changed from totalUsed (String)
+    val availableStorage: Long? = null,
+    val breakdownByType: List<StorageBreakdownItem>? = null
+)
+
+data class StorageBreakdownItem(
+    val type: String?,
+    val count: Int?,
+    val size: Long?,
+    val percentage: Double?
+)
+
+// Removing UsageByTierDto and UsageByTypeDto as they are no longer used by the actual response structure
 
 /**
  * Auth API Service

@@ -42,6 +42,8 @@ class StorageManager @Inject constructor(
         val USER_FIRST_NAME = stringPreferencesKey("user_first_name")
         val USER_LAST_NAME = stringPreferencesKey("user_last_name")
         val USER_AVATAR_URL = stringPreferencesKey("user_avatar_url")
+        val USER_STORAGE_QUOTA = stringPreferencesKey("user_storage_quota")
+        val USER_STORAGE_USED = stringPreferencesKey("user_storage_used")
         val REMEMBER_ME = booleanPreferencesKey("remember_me")
     }
 
@@ -144,6 +146,14 @@ class StorageManager @Inject constructor(
     }
 
     suspend fun getUserAvatarUrlSync(): String? = getUserAvatarUrl().first()
+    
+    fun getUserStorageQuota(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_STORAGE_QUOTA]?.let { cryptoManager.decrypt(it) }
+    }
+    
+    fun getUserStorageUsed(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_STORAGE_USED]?.let { cryptoManager.decrypt(it) }
+    }
 
     suspend fun saveUserFirstName(firstName: String?) {
         dataStore.edit { preferences ->
@@ -174,14 +184,31 @@ class StorageManager @Inject constructor(
             }
         }
     }
+    
+    suspend fun saveUserStorageInfo(quota: String?, used: String?) {
+        dataStore.edit { preferences ->
+            if (quota != null) preferences[USER_STORAGE_QUOTA] = cryptoManager.encrypt(quota)
+            if (used != null) preferences[USER_STORAGE_USED] = cryptoManager.encrypt(used)
+        }
+    }
 
-    suspend fun saveUserInfo(userId: String, email: String, firstName: String?, lastName: String?, avatarUrl: String? = null) {
+    suspend fun saveUserInfo(
+        userId: String, 
+        email: String, 
+        firstName: String?, 
+        lastName: String?, 
+        avatarUrl: String? = null,
+        storageQuota: String? = null,
+        storageUsed: String? = null
+    ) {
         dataStore.edit { preferences ->
             preferences[USER_ID] = cryptoManager.encrypt(userId)
             preferences[USER_EMAIL] = cryptoManager.encrypt(email)
             firstName?.let { preferences[USER_FIRST_NAME] = cryptoManager.encrypt(it) }
             lastName?.let { preferences[USER_LAST_NAME] = cryptoManager.encrypt(it) }
             avatarUrl?.let { preferences[USER_AVATAR_URL] = cryptoManager.encrypt(it) }
+            storageQuota?.let { preferences[USER_STORAGE_QUOTA] = cryptoManager.encrypt(it) }
+            storageUsed?.let { preferences[USER_STORAGE_USED] = cryptoManager.encrypt(it) }
         }
     }
 
@@ -203,6 +230,8 @@ class StorageManager @Inject constructor(
             preferences.remove(USER_FIRST_NAME)
             preferences.remove(USER_LAST_NAME)
             preferences.remove(USER_AVATAR_URL)
+            preferences.remove(USER_STORAGE_QUOTA)
+            preferences.remove(USER_STORAGE_USED)
         }
     }
 }
