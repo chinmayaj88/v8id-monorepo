@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
 import com.v8idcloud.core.common.FolderData
 import com.v8idcloud.core.ui.theme.V8idColors
@@ -149,6 +150,7 @@ fun FolderItem(
 
 /**
  * A full-row folder item with details and menu
+ * Styled to match Dropbox design with tinted backgrounds
  */
 @Composable
 fun FolderRowItem(
@@ -157,26 +159,29 @@ fun FolderRowItem(
     onFolderClick: () -> Unit = {},
     onMoreClick: () -> Unit = {}
 ) {
+    // Get background tint color based on folder icon color (very light version)
+    val backgroundTintColor = folder.iconColor.copy(alpha = 0.08f)
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onFolderClick() },
-        shape = RoundedCornerShape(16.dp),
-        color = V8idColors.UI.Surface,
-        shadowElevation = 2.dp
+        shape = RoundedCornerShape(20.dp),
+        color = backgroundTintColor,
+        shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Folder Icon
+            // Folder Icon - Circular
             Surface(
-                modifier = Modifier.size(52.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = V8idColors.UI.SearchBackground
+                modifier = Modifier.size(44.dp),
+                shape = CircleShape,
+                color = folder.iconColor.copy(alpha = 0.15f)
             ) {
                 Box(
                     contentAlignment = Alignment.Center,
@@ -185,7 +190,7 @@ fun FolderRowItem(
                     Icon(
                         imageVector = folder.icon,
                         contentDescription = folder.name,
-                        modifier = Modifier.size(26.dp),
+                        modifier = Modifier.size(22.dp),
                         tint = folder.iconColor
                     )
                 }
@@ -195,30 +200,32 @@ fun FolderRowItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = folder.name,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = V8idColors.UI.TextPrimary
                 )
-                if (itemCount != null || folder.size.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                if (folder.size.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = buildString {
-                            if (itemCount != null) append("$itemCount items")
-                            if (itemCount != null && folder.size.isNotEmpty()) append(" • ")
-                            append(folder.size)
-                        },
+                        text = folder.size,
                         fontSize = 13.sp,
-                        color = V8idColors.UI.TextSecondary
+                        color = V8idColors.UI.TextTertiary
                     )
                 }
             }
 
-            // More Options
-            androidx.compose.material3.IconButton(onClick = onMoreClick) {
+            // Horizontal Three-dot Menu
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clickable { onMoreClick() },
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
+                    imageVector = Icons.Default.MoreHoriz,
                     contentDescription = "More",
-                    tint = V8idColors.UI.IconTint
+                    tint = V8idColors.UI.TextSecondary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
