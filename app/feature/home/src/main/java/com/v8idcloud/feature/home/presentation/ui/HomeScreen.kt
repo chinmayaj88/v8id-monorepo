@@ -1,7 +1,6 @@
 package com.v8idcloud.feature.home.presentation.ui
 
 import androidx.compose.animation.*
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,9 +13,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -29,7 +26,6 @@ import com.v8idcloud.core.common.SearchSuggestion
 import com.v8idcloud.core.common.SuggestionType
 import com.v8idcloud.feature.home.presentation.viewmodel.HomeUiState
 import com.v8idcloud.core.ui.components.*
-import com.v8idcloud.core.ui.R
 
 @Composable
 fun HomeScreen(
@@ -52,7 +48,7 @@ fun HomeScreen(
     val userFirstNameFlow by viewModel.userFirstName.collectAsState()
     val userLastNameFlow by viewModel.userLastName.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
-    
+
     // State for filter menu visibility
     var showFilters by remember { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
@@ -69,30 +65,16 @@ fun HomeScreen(
     var downloadProgress by remember { mutableStateOf(0f) }
     var isDownloadComplete by remember { mutableStateOf(false) }
 
-    // State for Download Permission
-    var fileToDownloadId by remember { mutableStateOf<String?>(null) }
-    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted && fileToDownloadId != null) {
-            viewModel.downloadFile(fileToDownloadId!!)
-            fileToDownloadId = null
-        } else {
-             // Optional: Show toast if permission denied
-        }
-    }
-    
     // Handle Download Event and Start Download
     LaunchedEffect(downloadEvent) {
         downloadEvent?.let { event ->
             val id = com.v8idcloud.core.ui.utils.UiUtils.downloadFile(
-                context = context, 
-                url = event.url, 
-                fileName = event.fileName, 
-                mimeType = event.mimeType,
+                context = context,
+                url = event.url,
+                fileName = event.fileName,
                 authToken = event.authToken
             )
-            
+
             if (id != -1L) {
                 currentDownloadId = id
                 isDownloadComplete = false
@@ -107,31 +89,19 @@ fun HomeScreen(
     // Poll Download Progress
     LaunchedEffect(currentDownloadId) {
         if (currentDownloadId != null) {
-            var polling = true
-            while (polling && currentDownloadId != null) {
-                val status = com.v8idcloud.core.ui.utils.UiUtils.getDownloadProgress(context, currentDownloadId!!)
-                
-                when (status.status) {
-                    android.app.DownloadManager.STATUS_SUCCESSFUL -> {
-                        isDownloadComplete = true
-                        downloadProgress = 1f
-                        polling = false
-                    }
-                    android.app.DownloadManager.STATUS_FAILED -> {
-                        currentDownloadId = null
-                        polling = false
-                        android.widget.Toast.makeText(context, "Download failed", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                    else -> {
-                        if (status.totalBytes > 0) {
-                            downloadProgress = status.bytesDownloaded.toFloat() / status.totalBytes.toFloat()
-                        }
-                    }
+            while (!isDownloadComplete) {
+                val (bytesDownloaded, totalBytes) = com.v8idcloud.core.ui.utils.UiUtils.getDownloadProgress(context, currentDownloadId!!)
+
+                if (totalBytes > 0) {
+                    downloadProgress = bytesDownloaded.toFloat() / totalBytes.toFloat()
                 }
-                
-                if (polling) {
-                    kotlinx.coroutines.delay(500) // Poll every 500ms
+
+                if (bytesDownloaded > 0 && bytesDownloaded >= totalBytes) {
+                    isDownloadComplete = true
+                    downloadProgress = 1f
                 }
+
+                kotlinx.coroutines.delay(500) // Poll every 500ms
             }
         }
     }
@@ -139,7 +109,7 @@ fun HomeScreen(
     // Handle Share Event
     LaunchedEffect(shareEvent) {
         shareEvent?.let { event ->
-            val sendIntent: android.content.Intent = android.content.Intent().apply {
+            val sendIntent = android.content.Intent().apply {
                 action = android.content.Intent.ACTION_SEND
                 putExtra(android.content.Intent.EXTRA_TEXT, "Check out this file from V8id Cloud: ${event.url}")
                 type = "text/plain"
@@ -153,7 +123,7 @@ fun HomeScreen(
     // Show Progress Dialog
     if (currentDownloadId != null) {
         com.v8idcloud.core.ui.components.DownloadProgressDialog(
-            fileName = "Downloading file...", // Could be improved if we stored the name
+            fileName = "Downloading file...",
             progress = downloadProgress,
             isComplete = isDownloadComplete,
             onDismiss = { currentDownloadId = null }
@@ -173,24 +143,11 @@ fun HomeScreen(
         }.takeIf { it.isNotBlank() } ?: userEmail
     }
 
-    // Mock data for cloud storage (Removed and replaced by UI State)
-
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(V8idColors.DarkBlueBackground)
+            .background(V8idColors.UI.Background)
     ) {
-        // Full Screen Background (bg2.jpg) - Commented out
-        /*
-        Image(
-            painter = painterResource(id = R.drawable.bg2),
-            contentDescription = "Background",
-            contentScale = ContentScale.FillBounds, // Fill bounds to fit perfectly without cropping
-            modifier = Modifier.fillMaxSize()
-        )
-        */
-
         val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
         LazyColumn(
@@ -199,7 +156,7 @@ fun HomeScreen(
                 .padding(horizontal = dynamicPadding),
             contentPadding = PaddingValues(
                 top = dynamicVerticalSpacing + statusBarHeight,
-                bottom = 96.dp // Bottom nav bar height (64dp) + padding (16dp) + extra spacing (16dp)
+                bottom = 96.dp
             ),
             verticalArrangement = Arrangement.spacedBy(dynamicVerticalSpacing)
         ) {
@@ -212,7 +169,7 @@ fun HomeScreen(
                 )
             }
 
-            // Main Heading with Gradient
+            // Main Heading
             item {
                 GradientHeading(screenWidth = screenWidth)
             }
@@ -221,7 +178,7 @@ fun HomeScreen(
             item {
                 SearchBar(
                     searchQuery = searchQuery,
-                    onQueryChange = { 
+                    onQueryChange = {
                         searchQuery = it
                         viewModel.search(it)
                     },
@@ -229,15 +186,13 @@ fun HomeScreen(
                     onSuggestionClick = { suggestion ->
                         if (suggestion.type == SuggestionType.FOLDER) {
                             navController.navigate("folders?folderId=${suggestion.id}")
-                        } else {
-                            // File preview could be handled here
                         }
                     },
                     onFilterClick = { showFilters = !showFilters }
                 )
             }
 
-            // Optional Filter Chips Row (Visible when showFilters is true or always)
+            // Filter Chips Row
             item {
                 AnimatedVisibility(visible = showFilters) {
                     Row(
@@ -263,7 +218,7 @@ fun HomeScreen(
 
             if (uiState is HomeUiState.Loaded) {
                 val state = uiState as HomeUiState.Loaded
-                
+
                 // Quick Access Card
                 item {
                     RecentFoldersCard(
@@ -273,9 +228,21 @@ fun HomeScreen(
                     )
                 }
 
-                // File Count Chip
+                // File Count Chip - Centered
                 item {
-                    FileSummaryChip(fileCount = state.totalFiles, folderCount = state.totalFolders)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        FileSummaryChip(fileCount = state.totalFiles, folderCount = state.totalFolders)
+                    }
+                }
+
+                // Viewed Links Promotional Card
+                item {
+                    ViewedLinksCard(
+                        onSeeAllClick = { /* Handle see all click */ }
+                    )
                 }
 
                 // Recent Files Section
@@ -284,14 +251,7 @@ fun HomeScreen(
                         text = "Recent Files",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        style = androidx.compose.ui.text.TextStyle(
-                            shadow = androidx.compose.ui.graphics.Shadow(
-                                color = Color.Black.copy(alpha = 0.4f),
-                                offset = androidx.compose.ui.geometry.Offset(2f, 2f),
-                                blurRadius = 4f
-                            )
-                        )
+                        color = V8idColors.UI.TextPrimary
                     )
                 }
 
@@ -302,21 +262,8 @@ fun HomeScreen(
                         isRevealed = revealedFileId == file.id,
                         onExpand = { revealedFileId = file.id },
                         onCollapse = { if (revealedFileId == file.id) revealedFileId = null },
-                        onDownload = { 
-                            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.Q) {
-                                fileToDownloadId = file.id
-                                permissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                            } else if (android.os.Build.VERSION.SDK_INT >= 33) {
-                                // Android 13+ requires notification permission for download progress
-                                if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                                    fileToDownloadId = file.id
-                                    permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                } else {
-                                    viewModel.downloadFile(file.id)
-                                }
-                            } else {
-                                viewModel.downloadFile(file.id)
-                            }
+                        onDownload = {
+                            viewModel.downloadFile(file.id)
                         },
                         onDelete = { viewModel.deleteFile(file.id) },
                         onShare = { viewModel.shareFile(file.id) }
@@ -350,6 +297,3 @@ fun HomeScreen(
         }
     }
 }
-
-
-

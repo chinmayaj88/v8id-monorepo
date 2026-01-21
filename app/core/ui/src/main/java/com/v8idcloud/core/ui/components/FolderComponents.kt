@@ -25,6 +25,7 @@ import com.v8idcloud.core.ui.theme.V8idColors
 
 /**
  * A card showing recent folders in a grid/row
+ * Styled with soft lavender gradient to match Dropbox design
  */
 @Composable
 fun RecentFoldersCard(
@@ -45,8 +46,9 @@ fun RecentFoldersCard(
                 .background(
                     brush = androidx.compose.ui.graphics.Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF6B4EE6),
-                            Color(0xFF8B5CF6)
+                            Color(0xFFDDD6F0), // Light lavender
+                            Color(0xFFE8D4F0), // Soft pink lavender
+                            Color(0xFFD4C4E8)  // Slightly deeper lavender
                         )
                     ),
                     shape = RoundedCornerShape(24.dp)
@@ -67,13 +69,13 @@ fun RecentFoldersCard(
                         text = title,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color(0xFF2D2D3A) // Dark text for contrast
                     )
                     androidx.compose.material3.IconButton(onClick = onMenuClick) {
                         Icon(
                             imageVector = Icons.Outlined.Menu,
                             contentDescription = "Menu",
-                            tint = Color.White
+                            tint = Color(0xFF2D2D3A) // Dark icon for contrast
                         )
                     }
                 }
@@ -96,6 +98,7 @@ fun RecentFoldersCard(
 
 /**
  * Individual folder item with icon and name
+ * Uses dark text for visibility on light lavender background
  */
 @Composable
 fun FolderItem(
@@ -106,12 +109,13 @@ fun FolderItem(
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Surface(
             modifier = Modifier.size(iconSize),
             shape = CircleShape,
-            color = Color.White
+            color = Color.White,
+            shadowElevation = 2.dp
         ) {
             Box(
                 contentAlignment = Alignment.Center,
@@ -128,16 +132,16 @@ fun FolderItem(
 
         Text(
             text = folder.name,
-            fontSize = 14.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.White
+            color = Color(0xFF2D2D3A) // Dark text
         )
 
         if (folder.size.isNotEmpty()) {
             Text(
                 text = folder.size,
-                fontSize = 11.sp,
-                color = Color.White.copy(alpha = 0.8f)
+                fontSize = 10.sp,
+                color = Color(0xFF5A5A6A) // Gray text
             )
         }
     }
