@@ -57,4 +57,7 @@ dependencies {
     
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+
+    // Networking
+    implementation(libs.okhttp)
 }

@@ -13,7 +13,13 @@ import javax.inject.Inject
 
 sealed class FileViewerUiState {
     object Loading : FileViewerUiState()
-    data class Success(val url: String, val name: String, val mimeType: String) : FileViewerUiState()
+    data class Success(
+        val url: String, 
+        val name: String, 
+        val mimeType: String,
+        val localFile: java.io.File? = null,
+        val textContent: String? = null
+    ) : FileViewerUiState()
     data class Error(val message: String) : FileViewerUiState()
 }
 
@@ -21,6 +27,8 @@ sealed class FileViewerUiState {
 class FileViewerViewModel @Inject constructor(
     private val fileApiService: FileApiService,
     private val configProvider: com.v8idcloud.core.common.ConfigProvider,
+    private val okHttpClient: okhttp3.OkHttpClient,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -53,10 +61,26 @@ class FileViewerViewModel @Inject constructor(
                     
                     val fullUrl = if (rawUrl.startsWith("http")) rawUrl else "$adjustedBase/${rawUrl.trimStart('/')}"
                     
+                    var localFile: java.io.File? = null
+                    var textContent: String? = null
+
+                    try {
+                        if (fileType.startsWith("text/")) {
+                            textContent = downloadText(fullUrl)
+                        } else if (fileType == "application/pdf") {
+                            localFile = downloadFile(fullUrl, "temp_pdf_${System.currentTimeMillis()}.pdf")
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        // If download fails, we still return Success with the URL so the user can try external link
+                    }
+                    
                     _uiState.value = FileViewerUiState.Success(
                         url = fullUrl,
                         name = fileName,
-                        mimeType = fileType
+                        mimeType = fileType,
+                        localFile = localFile,
+                        textContent = textContent
                     )
                 } else {
                     val errorMsg = if (response.message?.contains("400") == true) "Invalid request: ${response.message}" else response.message ?: "Failed to generate link"
@@ -65,6 +89,31 @@ class FileViewerViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = FileViewerUiState.Error(e.message ?: "Unknown error")
             }
+        }
+    }
+
+    private suspend fun downloadText(url: String): String {
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val request = okhttp3.Request.Builder().url(url).build()
+            val response = okHttpClient.newCall(request).execute()
+            if (!response.isSuccessful) throw java.io.IOException("Failed to download text: ${response.code}")
+            response.body?.string() ?: ""
+        }
+    }
+
+    private suspend fun downloadFile(url: String, fileName: String): java.io.File {
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val request = okhttp3.Request.Builder().url(url).build()
+            val response = okHttpClient.newCall(request).execute()
+            if (!response.isSuccessful) throw java.io.IOException("Failed to download file: ${response.code}")
+            
+            val file = java.io.File(context.cacheDir, fileName)
+            response.body?.byteStream()?.use { input ->
+                file.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            file
         }
     }
 }

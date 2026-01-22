@@ -24,6 +24,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -79,7 +80,9 @@ fun FileViewerScreen(
                 ViewerContent(
                     url = state.url,
                     mimeType = state.mimeType,
-                    name = state.name
+                    name = state.name,
+                    localFile = state.localFile,
+                    textContent = state.textContent
                 )
             }
         }
@@ -125,9 +128,23 @@ fun FileViewerScreen(
 }
 
 @Composable
-fun ViewerContent(url: String, mimeType: String, name: String) {
+fun ViewerContent(
+    url: String, 
+    mimeType: String, 
+    name: String,
+    localFile: java.io.File?,
+    textContent: String?
+) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         when {
+            // TEXT
+            textContent != null -> {
+                TextViewer(textContent)
+            }
+            // PDF
+            mimeType == "application/pdf" && localFile != null -> {
+                PdfViewer(localFile)
+            }
             // IMAGE
             mimeType.startsWith("image/") -> {
                 ZoomableImage(url, name)
@@ -136,24 +153,115 @@ fun ViewerContent(url: String, mimeType: String, name: String) {
             mimeType.startsWith("video/") -> {
                 VideoPlayer(url)
             }
-            // PDF or DOCS
+            // FALLBACK / OTHER DOCS
             else -> {
-                // Use Google Docs Viewer for widespread compatibility without dedicated libraries
-                // Or just a WebView that tries to load it directly
-                val docUrl = "https://docs.google.com/gview?embedded=true&url=$url"
-                AndroidView(
-                    factory = { context ->
-                        WebView(context).apply {
-                            settings.javaScriptEnabled = true
-                            webViewClient = WebViewClient()
-                            loadUrl(docUrl)
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize()
-                )
+                // If we have a local file but no viewer for it, show error/info
+                if (localFile != null) {
+                    Text("No viewer available for this file type.", color = Color.White)
+                } else {
+                   // Still try Google Docs Viewer as last resort for non-local scenarios,
+                   // or simply show "Open Externally" message since we have the button in header.
+                   Text("Preview not available.\nUse the button above to open externally.", 
+                       color = Color.Gray, 
+                       textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                   )
+                }
             }
         }
     }
+}
+
+@Composable
+fun TextViewer(content: String) {
+    androidx.compose.foundation.lazy.LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .background(Color.White)
+    ) {
+        item {
+             Text(
+                text = content,
+                color = Color.Black,
+                modifier = Modifier.padding(bottom = 80.dp) // padding for scrolling
+            )
+        }
+    }
+}
+
+@Composable
+fun PdfViewer(file: java.io.File) {
+    // We use remember to holding the renderer resources.
+    // Note: PdfRenderer is not thread-safe, strict ui-thread usage is easiest here.
+    val rendererResources = remember(file) {
+        try {
+            val fileDescriptor = android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+            val pdfRenderer = android.graphics.pdf.PdfRenderer(fileDescriptor)
+            Pair(fileDescriptor, pdfRenderer)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    if (rendererResources == null) {
+        Text("Failed to load PDF", color = Color.Red)
+        return
+    }
+
+    val (fileDescriptor, pdfRenderer) = rendererResources
+
+    DisposableEffect(file) {
+        onDispose {
+            try {
+                pdfRenderer.close()
+                fileDescriptor.close()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    androidx.compose.foundation.lazy.LazyColumn(
+        modifier = Modifier.fillMaxSize().background(Color.White),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        items(pdfRenderer.pageCount) { index ->
+            PdfPage(pdfRenderer, index)
+        }
+        item {
+            Spacer(modifier = Modifier.height(80.dp))
+        }
+    }
+}
+
+@Composable
+fun PdfPage(renderer: android.graphics.pdf.PdfRenderer, index: Int) {
+    // Render the page into a bitmap
+    val bitmap = remember(renderer, index) {
+        val page = renderer.openPage(index)
+        // High quality scale: e.g. width of screen. 
+        // For simplicity we use page width/height * 2 for decent quality,
+        // but realistically we should scale to screen width.
+        // Let's assume a fixed density scalar or just use page dimensions for now.
+        // A standard A4 like page is around 595x842 points.
+        val width = page.width * 2
+        val height = page.height * 2
+        val bmp = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+        page.render(bmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+        page.close()
+        bmp
+    }
+
+    androidx.compose.foundation.Image(
+        bitmap = bitmap.asImageBitmap(),
+        contentDescription = "Page ${index + 1}",
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White),
+        contentScale = ContentScale.FillWidth
+    )
 }
 
 @Composable
