@@ -165,7 +165,8 @@ fun HomeScreen(
                 ProfileHeader(
                     userName = firstName.takeIf { it.isNotBlank() } ?: userName,
                     storagePercentage = if (uiState is HomeUiState.Loaded) (uiState as HomeUiState.Loaded).storageUsedPercentage else 0f,
-                    onLogout = { viewModel.logout(onLogoutSuccess = { navController.navigate("auth/login") { popUpTo(0) } }) }
+                    onLogout = { viewModel.logout(onLogoutSuccess = { navController.navigate("auth/login") { popUpTo(0) } }) },
+                    onProfileClick = { navController.navigate("user") }
                 )
             }
 
