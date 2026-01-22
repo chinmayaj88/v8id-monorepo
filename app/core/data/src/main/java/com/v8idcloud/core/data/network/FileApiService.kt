@@ -25,6 +25,13 @@ interface FileApiService {
         @retrofit2.http.Path("id") id: String,
         @retrofit2.http.Body request: GenerateLinkRequest = GenerateLinkRequest()
     ): FileApiResponse<FileLinkResponseDto>
+
+    @GET("files")
+    suspend fun getFiles(
+        @Query("type") type: String? = null,
+        @Query("limit") limit: Int = 20,
+        @Query("page") page: Int = 1
+    ): FileApiResponse<List<SearchResultItemDto>>
 }
 
 data class FileApiResponse<T>(
@@ -97,6 +104,7 @@ data class SearchResultItemDto(
 )
 
 data class GenerateLinkRequest(
+    val folderId: String? = null,
     val expiresInHours: Int = 24,
     val maxDownloads: Int? = null
 )

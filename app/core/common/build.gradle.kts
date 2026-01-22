@@ -28,6 +28,9 @@ android {
     }
 }
 
+// Load local.properties
+
+
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)

@@ -169,35 +169,40 @@ fun StorageAnalyticsScreen(
                             size = imageStats?.size ?: 0L,
                             count = imageStats?.count ?: 0,
                             icon = Icons.Outlined.Image,
-                            color = Color(0xFF2196F3) // Blue
+                            color = Color(0xFF2196F3), // Blue
+                            onClick = { navController.navigate("media?type=IMAGE") }
                         )
                         StorageDetailRow(
                             name = "Videos",
                             size = videoStats?.size ?: 0L,
                             count = videoStats?.count ?: 0,
                             icon = Icons.Outlined.Videocam,
-                            color = Color(0xFFE91E63) // Pink
+                            color = Color(0xFFE91E63), // Pink
+                             onClick = { navController.navigate("media?type=VIDEO") }
                         )
                         StorageDetailRow(
                             name = "Documents",
                             size = docStats?.size ?: 0L,
                             count = docStats?.count ?: 0,
                             icon = Icons.Outlined.Description,
-                            color = Color(0xFFFFC107) // Amber
+                            color = Color(0xFFFFC107), // Amber
+                             onClick = { navController.navigate("media?type=DOCUMENT") }
                         )
                         StorageDetailRow(
                             name = "Music",
                             size = musicStats?.size ?: 0L,
                             count = musicStats?.count ?: 0,
                             icon = Icons.Outlined.LibraryMusic,
-                            color = Color(0xFF4CAF50) // Green
+                            color = Color(0xFF4CAF50), // Green
+                             onClick = { navController.navigate("media?type=AUDIO") }
                         )
                         StorageDetailRow(
                             name = "Others",
                             size = (otherStats?.size ?: 0L) + (archiveStats?.size ?: 0L),
                             count = (otherStats?.count ?: 0) + (archiveStats?.count ?: 0),
                             icon = Icons.Outlined.Folder,
-                            color = V8idColors.UI.TextTertiary
+                            color = V8idColors.UI.TextTertiary,
+                             onClick = { navController.navigate("media?type=OTHER") }
                         )
                     }
                 }
@@ -323,10 +328,11 @@ private fun StorageDetailRow(
     size: Long,
     count: Int,
     icon: ImageVector,
-    color: Color
+    color: Color,
+    onClick: () -> Unit
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = color.copy(alpha = 0.08f)
     ) {

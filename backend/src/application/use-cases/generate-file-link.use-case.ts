@@ -1,6 +1,6 @@
 /**
  * Generate File Link Use Case
- * 
+ *
  * Generate a temporary download link (pre-signed URL/PAR) for a file or folder.
  */
 
@@ -35,13 +35,19 @@ export class GenerateFileLinkUseCase {
   ) {}
 
   async execute(userId: string, dto: GenerateFileLinkDTO): Promise<FileLinkResponse> {
-    if ((!dto.fileId && !dto.folderId) || (dto.fileId && dto.folderId)) {
-      throw new Error('Either fileId or folderId must be provided, but not both');
+    // If fileId is present, prioritize it and ignore folderId to avoid conflicts
+    if (dto.fileId) {
+      dto.folderId = null;
+    }
+
+    if (!dto.fileId && !dto.folderId) {
+      throw new Error('Either fileId or folderId must be provided');
     }
 
     let ociObjectName: string | null = null;
     if (dto.fileId) {
       const file = await this.fileRepository.findById(dto.fileId);
+
       if (!file || file.userId !== userId) {
         throw new Error('File not found or access denied');
       }
@@ -70,10 +76,12 @@ export class GenerateFileLinkUseCase {
         // Use tier-aware storage service for PAR generation
         const isTierAware = this.storageService instanceof TierAwareStorageService;
         const file = await this.fileRepository.findById(dto.fileId);
-        const storageTier = file?.storageTier || 'STANDARD' as any;
+        const storageTier = file?.storageTier || ('STANDARD' as any);
 
         if (isTierAware) {
-          const parResult = await (this.storageService as TierAwareStorageService).createPreAuthenticatedRequest({
+          const parResult = await (
+            this.storageService as TierAwareStorageService
+          ).createPreAuthenticatedRequest({
             objectName: ociObjectName,
             expiresInHours,
             accessType: 'ObjectRead',
@@ -91,7 +99,9 @@ export class GenerateFileLinkUseCase {
           parId = parResult.parId;
         }
       } catch (error) {
-        throw new Error(`Failed to generate download link: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+          `Failed to generate download link: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     }
 

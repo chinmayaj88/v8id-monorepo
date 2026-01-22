@@ -114,5 +114,30 @@ fun AppNavGraph(
                 VaultScreen(navController = navController)
             }
         }
+
+        composable(
+            route = "media?type={type}",
+            arguments = listOf(
+                navArgument("type") {
+                    type = NavType.StringType
+                    defaultValue = "IMAGE"
+                }
+            )
+        ) {
+            MainScreen(navController = navController) {
+                com.v8idcloud.feature.folders.presentation.ui.MediaScreen(navController = navController)
+            }
+        }
+
+        composable(
+            route = "viewer?fileId={fileId}&fileName={fileName}&fileType={fileType}",
+            arguments = listOf(
+                navArgument("fileId") { type = NavType.StringType },
+                navArgument("fileName") { type = NavType.StringType; defaultValue = "File" },
+                navArgument("fileType") { type = NavType.StringType; defaultValue = "*/*" }
+            )
+        ) {
+            com.v8idcloud.feature.folders.presentation.ui.FileViewerScreen(navController = navController)
+        }
     }
 }

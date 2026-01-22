@@ -52,6 +52,7 @@ import { UnifiedSearchUseCase } from '../../application/use-cases/unified-search
 import { GenerateThumbnailUseCase } from '../../application/use-cases/generate-thumbnail.use-case.js';
 import { RegenerateThumbnailUseCase } from '../../application/use-cases/regenerate-thumbnail.use-case.js';
 import { GetDashboardDataUseCase } from '../../application/use-cases/get-dashboard-data.use-case.js';
+import { AccessFileLinkUseCase } from '../../application/use-cases/access-file-link.use-case.js';
 import {
   UploadFileDTO,
   UpdateFileDTO,
@@ -111,8 +112,36 @@ export class FileController {
     private generateThumbnailUseCase: GenerateThumbnailUseCase,
     private regenerateThumbnailUseCase: RegenerateThumbnailUseCase,
     private unifiedSearchUseCase: UnifiedSearchUseCase,
-    private getDashboardDataUseCase: GetDashboardDataUseCase
+    private getDashboardDataUseCase: GetDashboardDataUseCase,
+    private accessFileLinkUseCase: AccessFileLinkUseCase
   ) {}
+
+  /**
+   * GET /api/files/link/:token
+   * Access a file via public link
+   */
+  async accessLink(req: any, res: Response): Promise<void> {
+    try {
+      const token = req.params.token as string;
+
+      if (!token) {
+        ResponseUtil.validationError(res, 'Token is required');
+        return;
+      }
+
+      const result = await this.accessFileLinkUseCase.execute(token);
+
+      // Redirect to the PAR URL (OCI Object Storage)
+      res.redirect(result.url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to access link';
+      if (message.includes('not found') || message.includes('expired')) {
+        ResponseUtil.notFound(res, message);
+      } else {
+        ResponseUtil.error(res, 'ACCESS_LINK_ERROR', message, 500);
+      }
+    }
+  }
 
   /**
    * POST /api/files/upload
@@ -1327,7 +1356,8 @@ export class FileController {
       const fileId = req.params.id as string;
       const dto = {
         fileId: fileId || null,
-        folderId: req.body.folderId || null,
+        // If fileId is present, force folderId to null to avoid conflict in UseCase
+        folderId: fileId ? null : req.body.folderId || null,
         expiresInHours: req.body.expiresInHours,
         maxDownloads: req.body.maxDownloads,
       };

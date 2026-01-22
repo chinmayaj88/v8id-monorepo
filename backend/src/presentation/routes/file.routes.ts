@@ -23,6 +23,7 @@ import { BulkMoveFilesUseCase } from '../../application/use-cases/bulk-move-file
 import { BulkRestoreFilesUseCase } from '../../application/use-cases/bulk-restore-files.use-case.js';
 import { CopyFileUseCase } from '../../application/use-cases/copy-file.use-case.js';
 import { CopyFolderUseCase } from '../../application/use-cases/copy-folder.use-case.js';
+import { AccessFileLinkUseCase } from '../../application/use-cases/access-file-link.use-case.js';
 import { StorageAnalyticsUseCase } from '../../application/use-cases/storage-analytics.use-case.js';
 import { PreviewFileUseCase } from '../../application/use-cases/preview-file.use-case.js';
 import { ToggleFavoriteUseCase } from '../../application/use-cases/toggle-favorite.use-case.js';
@@ -258,6 +259,8 @@ const permanentDeleteFolderUseCase = new PermanentDeleteFolderUseCase(
 const restoreFolderUseCase = new RestoreFolderUseCase(folderRepository);
 const listFoldersUseCase = new ListFoldersUseCase(folderRepository);
 
+const accessFileLinkUseCase = new AccessFileLinkUseCase();
+
 const fileController = new FileController(
   uploadFileUseCase,
   initiateUploadUseCase,
@@ -305,7 +308,8 @@ const fileController = new FileController(
   generateThumbnailUseCase,
   regenerateThumbnailUseCase,
   unifiedSearchUseCase,
-  getDashboardDataUseCase
+  getDashboardDataUseCase,
+  accessFileLinkUseCase
 );
 
 const upload = multer({
@@ -410,6 +414,9 @@ router.get('/:id/comments', authenticate, (req, res) =>
 router.post('/:id/expiration', authenticate, (req, res) =>
   fileController.setExpiration(req as any, res)
 );
+
+// Public link access (No authentication required)
+router.get('/link/:token', (req, res) => fileController.accessLink(req, res));
 
 router.post('/:id/link', authenticate, (req, res) => fileController.generateLink(req as any, res));
 

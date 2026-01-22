@@ -91,8 +91,8 @@ fun V8idBottomNavigationBar(
                 // Photos / Gallery
                 NavIcon(
                     icon = Icons.Outlined.Image,
-                    isSelected = currentRoute == "photos", // Placeholder route
-                    onClick = { /* onTabSelected("photos") */ }
+                    isSelected = currentRoute.startsWith("media"),
+                    onClick = { onTabSelected("media") }
                 )
 
                 // Profile
