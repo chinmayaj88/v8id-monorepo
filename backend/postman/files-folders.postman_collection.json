@@ -1,3311 +1,417 @@
 {
-	"info": {
-		"_postman_id": "files-folders-collection",
-		"name": "Files & Folders",
-		"description": "File and folder management endpoints for uploading, downloading, organizing, and managing files.\n\nAll endpoints include:\n- **Authentication required** (Bearer token)\n- **Rate limiting** protection\n- **Storage quota** validation\n- **File deduplication** (SHA-256 hash)\n- **OCI Object Storage** integration for actual file storage\n\n### Storage Features:\n- **Two-Tier Storage System**:\n  - **STANDARD Tier**: For frequently accessed files (documents, photos, CVs)\n    - Fast retrieval, low latency\n    - Thumbnails generated automatically\n    - Higher storage cost\n  - **ARCHIVE Tier**: For rarely accessed files (family photos, videos, bulk data)\n    - Lower storage cost\n    - Acceptable latency for rare access\n    - Thumbnails skipped during upload (lazy generation)\n  - Users can select tier during upload\n  - All file responses include `storageTier` field\n- **Hierarchical folders**: Create nested folder structures\n- **File metadata**: Name, description, tags, custom metadata\n- **File types**: Automatic detection (DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER)\n- **Trash system**: All deletions are soft-deletes (move to trash)\n  - Files and folders can be restored from trash\n  - Permanent deletion only available from trash\n  - Storage is freed only when permanently deleted\n- **Storage quota**: Default 10GB per user, checked before upload\n- **Storage tracking**: User's `storageUsed` is automatically updated",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"item": [
-		{
-			"name": "Files",
-			"item": [
-				{
-					"name": "Upload File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file upload",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"File uploaded successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.ociObjectName).to.exist;",
-									"    });",
-									"    ",
-									"    // Save file ID for subsequent requests",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"fileId\", jsonData.data.id);",
-									"        console.log(\"✅ File uploaded successfully\");",
-									"        console.log(\"📁 File ID: \" + jsonData.data.id);",
-									"        console.log(\"📦 OCI Object Name: \" + jsonData.data.ociObjectName);",
-									"        console.log(\"📊 Size: \" + jsonData.data.size + \" bytes\");",
-									"    }",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Upload failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"quota\")) {",
-									"            console.log(\"💡 Storage quota exceeded\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "file",
-									"type": "file",
-									"src": [],
-									"description": "File to upload (max 100MB)"
-								},
-								{
-									"key": "folderId",
-									"value": "",
-									"type": "text",
-									"description": "Optional: Folder ID to upload file into (null for root)",
-									"disabled": true
-								},
-								{
-									"key": "name",
-									"value": "",
-									"type": "text",
-									"description": "Optional: Display name (defaults to original filename)",
-									"disabled": true
-								},
-								{
-									"key": "description",
-									"value": "",
-									"type": "text",
-									"description": "Optional: File description",
-									"disabled": true
-								},
-								{
-									"key": "tags",
-									"value": "[]",
-									"type": "text",
-									"description": "Optional: JSON array of tags, e.g. [\"work\", \"important\"]",
-									"disabled": true
-								},
-								{
-									"key": "storageTier",
-									"value": "STANDARD",
-									"type": "text",
-									"description": "Optional: Storage tier - 'STANDARD' (frequent access) or 'ARCHIVE' (rare access). Default: STANDARD",
-									"disabled": false
-								}
-							]
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/upload",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"upload"
-							]
-						},
-						"description": "**Upload a file (small files only)**\n\nUpload a small file to the user's storage through the backend server. Files are stored in OCI Object Storage.\n\n**⚠️ For large files (>= 10MB):**\n- Use \"Initiate Upload\" endpoint instead\n- Large files use direct upload via Pre-Authenticated Request (PAR)\n- Supports chunked uploads with resume capability\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Storage quota is checked before upload\n- File size is validated (max 100MB default)\n- File is hashed (SHA-256) for deduplication\n- Files uploaded through backend are scanned (if antivirus enabled)\n\n**File Size Limits:**\n- Default: 100MB per file (backend upload)\n- Recommended: Use chunked upload for files > 10MB\n- Check server configuration for limits\n- Total storage cannot exceed user's quota\n\n**Storage Quota:**\n- Default quota: 10GB per user\n- Checked before upload\n- User's `storageUsed` is updated after successful upload\n\n**File Deduplication:**\n- Files are hashed using SHA-256\n- Duplicate files (same hash) can be detected\n- Currently creates new file record even if hash exists\n\n**Storage Tier Selection:**\n- `STANDARD` (default): For frequently accessed files (documents, photos, CVs)\n  - Fast retrieval, low latency\n  - Thumbnails generated automatically\n  - Higher storage cost\n\n- `ARCHIVE`: For rarely accessed files (family photos, videos, bulk data)\n  - Lower storage cost\n  - Acceptable latency for rare access\n  - Thumbnails skipped during upload (lazy generation)\n\n**Request Body (multipart/form-data):**\n- `file` (required): File to upload\n- `folderId` (optional): Folder ID (null for root)\n- `name` (optional): Display name\n- `description` (optional): File description\n- `tags` (optional): JSON array of tags\n- `storageTier` (optional): 'STANDARD' or 'ARCHIVE' (default: STANDARD)\n\n**Response:**\n- `id`: File ID\n- `name`: Display name\n- `size`: File size in bytes\n- `mimeType`: MIME type\n- `storageTier`: Storage tier (STANDARD or ARCHIVE)\n- `ociObjectName`: OCI Object Storage key\n- `status`: File status (ACTIVE)"
-					},
-					"response": []
-				},
-				{
-					"name": "Initiate Upload (Large Files)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify upload session creation",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Upload session created successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.sessionId).to.exist;",
-									"        pm.expect(jsonData.data.uploadMethod).to.exist;",
-									"        pm.expect(jsonData.data.totalChunks).to.exist;",
-									"    });",
-									"    ",
-									"    // Save session ID for subsequent requests",
-									"    if (jsonData.data.sessionId) {",
-									"        pm.environment.set(\"uploadSessionId\", jsonData.data.sessionId);",
-									"        console.log(\"✅ Upload session created successfully\");",
-									"        console.log(\"📦 Session ID: \" + jsonData.data.sessionId);",
-									"        console.log(\"📊 Upload Method: \" + jsonData.data.uploadMethod);",
-									"        console.log(\"📦 Total Chunks: \" + jsonData.data.totalChunks);",
-									"        console.log(\"📏 Chunk Size: \" + jsonData.data.chunkSize + \" bytes\");",
-									"        ",
-									"        if (jsonData.data.parUrl) {",
-									"            console.log(\"🔗 Direct Upload URL (PAR): \" + jsonData.data.parUrl);",
-									"            console.log(\"⚠️ \" + (jsonData.data.message || \"Large files are uploaded directly to storage and cannot be scanned for viruses.\"));",
-									"        }",
-									"    }",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Session creation failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"quota\")) {",
-									"            console.log(\"💡 Storage quota exceeded\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"fileName\": \"large-file.pdf\",\n  \"fileSize\": 50000000,\n  \"mimeType\": \"application/pdf\",\n  \"folderId\": null,\n  \"chunkSize\": 5242880,\n  \"storageTier\": \"STANDARD\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/upload/initiate",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"upload",
-								"initiate"
-							]
-						},
-						"description": "**Initiate chunked upload session (for large files)**\n\nStart a chunked upload session for large files. Determines upload method based on file size:\n- **Small files (< 10MB)**: Use \"Upload File\" endpoint instead (backend upload)\n- **Large files (>= 10MB)**: Direct upload via Pre-Authenticated Request (PAR)\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Storage quota is checked before session creation\n- Large files uploaded directly to OCI cannot be scanned for viruses\n- Virus scan warning is shown in response for large files\n\n**Upload Methods:**\n- **DIRECT**: Files >= 10MB (default threshold)\n  - Client uploads directly to OCI via PAR URL\n  - Chunks are uploaded directly to OCI\n  - Backend tracks progress only\n  - Files cannot be scanned for viruses\n\n- **BACKEND**: Files < 10MB\n  - Use \"Upload File\" endpoint instead\n  - Files go through backend server\n  - Can be scanned for viruses\n\n**Storage Tier Selection:**\n- `STANDARD` (default): For frequently accessed files (documents, photos, CVs)\n  - Fast retrieval, low latency\n  - Thumbnails generated automatically\n  - Higher storage cost\n\n- `ARCHIVE`: For rarely accessed files (family photos, videos, bulk data)\n  - Lower storage cost\n  - Acceptable latency for rare access\n  - Thumbnails skipped during upload (lazy generation)\n\n**Request Body:**\n- `fileName` (required): Original filename\n- `fileSize` (required): File size in bytes\n- `mimeType` (required): MIME type\n- `folderId` (optional): Folder ID (null for root)\n- `chunkSize` (optional): Chunk size in bytes (default: 5MB)\n- `storageTier` (optional): 'STANDARD' or 'ARCHIVE' (default: STANDARD)\n\n**Response:**\n- `sessionId`: Upload session ID\n- `uploadMethod`: 'DIRECT' or 'BACKEND'\n- `chunkSize`: Chunk size in bytes\n- `totalChunks`: Total number of chunks\n- `parUrl` (for DIRECT): Pre-Authenticated Request URL for direct upload\n- `virusScanWarning` (for DIRECT): true if file cannot be scanned\n- `message` (for DIRECT): Warning message about virus scanning\n\n**Next Steps:**\n1. For DIRECT uploads: Upload chunks directly to `parUrl` using PUT requests\n2. For BACKEND uploads: Use \"Upload Chunk\" endpoint\n3. After all chunks: Use \"Complete Upload\" endpoint\n4. To resume: Use \"Resume Upload\" endpoint"
-					},
-					"response": []
-				},
-				{
-					"name": "Upload Chunk",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify chunk upload",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Chunk uploaded successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.sessionId).to.exist;",
-									"        pm.expect(jsonData.data.uploadedChunks).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Chunk uploaded successfully\");",
-									"    console.log(\"📊 Progress: \" + jsonData.data.uploadedChunks + \"/\" + jsonData.data.totalChunks + \" chunks (\" + jsonData.data.progress.toFixed(1) + \"%)\");",
-									"    console.log(\"📦 Uploaded: \" + jsonData.data.uploadedBytes + \" bytes\");",
-									"    ",
-									"    if (jsonData.data.isComplete) {",
-									"        console.log(\"✅ All chunks uploaded! Use 'Complete Upload' endpoint to finalize.\");",
-									"    }",
-									"} else if (pm.response.code === 400 || pm.response.code === 404) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Chunk upload failed: \" + jsonData.error.message);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "sessionId",
-									"value": "{{uploadSessionId}}",
-									"type": "text",
-									"description": "Upload session ID from 'Initiate Upload'"
-								},
-								{
-									"key": "chunkNumber",
-									"value": "0",
-									"type": "text",
-									"description": "Chunk number (0-indexed, start from 0)"
-								},
-								{
-									"key": "isLastChunk",
-									"value": "false",
-									"type": "text",
-									"description": "Set to 'true' for the last chunk"
-								},
-								{
-									"key": "chunk",
-									"type": "file",
-									"src": [],
-									"description": "Chunk data (binary)"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/upload/chunk",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"upload",
-								"chunk"
-							]
-						},
-						"description": "**Upload a chunk (for backend uploads only)**\n\nUpload a single chunk of a file. This endpoint is for BACKEND uploads only.\n\n**⚠️ For DIRECT uploads:**\n- Upload chunks directly to the PAR URL using PUT requests\n- Do NOT use this endpoint for DIRECT uploads\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Chunk number must match expected sequence\n- Session must be active and not expired\n\n**Chunk Validation:**\n- Chunk number must match expected next chunk\n- Chunk size must match session chunk size (except last chunk)\n- Session must not be completed or expired\n\n**Request Body (multipart/form-data):**\n- `sessionId` (required): Upload session ID\n- `chunkNumber` (required): Chunk number (0-indexed)\n- `isLastChunk` (required): 'true' for last chunk, 'false' otherwise\n- `chunk` (required): Chunk data (binary file)\n\n**Response:**\n- `sessionId`: Upload session ID\n- `uploadedChunks`: Number of chunks uploaded\n- `totalChunks`: Total number of chunks\n- `uploadedBytes`: Total bytes uploaded\n- `progress`: Upload progress percentage\n- `isComplete`: true if all chunks uploaded\n\n**Note:**\n- For DIRECT uploads, upload chunks directly to PAR URL\n- This endpoint tracks progress for backend uploads"
-					},
-					"response": []
-				},
-				{
-					"name": "Resume Upload",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify resume upload",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Upload session retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.sessionId).to.exist;",
-									"        pm.expect(jsonData.data.nextChunkNumber).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Upload session retrieved\");",
-									"    console.log(\"📊 Progress: \" + jsonData.data.uploadedChunks + \"/\" + jsonData.data.totalChunks + \" chunks (\" + jsonData.data.progress.toFixed(1) + \"%)\");",
-									"    console.log(\"📦 Next Chunk: \" + jsonData.data.nextChunkNumber);",
-									"    console.log(\"📏 Chunk Size: \" + jsonData.data.chunkSize + \" bytes\");",
-									"    ",
-									"    if (jsonData.data.parUrl) {",
-									"        console.log(\"🔗 PAR URL: \" + jsonData.data.parUrl);",
-									"        console.log(\"💡 Continue uploading chunks directly to PAR URL\");",
-									"    }",
-									"} else if (pm.response.code === 404 || pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Resume failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"expired\")) {",
-									"            console.log(\"💡 Session expired. Start a new upload.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/upload/:sessionId/resume",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"upload",
-								":sessionId",
-								"resume"
-							],
-							"variable": [
-								{
-									"key": "sessionId",
-									"value": "{{uploadSessionId}}",
-									"description": "Upload session ID"
-								}
-							]
-						},
-						"description": "**Resume interrupted upload**\n\nResume an interrupted upload session. Returns current progress and next chunk number.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Session must not be expired\n- Session must not be completed\n\n**Use Cases:**\n- Network interruption during upload\n- Browser/application crash\n- User cancellation and restart\n\n**Session Validation:**\n- Session must exist and belong to user\n- Session must not be expired\n- Session must not be completed\n\n**Response:**\n- `sessionId`: Upload session ID\n- `uploadMethod`: 'DIRECT' or 'BACKEND'\n- `uploadedChunks`: Number of chunks uploaded\n- `totalChunks`: Total number of chunks\n- `uploadedBytes`: Total bytes uploaded\n- `progress`: Upload progress percentage\n- `nextChunkNumber`: Next chunk number to upload\n- `parUrl` (for DIRECT): PAR URL for direct upload\n- `chunkSize`: Chunk size in bytes\n- `isExpired`: false if session is valid\n\n**Next Steps:**\n1. Use `nextChunkNumber` to continue uploading\n2. For DIRECT uploads: Upload chunks directly to `parUrl`\n3. For BACKEND uploads: Use \"Upload Chunk\" endpoint\n4. After all chunks: Use \"Complete Upload\" endpoint"
-					},
-					"response": []
-				},
-				{
-					"name": "Complete Upload",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify upload completion",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Upload completed successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.status).to.equal(\"ACTIVE\");",
-									"    });",
-									"    ",
-									"    // Save file ID for subsequent requests",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"fileId\", jsonData.data.id);",
-									"        console.log(\"✅ Upload completed successfully\");",
-									"        console.log(\"📁 File ID: \" + jsonData.data.id);",
-									"        console.log(\"📦 OCI Object Name: \" + jsonData.data.ociObjectName);",
-									"        console.log(\"📊 Size: \" + jsonData.data.size + \" bytes\");",
-									"        console.log(\"📊 Status: \" + jsonData.data.status);",
-									"    }",
-									"} else if (pm.response.code === 400 || pm.response.code === 404) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Upload completion failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"incomplete\")) {",
-									"            console.log(\"💡 Not all chunks have been uploaded. Use 'Resume Upload' to check progress.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"My File\",\n  \"description\": \"Optional file description\",\n  \"tags\": [\"important\", \"work\"],\n  \"metadata\": {\n    \"customField\": \"value\"\n  }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/upload/:sessionId/complete",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"upload",
-								":sessionId",
-								"complete"
-							],
-							"variable": [
-								{
-									"key": "sessionId",
-									"value": "{{uploadSessionId}}",
-									"description": "Upload session ID"
-								}
-							]
-						},
-						"description": "**Complete upload and create file record**\n\nFinalize upload after all chunks are uploaded. Creates file record, calculates hash, and updates user storage.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- All chunks must be uploaded\n- Session must not be expired\n- File must exist in storage (for DIRECT uploads)\n\n**Validation:**\n- All chunks must be uploaded (verified by chunk count)\n- File must exist in OCI storage\n- File hash is calculated (SHA-256)\n- Duplicate detection (same hash and user)\n\n**File Creation:**\n- Creates file record in database\n- Sets status to ACTIVE\n- Updates user storage usage\n- Cleans up PAR (for DIRECT uploads)\n- Links file to upload session\n\n**Note:** Storage tier is set during 'Initiate Upload' and cannot be changed here.\n\n**Request Body (JSON):**\n- `name` (optional): Display name (defaults to original filename)\n- `description` (optional): File description\n- `tags` (optional): Array of tag strings\n- `metadata` (optional): Object with custom metadata\n\n**Path Parameter:**\n- `sessionId`: Upload session ID\n\n**Response:**\n- Complete file object with status = ACTIVE\n- `storageTier`: Storage tier (STANDARD or ARCHIVE)\n- Includes all file metadata\n- Storage usage updated\n\n**Error Responses:**\n- `400`: Upload incomplete or validation failed\n- `404`: Session not found\n- `403`: Access denied\n- `500`: Storage or database error"
-					},
-					"response": []
-				},
-				{
-					"name": "Download File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file download",
-									"if (pm.response.code === 200) {",
-									"    pm.test(\"File downloaded successfully\", function () {",
-									"        pm.expect(pm.response.headers.get(\"Content-Type\")).to.exist;",
-									"        pm.expect(pm.response.headers.get(\"Content-Length\")).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File downloaded successfully\");",
-									"    console.log(\"📦 Content-Type: \" + pm.response.headers.get(\"Content-Type\"));",
-									"    console.log(\"📊 Size: \" + pm.response.headers.get(\"Content-Length\") + \" bytes\");",
-									"    ",
-									"    // Note: File content is in response body",
-									"    // In Postman, use 'Send and Download' to save file",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied - file belongs to another user\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/download",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"download"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to download"
-								}
-							]
-						},
-						"description": "**Download a file**\n\nDownload a file from the user's storage.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can download\n- File must be active (not deleted)\n- File must exist in OCI Object Storage\n\n**Response Headers:**\n- `Content-Type`: File MIME type\n- `Content-Length`: File size in bytes\n- `Content-Disposition`: Attachment filename\n- `X-Meta-*`: Custom metadata headers (if any)\n\n**Response Body:**\n- Binary file content\n- In Postman, use 'Send and Download' button to save file\n\n**Path Parameter:**\n- `fileId`: ID of the file to download\n\n**Error Responses:**\n- `404`: File not found\n- `403`: Access denied (file belongs to another user)\n- `400`: File is not available (deleted or archived)"
-					},
-					"response": []
-				},
-				{
-					"name": "Get File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file retrieval",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"File retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.storageTier).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File retrieved successfully\");",
-									"    console.log(\"📁 File: \" + jsonData.data.name);",
-									"    console.log(\"📦 Storage Tier: \" + jsonData.data.storageTier);",
-									"    console.log(\"📊 Size: \" + jsonData.data.size + \" bytes\");",
-									"    ",
-									"    // Save file ID for subsequent requests",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"fileId\", jsonData.data.id);",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to retrieve"
-								}
-							]
-						},
-						"description": "**Get file metadata by ID**\n\nRetrieve detailed metadata for a specific file.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can access\n- File must exist\n\n**Storage Tier Information:**\n- Response includes `storageTier` field\n- Values: 'STANDARD' (frequent access) or 'ARCHIVE' (rare access)\n- Users can see which tier their files are stored in\n\n**Path Parameter:**\n- `fileId`: ID of the file to retrieve\n\n**Response:**\n- Complete file object with all metadata\n- `storageTier`: Storage tier (STANDARD or ARCHIVE)\n- `thumbnailUrl`: Presigned URL for thumbnail (if available)\n- `thumbnailGenerated`: Whether thumbnail has been generated\n- All file properties (name, size, mimeType, status, etc.)\n\n**Error Responses:**\n- `404`: File not found\n- `403`: Access denied (file belongs to another user)"
-					},
-					"response": []
-				},
-				{
-					"name": "List Files",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify files list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Files retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.be.an('array');",
-									"        pm.expect(jsonData.meta.pagination).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Files retrieved successfully\");",
-									"    console.log(\"📁 Total files: \" + jsonData.meta.pagination.total);",
-									"    console.log(\"📄 Files in this page: \" + jsonData.data.length);",
-									"    console.log(\"📊 Page: \" + jsonData.meta.pagination.page + \" / \" + jsonData.meta.pagination.totalPages);",
-									"    ",
-									"    if (jsonData.data.length > 0) {",
-									"        // Save first file ID for testing",
-									"        pm.environment.set(\"fileId\", jsonData.data[0].id);",
-									"        console.log(\"\\nFirst file: \" + jsonData.data[0].name);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files?folderId=&status=&type=&search=&page=1&limit=20&orderBy=createdAt&orderDirection=desc",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files"
-							],
-							"query": [
-								{
-									"key": "folderId",
-									"value": "",
-									"description": "Filter by folder ID (null for root, omit for all)",
-									"disabled": true
-								},
-								{
-									"key": "status",
-									"value": "",
-									"description": "Filter by status: ACTIVE, DELETED, UPLOADING, ARCHIVED",
-									"disabled": true
-								},
-								{
-									"key": "type",
-									"value": "",
-									"description": "Filter by type: DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER",
-									"disabled": true
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search in name, originalName, or description",
-									"disabled": true
-								},
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number (default: 1)"
-								},
-								{
-									"key": "limit",
-									"value": "20",
-									"description": "Items per page (default: 20, max: 100)"
-								},
-								{
-									"key": "orderBy",
-									"value": "createdAt",
-									"description": "Sort by: name, createdAt, updatedAt, size (default: createdAt)"
-								},
-								{
-									"key": "orderDirection",
-									"value": "desc",
-									"description": "Sort direction: asc, desc (default: desc)"
-								}
-							]
-						},
-						"description": "**List files with filtering and pagination**\n\nGet a list of files for the authenticated user with optional filtering and pagination.\n\n**Query Parameters:**\n- `folderId`: Filter by folder ID (null for root files, omit for all files)\n- `status`: Filter by status (ACTIVE, DELETED, UPLOADING, ARCHIVED)\n- `type`: Filter by file type (DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER)\n- `search`: Search in name, originalName, or description\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n- `orderBy`: Sort by field (name, createdAt, updatedAt, size)\n- `orderDirection`: Sort direction (asc, desc)\n\n**Storage Tier Information:**\n- All file responses include `storageTier` field\n- Values: 'STANDARD' (frequent access) or 'ARCHIVE' (rare access)\n- Users can see which files are in which tier\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of file objects with metadata\n- Each file includes `storageTier` field\n- Pagination information in `meta.pagination`"
-					},
-					"response": []
-				},
-				{
-					"name": "Unified Search",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify search results",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Search performed successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.results).to.be.an('array');",
-									"        pm.expect(jsonData.data.total).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Search successful\");",
-									"    console.log(\"🔍 Total results: \" + jsonData.data.total);",
-									"    console.log(\"📄 Results in this page: \" + jsonData.data.results.length);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/search?q=test&limit=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"search"
-							],
-							"query": [
-								{
-									"key": "q",
-									"value": "test",
-									"description": "Search query"
-								},
-								{
-									"key": "limit",
-									"value": "20",
-									"description": "Max results (default: 20)"
-								}
-							]
-						},
-						"description": "**Unified Search for Files and Folders**\n\nSearch across both files and folders with relevance ranking.\n\n**Query Parameters:**\n- `q`: Search query string (required)\n- `limit`: Maximum number of results to return (default: 20)\n\n**Response:**\n- `results`: Array of mixed file and folder objects\n- `total`: Total number of matches found"
-					},
-					"response": []
-				},
-				{
-					"name": "Update File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file update",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"File updated successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File updated successfully\");",
-									"    console.log(\"📁 File: \" + jsonData.data.name);",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Update failed: \" + jsonData.error.message);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Updated File Name\",\n  \"folderId\": null,\n  \"description\": \"Updated description\",\n  \"tags\": [\"tag1\", \"tag2\"],\n  \"metadata\": {\n    \"customField\": \"customValue\"\n  }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to update"
-								}
-							]
-						},
-						"description": "**Update file metadata**\n\nUpdate file metadata (name, folder, description, tags, metadata). File content cannot be updated - use upload with same name for versioning.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can update\n- File must be active (not deleted)\n\n**Allowed Fields:**\n- `name`: Display name (must be unique in folder)\n- `folderId`: Move to folder (null for root)\n- `description`: File description\n- `tags`: Array of tag strings\n- `metadata`: Object with custom metadata\n\n**Validation:**\n- Name must be unique in target folder\n- Folder must exist and belong to user (if moving)\n- File cannot be moved if new name already exists in target folder\n\n**Path Parameter:**\n- `fileId`: ID of the file to update\n\n**Response:**\n- Updated file object with all metadata\n- Includes `storageTier` field (STANDARD or ARCHIVE)"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file deletion",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"File deleted successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File moved to trash successfully\");",
-									"    console.log(\"🗑️ File is now in trash (soft delete)\");",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to delete"
-								}
-							]
-						},
-						"description": "**Delete a file (move to trash)**\n\nDelete a file - always performs soft delete (moves file to trash).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can delete\n\n**Trash System:**\n- Files are always soft-deleted (moved to trash)\n- Status changed to DELETED\n- File remains in storage (storage not freed)\n- File can be restored from trash\n- Use \"Permanent Delete File\" endpoint to permanently delete from trash\n\n**Storage Quota:**\n- Storage is NOT freed on soft delete\n- Storage is only freed when permanently deleted from trash\n\n**Path Parameter:**\n- `fileId`: ID of the file to delete\n\n**Related Endpoints:**\n- `GET /api/files/trash` - List files in trash\n- `POST /api/files/:id/restore` - Restore file from trash\n- `DELETE /api/files/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Success message confirming file moved to trash"
-					},
-					"response": []
-				},
-				{
-					"name": "Permanent Delete File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify permanent deletion",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"File permanently deleted successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File permanently deleted from trash\");",
-									"    console.log(\"⚠️ This action cannot be undone\");",
-									"    console.log(\"📊 User storage will be updated\");",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"must be in trash\")) {",
-									"            console.log(\"💡 File must be in trash first. Delete the file to move it to trash.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/permanent",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"permanent"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to permanently delete"
-								}
-							]
-						},
-						"description": "**Permanently delete a file from trash**\n\nPermanently delete a file that is already in trash. This action cannot be undone.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can delete\n- File MUST be in trash (soft-deleted) first\n\n**Permanent Deletion:**\n- File removed from OCI Object Storage\n- File record removed from database\n- User's `storageUsed` is updated (storage freed)\n- **This action cannot be undone**\n\n**Validation:**\n- File must be in trash (status = DELETED)\n- If file is not in trash, you'll get error: \"File must be in trash before it can be permanently deleted\"\n- Delete the file first to move it to trash, then use this endpoint\n\n**Path Parameter:**\n- `fileId`: ID of the file to permanently delete\n\n**Related Endpoints:**\n- `DELETE /api/files/:id` - Move file to trash\n- `GET /api/files/trash` - List files in trash\n- `POST /api/files/:id/restore` - Restore file from trash\n\n**Response:**\n- Success message confirming permanent deletion"
-					},
-					"response": []
-				},
-				{
-					"name": "Restore File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file restoration",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"File restored successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.status).to.equal(\"ACTIVE\");",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File restored from trash successfully\");",
-									"    console.log(\"📁 File: \" + jsonData.data.name);",
-									"    console.log(\"📊 Status: \" + jsonData.data.status);",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Restore failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"cannot be restored\")) {",
-									"            console.log(\"💡 Only deleted files can be restored from trash.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/restore",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"restore"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to restore"
-								}
-							]
-						},
-						"description": "**Restore a file from trash**\n\nRestore a soft-deleted file back to active status.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can restore\n- File must be in trash (soft-deleted)\n\n**Restoration:**\n- File status changed to ACTIVE\n- `deletedAt` field cleared\n- File becomes visible in regular file list\n- Storage quota is checked before restoration\n\n**Validation:**\n- File must be in trash (status = DELETED)\n- If file is not deleted, you'll get error: \"File cannot be restored. Only deleted files can be restored.\"\n- Storage quota is checked - restoration will fail if quota would be exceeded\n\n**Path Parameter:**\n- `fileId`: ID of the file to restore\n\n**Related Endpoints:**\n- `DELETE /api/files/:id` - Move file to trash\n- `GET /api/files/trash` - List files in trash\n- `DELETE /api/files/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Restored file object with status = ACTIVE\n- Includes `storageTier` field (STANDARD or ARCHIVE)"
-					},
-					"response": []
-				},
-				{
-					"name": "Archive File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file archiving",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"File archived successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.status).to.equal(\"ARCHIVED\");",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File archived successfully\");",
-									"    console.log(\"📁 File: \" + jsonData.data.name);",
-									"    console.log(\"📊 Status: \" + jsonData.data.status);",
-									"    console.log(\"📦 Archived files are kept for long-term storage\");",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Archive failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"cannot be archived\")) {",
-									"            console.log(\"💡 Only active files can be archived.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/archive",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"archive"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to archive"
-								}
-							]
-						},
-						"description": "**Archive a file**\n\nArchive an active file. Archived files are kept for long-term storage but marked as archived.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can archive\n- File must be active (not deleted or already archived)\n\n**Archiving:**\n- File status changed to ARCHIVED\n- File remains in storage\n- File can be filtered by status\n- Storage is NOT freed (file still counts toward quota)\n\n**Validation:**\n- File must be active (status = ACTIVE)\n- If file is not active, you'll get error: \"File cannot be archived. Only active files can be archived.\"\n- Only file owner can archive\n\n**Use Cases:**\n- Long-term document retention\n- Compliance requirements\n- Historical record keeping\n- Marking files as inactive without deleting\n\n**Path Parameter:**\n- `fileId`: ID of the file to archive\n\n**Response:**\n- Archived file object with status = ARCHIVED\n- Includes `storageTier` field (STANDARD or ARCHIVE)\n\n**Note:**\n- Archived files are kept but marked differently\n- Storage quota still counts archived files\n- To permanently remove, delete file first, then permanently delete from trash"
-					},
-					"response": []
-				},
-				{
-					"name": "List Trash Files",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify trash files list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Trash files retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.be.an('array');",
-									"        pm.expect(jsonData.meta.pagination).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Trash files retrieved successfully\");",
-									"    console.log(\"🗑️ Total files in trash: \" + jsonData.meta.pagination.total);",
-									"    console.log(\"📄 Files in this page: \" + jsonData.data.length);",
-									"    console.log(\"📊 Page: \" + jsonData.meta.pagination.page + \" / \" + jsonData.meta.pagination.totalPages);",
-									"    ",
-									"    if (jsonData.data.length > 0) {",
-									"        console.log(\"\\nFirst file in trash: \" + jsonData.data[0].name);",
-									"        pm.environment.set(\"fileId\", jsonData.data[0].id);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/trash?type=&search=&page=1&limit=20&orderBy=createdAt&orderDirection=desc",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"trash"
-							],
-							"query": [
-								{
-									"key": "type",
-									"value": "",
-									"description": "Filter by type: DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER",
-									"disabled": true
-								},
-								{
-									"key": "search",
-									"value": "",
-									"description": "Search in name, originalName, or description",
-									"disabled": true
-								},
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number (default: 1)"
-								},
-								{
-									"key": "limit",
-									"value": "20",
-									"description": "Items per page (default: 20, max: 100)"
-								},
-								{
-									"key": "orderBy",
-									"value": "createdAt",
-									"description": "Sort by: name, createdAt, updatedAt, size (default: createdAt)"
-								},
-								{
-									"key": "orderDirection",
-									"value": "desc",
-									"description": "Sort direction: asc, desc (default: desc)"
-								}
-							]
-						},
-						"description": "**List files in trash**\n\nGet a list of soft-deleted files (files in trash) for the authenticated user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows files owned by the authenticated user\n\n**Query Parameters:**\n- `type`: Filter by file type (DOCUMENT, IMAGE, VIDEO, AUDIO, ARCHIVE, OTHER)\n- `search`: Search in name, originalName, or description\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n- `orderBy`: Sort by field (name, createdAt, updatedAt, size)\n- `orderDirection`: Sort direction (asc, desc)\n\n**Note:**\n- Only files with status = DELETED are returned\n- Files remain in storage until permanently deleted\n- Use \"Restore File\" endpoint to restore files from trash\n- Use \"Permanent Delete File\" endpoint to permanently delete from trash\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Storage Tier Information:**\n- All file responses include `storageTier` field\n- Values: 'STANDARD' (frequent access) or 'ARCHIVE' (rare access)\n- Users can see which files are in which tier\n\n**Response:**\n- Array of deleted file objects with metadata\n- Each file includes `storageTier` field\n- Pagination information in `meta.pagination`"
-					},
-					"response": []
-				},
-				{
-					"name": "Share File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file sharing",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"File shared successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.sharedWithId).to.exist;",
-									"        pm.expect(jsonData.data.permission).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File shared successfully\");",
-									"    console.log(\"👤 Shared with user ID: \" + jsonData.data.sharedWithId);",
-									"    console.log(\"🔐 Permission: \" + jsonData.data.permission);",
-									"    ",
-									"    // Save share ID for unshare",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"shareId\", jsonData.data.id);",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File or user not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Share failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"Cannot share with yourself\")) {",
-									"            console.log(\"💡 You cannot share files with yourself.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"sharedWithId\": \"user-id-to-share-with\",\n  \"permission\": \"READ\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/share",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"share"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to share"
-								}
-							]
-						},
-						"description": "**Share a file with another user**\n\nShare a file with another user, granting them access with specified permissions.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can share\n- File must be active (not deleted or archived)\n- Cannot share with yourself\n\n**Permissions:**\n- `READ`: Read-only access (can view and download)\n- `WRITE`: Read and write access (can edit metadata, delete)\n- `VIEW_ONLY`: View-only access (can preview, cannot download)\n\n**Request Body (JSON):**\n- `sharedWithId` (required): User ID of the user to share with\n- `permission` (required): Permission level - 'READ', 'WRITE', or 'VIEW_ONLY'\n\n**Path Parameter:**\n- `fileId`: ID of the file to share\n\n**Response:**\n- Share object with:\n  - `id`: Share ID (use for unsharing)\n  - `fileId`: File ID\n  - `ownerId`: Owner user ID\n  - `sharedWithId`: User ID who has access\n  - `permission`: Permission level\n  - `createdAt`, `updatedAt`: Timestamps\n\n**Note:**\n- If share already exists, it will be updated with new permission\n- Shared files appear in recipient's \"Shared Files\" list\n- Shared files include `storageTier` field in responses"
-					},
-					"response": []
-				},
-				{
-					"name": "List Shared Files",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify shared files list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Shared files retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.exist;",
-									"        pm.expect(jsonData.data.files).to.be.an('array');",
-									"        pm.expect(jsonData.data.folders).to.be.an('array');",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Shared files retrieved successfully\");",
-									"    console.log(\"📄 Files shared with you: \" + jsonData.data.files.length);",
-									"    console.log(\"📁 Folders shared with you: \" + jsonData.data.folders.length);",
-									"    console.log(\"📊 Total: \" + jsonData.data.total);",
-									"    ",
-									"    if (jsonData.data.files.length > 0) {",
-									"        console.log(\"\\nFirst shared file: \" + jsonData.data.files[0].name);",
-									"        console.log(\"📦 Storage Tier: \" + jsonData.data.files[0].storageTier);",
-									"        pm.environment.set(\"fileId\", jsonData.data.files[0].id);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/shared",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"shared"
-							]
-						},
-						"description": "**List files and folders shared with you**\n\nGet a list of all files and folders that other users have shared with you.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows files/folders shared with the authenticated user\n\n**Response Structure:**\n- `files`: Array of shared file objects\n- `folders`: Array of shared folder objects\n- `total`: Total count of shared items\n\n**File Objects Include:**\n- All standard file metadata\n- `storageTier`: Storage tier (STANDARD or ARCHIVE)\n- File owner information\n- Share permission level\n\n**Folder Objects Include:**\n- All standard folder metadata\n- Folder owner information\n- Share permission level\n\n**Use Cases:**\n- View files shared with you\n- Access shared content\n- Check shared folder contents\n\n**Response:**\n- Array of shared files with `storageTier` field\n- Array of shared folders\n- Total count of shared items"
-					},
-					"response": []
-				},
-				{
-					"name": "Bulk Delete Files",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify bulk delete",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Bulk delete completed\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.deleted).to.exist;",
-									"        pm.expect(jsonData.data.failed).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Bulk delete completed\");",
-									"    console.log(\"✅ Deleted: \" + jsonData.data.deleted);",
-									"    console.log(\"❌ Failed: \" + jsonData.data.failed);",
-									"    if (jsonData.data.errors && jsonData.data.errors.length > 0) {",
-									"        console.log(\"⚠️ Errors:\", jsonData.data.errors);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"fileIds\": [\"file-id-1\", \"file-id-2\", \"file-id-3\"]\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/bulk/delete",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"bulk",
-								"delete"
-							]
-						},
-						"description": "**Bulk delete multiple files**\n\nDelete multiple files at once (soft delete - moves to trash). Optimized with batch database operations.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only files owned by user are deleted\n- Files are soft-deleted (moved to trash)\n\n**Request Body (JSON):**\n- `fileIds` (required): Array of file IDs to delete\n\n**Response:**\n- `deleted`: Number of files successfully deleted\n- `failed`: Number of files that failed to delete\n- `errors`: Array of error messages for failed files\n\n**Note:**\n- Files are moved to trash (soft delete)\n- Storage is NOT freed until permanent deletion\n- Use \"Permanent Delete File\" to free storage"
-					},
-					"response": []
-				},
-				{
-					"name": "Bulk Move Files",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify bulk move",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Bulk move completed\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.moved).to.exist;",
-									"        pm.expect(jsonData.data.failed).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Bulk move completed\");",
-									"    console.log(\"✅ Moved: \" + jsonData.data.moved);",
-									"    console.log(\"❌ Failed: \" + jsonData.data.failed);",
-									"    if (jsonData.data.errors && jsonData.data.errors.length > 0) {",
-									"        console.log(\"⚠️ Errors:\", jsonData.data.errors);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"fileIds\": [\"file-id-1\", \"file-id-2\"],\n  \"folderId\": \"target-folder-id\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/bulk/move",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"bulk",
-								"move"
-							]
-						},
-						"description": "**Bulk move multiple files**\n\nMove multiple files to a different folder at once. Optimized with batch database operations.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only files owned by user are moved\n- Target folder must exist and belong to user\n\n**Request Body (JSON):**\n- `fileIds` (required): Array of file IDs to move\n- `folderId` (required): Target folder ID (null for root)\n\n**Response:**\n- `moved`: Number of files successfully moved\n- `failed`: Number of files that failed to move\n- `errors`: Array of error messages for failed files\n\n**Note:**\n- Files preserve their `storageTier` when moved\n- Name conflicts are handled automatically"
-					},
-					"response": []
-				},
-				{
-					"name": "Bulk Restore Files",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify bulk restore",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Bulk restore completed\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.restored).to.exist;",
-									"        pm.expect(jsonData.data.failed).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Bulk restore completed\");",
-									"    console.log(\"✅ Restored: \" + jsonData.data.restored);",
-									"    console.log(\"❌ Failed: \" + jsonData.data.failed);",
-									"    if (jsonData.data.errors && jsonData.data.errors.length > 0) {",
-									"        console.log(\"⚠️ Errors:\", jsonData.data.errors);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"fileIds\": [\"file-id-1\", \"file-id-2\"]\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/bulk/restore",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"bulk",
-								"restore"
-							]
-						},
-						"description": "**Bulk restore multiple files from trash**\n\nRestore multiple files from trash at once. Optimized with batch database operations.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only files owned by user are restored\n- Storage quota is checked before restoration\n\n**Request Body (JSON):**\n- `fileIds` (required): Array of file IDs to restore\n\n**Response:**\n- `restored`: Number of files successfully restored\n- `failed`: Number of files that failed to restore\n- `errors`: Array of error messages for failed files\n\n**Note:**\n- Files must be in trash (soft-deleted)\n- Storage quota is checked - restoration fails if quota would be exceeded\n- Files preserve their `storageTier` when restored"
-					},
-					"response": []
-				},
-				{
-					"name": "Copy File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file copy",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"File copied successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.storageTier).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File copied successfully\");",
-									"    console.log(\"📁 New File ID: \" + jsonData.data.id);",
-									"    console.log(\"📦 Storage Tier: \" + jsonData.data.storageTier);",
-									"    console.log(\"📊 Size: \" + jsonData.data.size + \" bytes\");",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Copy failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"quota\")) {",
-									"            console.log(\"💡 Storage quota exceeded\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"targetFolderId\": null,\n  \"newName\": \"Copy of file.txt\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/copy",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"copy"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to copy"
-								}
-							]
-						},
-						"description": "**Copy a file**\n\nCreate a copy of a file. The copied file inherits the source file's storage tier.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can copy\n- Storage quota is checked before copy\n\n**Request Body (JSON):**\n- `targetFolderId` (optional): Target folder ID (null for root, defaults to same folder)\n- `newName` (optional): New name for copied file (defaults to \"Copy of {originalName}\")\n\n**Path Parameter:**\n- `fileId`: ID of the file to copy\n\n**Response:**\n- New file object with:\n  - `id`: New file ID\n  - `storageTier`: Inherited from source file (STANDARD or ARCHIVE)\n  - All file metadata\n\n**Note:**\n- Copied file uses same storage tier as source\n- Storage quota is checked before copy\n- File is copied within the same tier bucket"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Storage Analytics",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify analytics retrieval",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Analytics retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.totalStorage).to.exist;",
-									"        pm.expect(jsonData.data.usedStorage).to.exist;",
-									"        pm.expect(jsonData.data.breakdownByType).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Storage analytics retrieved\");",
-									"    console.log(\"📊 Total Storage: \" + jsonData.data.totalStorage + \" bytes\");",
-									"    console.log(\"📊 Used Storage: \" + jsonData.data.usedStorage + \" bytes\");",
-									"    console.log(\"📊 Available: \" + jsonData.data.availableStorage + \" bytes\");",
-									"    console.log(\"📦 Breakdown by Type: \" + JSON.stringify(jsonData.data.breakdownByType, null, 2));",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/analytics",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"analytics"
-							]
-						},
-						"description": "**Get storage analytics**\n\nGet detailed storage analytics including breakdown by type, folder usage, and recent activity.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Shows analytics for authenticated user only\n\n**Response:**\n- `totalStorage`: Total storage quota in bytes\n- `usedStorage`: Currently used storage in bytes\n- `availableStorage`: Available storage in bytes\n- `breakdownByType`: Array of storage usage by file type (DOCUMENT, IMAGE, VIDEO, etc.)\n  - Each entry includes: `type`, `count`, `size`, `percentage`\n- `folderUsage`: Array of top 10 folders by size\n  - Each entry includes: `folderId`, `folderName`, `fileCount`, `size`, `percentage`\n- `recentActivity`: Array of upload activity for last 30 days\n  - Each entry includes: `date`, `filesUploaded`, `storageAdded`\n\n**Use Cases:**\n- Storage dashboard\n- Usage monitoring\n- Cost analysis\n- Storage optimization"
-					},
-					"response": []
-				},
-				{
-					"name": "Preview File",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify file preview",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Preview generated successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.previewType).to.exist;",
-									"        pm.expect(jsonData.data.canPreview).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Preview generated\");",
-									"    console.log(\"📄 Preview Type: \" + jsonData.data.previewType);",
-									"    console.log(\"👁️ Can Preview: \" + jsonData.data.canPreview);",
-									"    if (jsonData.data.previewUrl) {",
-									"        console.log(\"🔗 Preview URL: \" + jsonData.data.previewUrl);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/preview",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"preview"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to preview"
-								}
-							]
-						},
-						"description": "**Preview a file**\n\nGenerate preview URL or data for files (images, PDFs, documents). Supports shared files.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- File owner or users with share access can preview\n- File must be active\n\n**Supported Preview Types:**\n- `image`: Images (presigned URL)\n- `pdf`: PDF documents (presigned URL)\n- `document`: Office documents (presigned URL)\n- `video`: Videos (presigned URL for browser player)\n- `audio`: Audio files (presigned URL for browser player)\n- `unsupported`: Preview not available\n\n**Path Parameter:**\n- `fileId`: ID of the file to preview\n\n**Response:**\n- `previewUrl`: Presigned URL for preview (1 hour expiration)\n- `previewType`: Type of preview (image, pdf, document, video, audio, unsupported)\n- `canPreview`: Whether preview is available\n- `message`: Additional information or error message\n\n**Note:**\n- Preview URLs are tier-aware (downloads from correct bucket)\n- URLs expire after 1 hour"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Thumbnail",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify thumbnail retrieval",
-									"if (pm.response.code === 302 || pm.response.code === 200) {",
-									"    pm.test(\"Thumbnail retrieved successfully\", function () {",
-									"        pm.expect(pm.response.code).to.be.oneOf([200, 302]);",
-									"    });",
-									"    ",
-									"    if (pm.response.code === 302) {",
-									"        console.log(\"✅ Thumbnail found - redirected to presigned URL\");",
-									"        console.log(\"🔗 Location: \" + pm.response.headers.get(\"Location\"));",
-									"    } else {",
-									"        console.log(\"✅ Thumbnail generated and redirected\");",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Thumbnail error: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"not supported\")) {",
-									"            console.log(\"💡 Thumbnail generation not supported for this file type\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/thumbnail",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"thumbnail"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to get thumbnail for"
-								}
-							]
-						},
-						"description": "**Get thumbnail for a file**\n\nGet thumbnail image for a file. Redirects to presigned URL if thumbnail exists, or generates it if missing.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can access\n- File must exist\n\n**Supported File Types:**\n- Images (JPEG, PNG, GIF, WebP, etc.)\n- Thumbnails are always stored in STANDARD tier for fast access\n\n**Path Parameter:**\n- `fileId`: ID of the file to get thumbnail for\n\n**Response:**\n- `302 Redirect`: If thumbnail exists, redirects to presigned URL\n- `200`: If thumbnail was just generated, redirects to URL\n- `400`: If thumbnail generation not supported for file type\n- `404`: If file not found\n\n**Note:**\n- Thumbnails are always in STANDARD tier (even for ARCHIVE files)\n- Presigned URLs expire after 24 hours\n- Thumbnail generation is async for large files"
-					},
-					"response": []
-				},
-				{
-					"name": "Regenerate Thumbnail",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify thumbnail regeneration",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Thumbnail regenerated successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.thumbnailObjectName).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Thumbnail regenerated successfully\");",
-									"    console.log(\"📦 Thumbnail Object Name: \" + jsonData.data.thumbnailObjectName);",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File not found\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Regeneration failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"not supported\")) {",
-									"            console.log(\"💡 Thumbnail generation not supported for this file type\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/thumbnail/regenerate",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"thumbnail",
-								"regenerate"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to regenerate thumbnail for"
-								}
-							]
-						},
-						"description": "**Manually regenerate thumbnail**\n\nManually regenerate thumbnail for a file. Useful for retrying failed generation or updating thumbnails.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can regenerate\n- File must exist\n\n**Supported File Types:**\n- Images (JPEG, PNG, GIF, WebP, etc.)\n\n**Path Parameter:**\n- `fileId`: ID of the file to regenerate thumbnail for\n\n**Response:**\n- `thumbnailObjectName`: OCI object name of the generated thumbnail\n\n**Note:**\n- Existing thumbnail is deleted before regeneration\n- Thumbnail is always stored in STANDARD tier (even for ARCHIVE files)\n- Original file is downloaded from its tier bucket for processing"
-					},
-					"response": []
-				},
-				{
-					"name": "Toggle Favorite",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify favorite toggle",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Favorite toggled successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.isFavorite).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Favorite toggled\");",
-									"    console.log(\"⭐ Is Favorite: \" + jsonData.data.isFavorite);",
-									"    console.log(\"📝 Message: \" + jsonData.data.message);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"folderId\": null\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/favorite",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"favorite"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID (or set folderId in body for folders)"
-								}
-							]
-						},
-						"description": "**Toggle favorite status**\n\nToggle favorite/bookmark status for a file or folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file/folder owner can toggle favorite\n\n**Request Body (JSON):**\n- `folderId` (optional): Folder ID (if toggling folder favorite, otherwise fileId from path is used)\n\n**Path Parameter:**\n- `fileId`: File ID (ignored if folderId is provided in body)\n\n**Response:**\n- `isFavorite`: New favorite status (true/false)\n- `message`: Status message (\"Added to favorites\" or \"Removed from favorites\")\n\n**Note:**\n- Toggles favorite status (adds if not favorite, removes if favorite)\n- One favorite per file/folder per user"
-					},
-					"response": []
-				},
-				{
-					"name": "List Favorites",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify favorites list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Favorites retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.files).to.be.an('array');",
-									"        pm.expect(jsonData.data.folders).to.be.an('array');",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Favorites retrieved\");",
-									"    console.log(\"⭐ Favorite Files: \" + jsonData.data.files.length);",
-									"    console.log(\"⭐ Favorite Folders: \" + jsonData.data.folders.length);",
-									"    console.log(\"📊 Total: \" + jsonData.data.total);",
-									"    ",
-									"    if (jsonData.data.files.length > 0) {",
-									"        console.log(\"\\nFirst favorite file: \" + jsonData.data.files[0].name);",
-									"        console.log(\"📦 Storage Tier: \" + jsonData.data.files[0].storageTier);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/favorites",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"favorites"
-							]
-						},
-						"description": "**List favorite files and folders**\n\nGet a list of all files and folders marked as favorites by the authenticated user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows favorites for authenticated user\n\n**Response Structure:**\n- `files`: Array of favorite file objects\n- `folders`: Array of favorite folder objects\n- `total`: Total count of favorites\n\n**File Objects Include:**\n- All standard file metadata\n- `storageTier`: Storage tier (STANDARD or ARCHIVE)\n- File owner information\n\n**Folder Objects Include:**\n- All standard folder metadata\n- Folder owner information\n\n**Response:**\n- Array of favorite files with `storageTier` field\n- Array of favorite folders\n- Total count of favorites"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Comment",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify comment creation",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Comment created successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.content).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Comment created successfully\");",
-									"    console.log(\"💬 Comment ID: \" + jsonData.data.id);",
-									"    console.log(\"📝 Content: \" + jsonData.data.content);",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File/folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"folderId\": null,\n  \"content\": \"This is a comment on the file\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/comments",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"comments"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID (or set folderId in body for folders)"
-								}
-							]
-						},
-						"description": "**Create a comment on a file or folder**\n\nAdd a comment/annotation to a file or folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- File/folder owner or users with share access can comment\n- File/folder must be active\n\n**Request Body (JSON):**\n- `folderId` (optional): Folder ID (if commenting on folder, otherwise fileId from path is used)\n- `content` (required): Comment text content\n\n**Path Parameter:**\n- `fileId`: File ID (ignored if folderId is provided in body)\n\n**Response:**\n- Comment object with:\n  - `id`: Comment ID\n  - `fileId` or `folderId`: Target ID\n  - `userId`: Comment author ID\n  - `content`: Comment text\n  - `createdAt`, `updatedAt`: Timestamps"
-					},
-					"response": []
-				},
-				{
-					"name": "List Comments",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify comments list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Comments retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.be.an('array');",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Comments retrieved\");",
-									"    console.log(\"💬 Total Comments: \" + jsonData.data.length);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/comments?folderId=",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"comments"
-							],
-							"query": [
-								{
-									"key": "folderId",
-									"value": "",
-									"description": "Folder ID (if listing folder comments, otherwise fileId from path is used)",
-									"disabled": true
-								}
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID (ignored if folderId is provided in query)"
-								}
-							]
-						},
-						"description": "**List comments on a file or folder**\n\nGet all comments/annotations for a file or folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- File/folder owner or users with share access can view comments\n\n**Query Parameter:**\n- `folderId` (optional): Folder ID (if listing folder comments, otherwise fileId from path is used)\n\n**Path Parameter:**\n- `fileId`: File ID (ignored if folderId is provided in query)\n\n**Response:**\n- Array of comment objects with:\n  - `id`: Comment ID\n  - `fileId` or `folderId`: Target ID\n  - `userId`: Comment author ID\n  - `content`: Comment text\n  - `createdAt`, `updatedAt`: Timestamps"
-					},
-					"response": []
-				},
-				{
-					"name": "Set File Expiration",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify expiration set",
-									"if (pm.response.code === 200) {",
-									"    pm.test(\"Expiration set successfully\", function () {",
-									"        pm.expect(pm.response.json().success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File expiration set successfully\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"must be in the future\")) {",
-									"            console.log(\"💡 Expiration date must be in the future\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"expiresAt\": \"2025-12-31T23:59:59Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/expiration",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"expiration"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to set expiration for"
-								}
-							]
-						},
-						"description": "**Set file expiration date**\n\nSet an expiration date for a file. File will be automatically deleted after expiration.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can set expiration\n- File must be active\n\n**Request Body (JSON):**\n- `expiresAt` (optional): ISO 8601 date string (null to remove expiration)\n\n**Path Parameter:**\n- `fileId`: ID of the file to set expiration for\n\n**Validation:**\n- Expiration date must be in the future\n- Set `expiresAt` to `null` to remove expiration\n\n**Response:**\n- Success message confirming expiration set\n\n**Note:**\n- Expired files are automatically deleted by scheduled job\n- Files are soft-deleted (moved to trash) on expiration"
-					},
-					"response": []
-				},
-				{
-					"name": "Generate File Link",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify link generation",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Link generated successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.linkUrl).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Download link generated\");",
-									"    console.log(\"🔗 Link URL: \" + jsonData.data.linkUrl);",
-									"    console.log(\"⏰ Expires At: \" + jsonData.data.expiresAt);",
-									"    if (jsonData.data.maxDownloads) {",
-									"        console.log(\"📊 Max Downloads: \" + jsonData.data.maxDownloads);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"folderId\": null,\n  \"expiresInHours\": 24,\n  \"maxDownloads\": 10\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/link",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"link"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID (or set folderId in body for folders)"
-								}
-							]
-						},
-						"description": "**Generate temporary download link**\n\nGenerate a temporary download link (pre-signed URL/PAR) for a file or folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file/folder owner can generate links\n- File/folder must be active\n\n**Request Body (JSON):**\n- `folderId` (optional): Folder ID (if generating folder link, otherwise fileId from path is used)\n- `expiresInHours` (optional): Link expiration in hours (default: 24)\n- `maxDownloads` (optional): Maximum number of downloads (null for unlimited)\n\n**Path Parameter:**\n- `fileId`: File ID (ignored if folderId is provided in body)\n\n**Response:**\n- `id`: Link ID\n- `linkToken`: Unique token for the link\n- `linkUrl`: URL to access the link\n- `expiresAt`: ISO 8601 expiration timestamp\n- `maxDownloads`: Maximum downloads (if set)\n- `downloadCount`: Current download count\n\n**Note:**\n- Links use tier-aware PAR generation (downloads from correct bucket)\n- Folder links not yet supported"
-					},
-					"response": []
-				},
-				{
-					"name": "List File Versions",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify versions list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Versions retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.versions).to.be.an('array');",
-									"        pm.expect(jsonData.data.total).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File versions retrieved\");",
-									"    console.log(\"📜 Total Versions: \" + jsonData.data.total);",
-									"    if (jsonData.data.versions.length > 0) {",
-									"        console.log(\"\\nLatest version: v\" + jsonData.data.versions[0].versionNumber);",
-									"        pm.environment.set(\"versionId\", jsonData.data.versions[0].id);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/versions",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"versions"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to list versions for"
-								}
-							]
-						},
-						"description": "**List file versions**\n\nGet a list of all versions for a file.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can list versions\n- File must exist\n\n**Path Parameter:**\n- `fileId`: ID of the file to list versions for\n\n**Response:**\n- `versions`: Array of version objects\n  - `id`: Version ID (use for restore)\n  - `versionNumber`: Version number (1, 2, 3, ...)\n  - `size`: File size in bytes\n  - `hash`: SHA-256 hash\n  - `createdAt`: ISO 8601 timestamp\n- `total`: Total number of versions\n\n**Note:**\n- Versions are stored in the same storage tier as the original file\n- Versions are ordered by version number (descending - latest first)"
-					},
-					"response": []
-				},
-				{
-					"name": "Restore File Version",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify version restore",
-									"if (pm.response.code === 200) {",
-									"    pm.test(\"Version restored successfully\", function () {",
-									"        pm.expect(pm.response.json().success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File version restored successfully\");",
-									"    console.log(\"📜 File reverted to selected version\");",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ File or version not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/versions/:versionId/restore",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"versions",
-								":versionId",
-								"restore"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID"
-								},
-								{
-									"key": "versionId",
-									"value": "{{versionId}}",
-									"description": "Version ID to restore"
-								}
-							]
-						},
-						"description": "**Restore a file version**\n\nRestore a previous version of a file. Current file is saved as a new version before restoration.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can restore versions\n- File and version must exist\n\n**Path Parameters:**\n- `fileId`: ID of the file to restore version for\n- `versionId`: ID of the version to restore\n\n**Response:**\n- Success message confirming version restored\n\n**Note:**\n- Current file is automatically saved as a new version before restoration\n- Versions are stored in the same storage tier as the original file\n- File preserves its storage tier after restoration"
-					},
-					"response": []
-				},
-				{
-					"name": "Get File Activity",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify activity retrieval",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Activity retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ File activity retrieved\");",
-									"    console.log(\"📊 Activity data:\", JSON.stringify(jsonData.data, null, 2));",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/:fileId/activity",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								":fileId",
-								"activity"
-							],
-							"variable": [
-								{
-									"key": "fileId",
-									"value": "{{fileId}}",
-									"description": "File ID to get activity for"
-								}
-							]
-						},
-						"description": "**Get file activity log**\n\nGet activity log/history for a file.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only file owner can view activity\n- File must exist\n\n**Path Parameter:**\n- `fileId`: ID of the file to get activity for\n\n**Response:**\n- Activity log data with file history and events"
-					},
-					"response": []
-				}
-			],
-			"description": "Endpoints for file management, uploading, downloading, and searching."
-		},
-		{
-			"name": "Folders",
-			"item": [
-				{
-					"name": "Share Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder sharing",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder shared successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.folderId).to.exist;",
-									"        pm.expect(jsonData.data.sharedWithId).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder shared successfully\");",
-									"    console.log(\"📁 Folder ID: \" + jsonData.data.folderId);",
-									"    console.log(\"👤 Shared with user ID: \" + jsonData.data.sharedWithId);",
-									"    console.log(\"🔐 Permission: \" + jsonData.data.permission);",
-									"    ",
-									"    // Save share ID for unshare",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"shareId\", jsonData.data.id);",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder or user not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Share failed: \" + jsonData.error.message);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"sharedWithId\": \"user-id-to-share-with\",\n  \"permission\": \"READ\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId/share",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId",
-								"share"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to share"
-								}
-							]
-						},
-						"description": "**Share a folder with another user**\n\nShare a folder with another user, granting them access to all files in the folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can share\n- Folder must be active (not deleted)\n- Cannot share with yourself\n\n**Permissions:**\n- `READ`: Read-only access (can view and download files in folder)\n- `WRITE`: Read and write access (can edit, delete files in folder)\n- `VIEW_ONLY`: View-only access (can preview, cannot download)\n\n**Request Body (JSON):**\n- `sharedWithId` (required): User ID of the user to share with\n- `permission` (required): Permission level - 'READ', 'WRITE', or 'VIEW_ONLY'\n\n**Path Parameter:**\n- `folderId`: ID of the folder to share\n\n**Response:**\n- Share object with:\n  - `id`: Share ID (use for unsharing)\n  - `folderId`: Folder ID\n  - `ownerId`: Owner user ID\n  - `sharedWithId`: User ID who has access\n  - `permission`: Permission level\n  - `createdAt`, `updatedAt`: Timestamps\n\n**Note:**\n- If share already exists, it will be updated with new permission\n- Shared folders appear in recipient's \"Shared Files\" list\n- Access applies to all files within the folder"
-					},
-					"response": []
-				},
-				{
-					"name": "Unshare File/Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify unshare",
-									"if (pm.response.code === 200) {",
-									"    pm.test(\"Share removed successfully\", function () {",
-									"        pm.expect(pm.response.json().success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Share removed successfully\");",
-									"    console.log(\"🔒 Access revoked for the shared user\");",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Share not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied - only owner can unshare\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Unshare failed: \" + jsonData.error.message);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/shares/:shareId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"shares",
-								":shareId"
-							],
-							"variable": [
-								{
-									"key": "shareId",
-									"value": "{{shareId}}",
-									"description": "Share ID (from share response)"
-								}
-							]
-						},
-						"description": "**Revoke access to a shared file or folder**\n\nRemove a share, revoking access for the shared user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only the owner can unshare\n- Share must exist\n\n**Path Parameter:**\n- `shareId`: Share ID (returned when sharing a file/folder)\n\n**Response:**\n- Success message confirming share removed\n\n**Note:**\n- After unsharing, the user loses access immediately\n- Shared user can no longer see the file/folder in their shared list\n- This action cannot be undone (must share again to restore access)\n\n**To Get Share ID:**\n1. Share a file/folder using \"Share File\" or \"Share Folder\" endpoint\n2. Save the `id` field from the response\n3. Use that ID in this endpoint to unshare"
-					},
-					"response": []
-				},
-				{
-					"name": "Get Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder retrieval",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.name).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder retrieved successfully\");",
-									"    console.log(\"📁 Folder: \" + jsonData.data.name);",
-									"    console.log(\"📂 ID: \" + jsonData.data.id);",
-									"    ",
-									"    // Save folder ID for subsequent requests",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"folderId\", jsonData.data.id);",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to retrieve"
-								}
-							]
-						},
-						"description": "**Get folder metadata by ID**\n\nRetrieve detailed metadata for a specific folder.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can access\n- Folder must exist\n\n**Path Parameter:**\n- `folderId`: ID of the folder to retrieve\n\n**Response:**\n- Complete folder object with all metadata\n- Includes: `id`, `name`, `description`, `color`, `parentId`, `userId`\n- Includes: `isDeleted`, `createdAt`, `updatedAt`, `deletedAt`"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder creation",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder created successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.name).to.exist;",
-									"    });",
-									"    ",
-									"    // Save folder ID for subsequent requests",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"folderId\", jsonData.data.id);",
-									"        console.log(\"✅ Folder created successfully\");",
-									"        console.log(\"📁 Folder ID: \" + jsonData.data.id);",
-									"        console.log(\"📂 Name: \" + jsonData.data.name);",
-									"    }",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Folder creation failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"already exists\")) {",
-									"            console.log(\"💡 A folder with this name already exists in the parent\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"parentId\": null,\n  \"name\": \"My New Folder\",\n  \"description\": \"Folder description\",\n  \"color\": \"#FF5733\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders"
-							]
-						},
-						"description": "**Create a new folder**\n\nCreate a new folder in the user's storage. Folders can be nested (hierarchical structure).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Folder name must be unique in parent folder\n- Parent folder must exist and belong to user (if specified)\n\n**Request Body:**\n- `parentId` (optional): Parent folder ID (null for root folder)\n- `name` (required): Folder name (max 255 characters)\n- `description` (optional): Folder description\n- `color` (optional): Hex color code for UI (e.g., #FF5733)\n\n**Validation:**\n- Name is required and cannot be empty\n- Name must be unique within the parent folder\n- Name length must be <= 255 characters\n- Parent folder must exist if provided\n\n**Response:**\n- Created folder object with all metadata"
-					},
-					"response": []
-				},
-				{
-					"name": "List Folders",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folders list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folders retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.be.an('array');",
-									"        pm.expect(jsonData.meta.pagination).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folders retrieved successfully\");",
-									"    console.log(\"📁 Total folders: \" + jsonData.meta.pagination.total);",
-									"    console.log(\"📂 Folders in this page: \" + jsonData.data.length);",
-									"    ",
-									"    if (jsonData.data.length > 0) {",
-									"        pm.environment.set(\"folderId\", jsonData.data[0].id);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders?parentId=&includeDeleted=false&page=1&limit=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders"
-							],
-							"query": [
-								{
-									"key": "parentId",
-									"value": "",
-									"description": "Filter by parent folder ID (null for root folders, omit for all)",
-									"disabled": true
-								},
-								{
-									"key": "includeDeleted",
-									"value": "false",
-									"description": "Include deleted folders (default: false)"
-								},
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number (default: 1)"
-								},
-								{
-									"key": "limit",
-									"value": "20",
-									"description": "Items per page (default: 20, max: 100)"
-								}
-							]
-						},
-						"description": "**List folders with filtering and pagination**\n\nGet a list of folders for the authenticated user with optional filtering.\n\n**Query Parameters:**\n- `parentId`: Filter by parent folder ID (null for root folders, omit for all folders)\n- `includeDeleted`: Include deleted folders (default: false)\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of folder objects\n- Pagination information in `meta.pagination`"
-					},
-					"response": []
-				},
-				{
-					"name": "Update Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder update",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder updated successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder updated successfully\");",
-									"    console.log(\"📂 Folder: \" + jsonData.data.name);",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Update failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"circular\")) {",
-									"            console.log(\"💡 Cannot move folder into itself or its subfolders\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Updated Folder Name\",\n  \"parentId\": null,\n  \"description\": \"Updated description\",\n  \"color\": \"#33FF57\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to update"
-								}
-							]
-						},
-						"description": "**Update folder metadata**\n\nUpdate folder metadata (name, parent, description, color). Can also move folder to different parent.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can update\n- Folder must be active (not deleted)\n- Cannot create circular references (cannot move folder into itself or its subfolders)\n\n**Allowed Fields:**\n- `name`: Folder name (must be unique in new parent if moving)\n- `parentId`: Move to different parent (null for root)\n- `description`: Folder description\n- `color`: Hex color code\n\n**Validation:**\n- Name must be unique in target parent folder\n- Cannot move folder into itself\n- Cannot move folder into any of its subfolders (circular reference prevention)\n- New parent must exist and belong to user (if moving)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to update\n\n**Response:**\n- Updated folder object with all metadata"
-					},
-					"response": []
-				},
-				{
-					"name": "Delete Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder deletion",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder deleted successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder moved to trash successfully\");",
-									"    console.log(\"🗑️ Folder is now in trash (soft delete)\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"subfolders\")) {",
-									"            console.log(\"💡 Folder contains subfolders. Delete them first or use force delete.\");",
-									"        }",
-									"        if (jsonData.error.message.includes(\"files\")) {",
-									"            console.log(\"💡 Folder contains files. Delete them first or use force delete.\");",
-									"        }",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId?forceDelete=false",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId"
-							],
-							"query": [
-								{
-									"key": "forceDelete",
-									"value": "false",
-									"description": "Set to true to delete folder even if it contains active files/subfolders"
-								}
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to delete"
-								}
-							]
-						},
-						"description": "**Delete a folder (move to trash)**\n\nDelete a folder - always performs soft delete (moves folder to trash).\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can delete\n- Folder must be empty (no active files or subfolders) unless `forceDelete=true`\n\n**Trash System:**\n- Folders are always soft-deleted (moved to trash)\n- `isDeleted` set to true\n- `deletedAt` timestamp set\n- Folder can be restored from trash\n- Use \"Permanent Delete Folder\" endpoint to permanently delete from trash\n\n**Validation:**\n- By default, folder must be empty (no active files, no active subfolders)\n- Use `forceDelete=true` to delete folder with active contents\n  - ⚠️ This will delete the folder even if it contains active files/subfolders\n\n**Query Parameter:**\n- `forceDelete`: Set to `true` to delete even if folder contains active files/subfolders (default: `false`)\n\n**Path Parameter:**\n- `folderId`: ID of the folder to delete\n\n**Related Endpoints:**\n- `GET /api/files/folders/trash` - List folders in trash\n- `POST /api/files/folders/:id/restore` - Restore folder from trash\n- `DELETE /api/files/folders/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Success message confirming folder moved to trash"
-					},
-					"response": []
-				},
-				{
-					"name": "Permanent Delete Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify permanent deletion",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder permanently deleted successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder permanently deleted from trash\");",
-									"    console.log(\"⚠️ This action cannot be undone\");",
-									"    console.log(\"📊 All files in folder and subfolders are also permanently deleted\");",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Delete failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"must be in trash\")) {",
-									"            console.log(\"💡 Folder must be in trash first. Delete the folder to move it to trash.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId/permanent",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId",
-								"permanent"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to permanently delete"
-								}
-							]
-						},
-						"description": "**Permanently delete a folder from trash**\n\nPermanently delete a folder that is already in trash. This action cannot be undone.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can delete\n- Folder MUST be in trash (soft-deleted) first\n\n**Permanent Deletion:**\n- Folder and all subfolders removed from database\n- All files in folder and subfolders permanently deleted from storage and database\n- User's `storageUsed` is updated (storage freed)\n- **This action cannot be undone**\n\n**Validation:**\n- Folder must be in trash (isDeleted = true)\n- If folder is not in trash, you'll get error: \"Folder must be in trash before it can be permanently deleted\"\n- Delete the folder first to move it to trash, then use this endpoint\n\n**Path Parameter:**\n- `folderId`: ID of the folder to permanently delete\n\n**Related Endpoints:**\n- `DELETE /api/files/folders/:id` - Move folder to trash\n- `GET /api/files/folders/trash` - List folders in trash\n- `POST /api/files/folders/:id/restore` - Restore folder from trash\n\n**Response:**\n- Success message confirming permanent deletion"
-					},
-					"response": []
-				},
-				{
-					"name": "Restore Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder restoration",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder restored successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"        pm.expect(jsonData.data.isDeleted).to.be.false;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder restored from trash successfully\");",
-									"    console.log(\"📁 Folder: \" + jsonData.data.name);",
-									"    console.log(\"📊 Is Deleted: \" + jsonData.data.isDeleted);",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Restore failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"cannot be restored\")) {",
-									"            console.log(\"💡 Only deleted folders can be restored from trash.\");",
-									"        }",
-									"        if (jsonData.error.message.includes(\"Parent folder\")) {",
-									"            console.log(\"💡 Parent folder must be restored first.\");",
-									"        }",
-									"        if (jsonData.error.message.includes(\"already exists\")) {",
-									"            console.log(\"💡 A folder with this name already exists in the parent.\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId/restore",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId",
-								"restore"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to restore"
-								}
-							]
-						},
-						"description": "**Restore a folder from trash**\n\nRestore a soft-deleted folder back to active status.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can restore\n- Folder must be in trash (soft-deleted)\n\n**Restoration:**\n- Folder `isDeleted` set to false\n- `deletedAt` field cleared\n- Folder becomes visible in regular folder list\n\n**Validation:**\n- Folder must be in trash (isDeleted = true)\n- If folder is not deleted, you'll get error: \"Folder cannot be restored. Only deleted folders can be restored.\"\n- Parent folder must not be deleted (if parent exists)\n- Folder name must not conflict with existing folder in parent\n\n**Path Parameter:**\n- `folderId`: ID of the folder to restore\n\n**Related Endpoints:**\n- `DELETE /api/files/folders/:id` - Move folder to trash\n- `GET /api/files/folders/trash` - List folders in trash\n- `DELETE /api/files/folders/:id/permanent` - Permanently delete from trash\n\n**Response:**\n- Restored folder object with isDeleted = false"
-					},
-					"response": []
-				},
-				{
-					"name": "List Trash Folders",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify trash folders list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Trash folders retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.be.an('array');",
-									"        pm.expect(jsonData.meta.pagination).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Trash folders retrieved successfully\");",
-									"    console.log(\"🗑️ Total folders in trash: \" + jsonData.meta.pagination.total);",
-									"    console.log(\"📂 Folders in this page: \" + jsonData.data.length);",
-									"    console.log(\"📊 Page: \" + jsonData.meta.pagination.page + \" / \" + jsonData.meta.pagination.totalPages);",
-									"    ",
-									"    if (jsonData.data.length > 0) {",
-									"        console.log(\"\\nFirst folder in trash: \" + jsonData.data[0].name);",
-									"        pm.environment.set(\"folderId\", jsonData.data[0].id);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/trash?page=1&limit=20",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								"trash"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1",
-									"description": "Page number (default: 1)"
-								},
-								{
-									"key": "limit",
-									"value": "20",
-									"description": "Items per page (default: 20, max: 100)"
-								}
-							]
-						},
-						"description": "**List folders in trash**\n\nGet a list of soft-deleted folders (folders in trash) for the authenticated user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows folders owned by the authenticated user\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 20, max: 100)\n\n**Note:**\n- Only folders with isDeleted = true are returned\n- Folders remain in database until permanently deleted\n- Use \"Restore Folder\" endpoint to restore folders from trash\n- Use \"Permanent Delete Folder\" endpoint to permanently delete from trash\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n\n**Response:**\n- Array of deleted folder objects with metadata\n- Pagination information in `meta.pagination`"
-					},
-					"response": []
-				},
-				{
-					"name": "Copy Folder",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder copy",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder copied successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder copied successfully\");",
-									"    console.log(\"📁 New Folder ID: \" + jsonData.data.id);",
-									"    console.log(\"📂 Name: \" + jsonData.data.name);",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"} else if (pm.response.code === 400) {",
-									"    const jsonData = pm.response.json();",
-									"    if (jsonData.error && jsonData.error.message) {",
-									"        console.log(\"❌ Copy failed: \" + jsonData.error.message);",
-									"        if (jsonData.error.message.includes(\"quota\")) {",
-									"            console.log(\"💡 Storage quota exceeded\");",
-									"        }",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"targetParentId\": null,\n  \"newName\": \"Copy of folder\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/:folderId/copy",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								":folderId",
-								"copy"
-							],
-							"variable": [
-								{
-									"key": "folderId",
-									"value": "{{folderId}}",
-									"description": "Folder ID to copy"
-								}
-							]
-						},
-						"description": "**Copy a folder**\n\nCreate a copy of a folder and all its contents. Files in copied folder preserve their storage tier.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can copy\n- Storage quota is checked before copy\n\n**Request Body (JSON):**\n- `targetParentId` (optional): Target parent folder ID (null for root, defaults to same parent)\n- `newName` (optional): New name for copied folder (defaults to \"Copy of {originalName}\")\n\n**Path Parameter:**\n- `folderId`: ID of the folder to copy\n\n**Response:**\n- New folder object with all metadata\n\n**Note:**\n- All files in folder are copied recursively\n- Files preserve their `storageTier`\n- Storage quota is checked before copy"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Folder Template",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify template creation",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Template created successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.id).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder template created\");",
-									"    console.log(\"📋 Template ID: \" + jsonData.data.id);",
-									"    console.log(\"📂 Name: \" + jsonData.data.name);",
-									"    ",
-									"    // Save template ID",
-									"    if (jsonData.data.id) {",
-									"        pm.environment.set(\"templateId\", jsonData.data.id);",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Source folder not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"Project Template\",\n  \"description\": \"Template for project folders\",\n  \"sourceFolderId\": \"folder-id-to-use-as-template\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/templates",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								"templates"
-							]
-						},
-						"description": "**Create a folder template**\n\nCreate a reusable folder template from an existing folder structure.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only folder owner can create template\n- Source folder must exist and be active\n\n**Request Body (JSON):**\n- `name` (required): Template name\n- `description` (optional): Template description\n- `sourceFolderId` (required): ID of folder to use as template source\n\n**Response:**\n- Template object with:\n  - `id`: Template ID\n  - `name`, `description`: Template metadata\n  - `structure`: Folder structure as JSON\n  - `createdAt`, `updatedAt`: Timestamps\n\n**Note:**\n- Template captures folder structure and file organization\n- Can be used to create new folders with same structure"
-					},
-					"response": []
-				},
-				{
-					"name": "List Folder Templates",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify templates list",
-									"if (pm.response.code === 200) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Templates retrieved successfully\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data).to.be.an('array');",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Templates retrieved\");",
-									"    console.log(\"📋 Total Templates: \" + jsonData.data.length);",
-									"    if (jsonData.data.length > 0) {",
-									"        console.log(\"\\nFirst template: \" + jsonData.data[0].name);",
-									"        pm.environment.set(\"templateId\", jsonData.data[0].id);",
-									"    }",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							}
-						],
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/templates",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								"templates"
-							]
-						},
-						"description": "**List folder templates**\n\nGet a list of all folder templates created by the authenticated user.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only shows templates created by authenticated user\n\n**Response:**\n- Array of template objects with:\n  - `id`: Template ID\n  - `name`, `description`: Template metadata\n  - `structure`: Folder structure as JSON\n  - `createdAt`, `updatedAt`: Timestamps"
-					},
-					"response": []
-				},
-				{
-					"name": "Create Folder From Template",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Verify folder creation from template",
-									"if (pm.response.code === 201) {",
-									"    const jsonData = pm.response.json();",
-									"    pm.test(\"Folder created from template\", function () {",
-									"        pm.expect(jsonData.success).to.be.true;",
-									"        pm.expect(jsonData.data.folderId).to.exist;",
-									"    });",
-									"    ",
-									"    console.log(\"✅ Folder created from template\");",
-									"    console.log(\"📁 New Folder ID: \" + jsonData.data.folderId);",
-									"    ",
-									"    // Save folder ID",
-									"    if (jsonData.data.folderId) {",
-									"        pm.environment.set(\"folderId\", jsonData.data.folderId);",
-									"    }",
-									"} else if (pm.response.code === 404) {",
-									"    console.log(\"❌ Template not found\");",
-									"} else if (pm.response.code === 403) {",
-									"    console.log(\"❌ Access denied\");",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{accessToken}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"parentId\": null,\n  \"name\": \"New Project Folder\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/api/files/folders/templates/:templateId/create",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"api",
-								"files",
-								"folders",
-								"templates",
-								":templateId",
-								"create"
-							],
-							"variable": [
-								{
-									"key": "templateId",
-									"value": "{{templateId}}",
-									"description": "Template ID to use"
-								}
-							]
-						},
-						"description": "**Create folder from template**\n\nCreate a new folder using a saved template structure.\n\n**⚠️ SECURITY:**\n- Requires authentication\n- Only template owner can use template\n- Template must exist\n\n**Request Body (JSON):**\n- `parentId` (optional): Parent folder ID (null for root)\n- `name` (required): Name for the new folder\n\n**Path Parameter:**\n- `templateId`: ID of the template to use\n\n**Response:**\n- `folderId`: ID of the newly created folder\n\n**Note:**\n- Creates folder with same structure as template\n- Files are not copied, only folder structure"
-					},
-					"response": []
-				}
-			],
-			"description": "Endpoints for folder management and organization."
-		}
-	],
-	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "http://localhost:4000",
-			"type": "string"
-		}
-	]
+  "info": {
+    "_postman_id": "files-folders-collection",
+    "name": "Files & Folders",
+    "description": "File and folder management endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Universal Search",
+      "item": [
+        {
+          "name": "Unified Search",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/search?q=test&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "search"],
+              "query": [
+                { "key": "q", "value": "test" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Folders",
+      "item": [
+        {
+          "name": "List Folders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders?parentFolderId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders"]
+            }
+          }
+        },
+        {
+          "name": "Create Folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Folder\",\n  \"parentFolderId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders"]
+            }
+          }
+        },
+        {
+          "name": "Get Folder Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders", ":id"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Update Folder",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Renamed Folder\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders", ":id"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Trash/Delete Folder",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders", ":id"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Files",
+      "item": [
+        {
+          "name": "List Files",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "folderId", "value": "" },
+                { "key": "type", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get File Meta",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Update File",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Filename.pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Delete File (Trash)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Restore File",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id/restore",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id", "restore"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Permanent Delete",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id/permanent",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id", "permanent"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Single Upload",
+      "item": [
+        {
+          "name": "Standard Upload",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [] },
+                { "key": "folderId", "value": "", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Multiple & Chunked Upload",
+      "item": [
+        {
+          "name": "1. Initiate Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"large-video.mp4\",\n  \"fileSize\": 50000000,\n  \"mimeType\": \"video/mp4\",\n  \"folderId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload/initiate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload", "initiate"]
+            }
+          }
+        },
+        {
+          "name": "2. Upload Chunk",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "sessionId", "value": "{{uploadSessionId}}" },
+                { "key": "chunkNumber", "value": "0" },
+                { "key": "chunk", "type": "file", "src": [] }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload/chunk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload", "chunk"]
+            }
+          }
+        },
+        {
+          "name": "3. Complete Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload/:sessionId/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload", ":sessionId", "complete"],
+              "variable": [{ "key": "sessionId", "value": "{{uploadSessionId}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Sharing & Public Links",
+      "item": [
+        {
+          "name": "Internal Share",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"target-user-id\",\n  \"permission\": \"VIEW\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id/share",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id", "share"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Generate Public Link",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id/link",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id", "link"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Public Redirect Access",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/files/link/:token",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "link", ":token"],
+              "variable": [{ "key": "token", "value": "" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Media & Previews",
+      "item": [
+        {
+          "name": "Download File (Direct/PAR)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id/download",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id", "download"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Preview File",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id/preview",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id", "preview"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        },
+        {
+          "name": "Get Thumbnail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id/thumbnail",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id", "thumbnail"],
+              "variable": [{ "key": "id", "value": "" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Bulk Operations",
+      "item": [
+        {
+          "name": "Bulk Delete",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileIds\": [\"id1\", \"id2\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/bulk/delete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "bulk", "delete"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    }
+  ]
 }

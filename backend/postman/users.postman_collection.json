@@ -2,280 +2,153 @@
   "info": {
     "_postman_id": "users-collection",
     "name": "Users",
-    "description": "User management endpoints including profile management and session management.\n\nAll endpoints include:\n- **Rate limiting** protection\n- **Audit logging** of user events\n- **Token versioning** validation\n- **Session management** (list, revoke specific, revoke all)",
+    "description": "User management endpoints including profile management and session management.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "Users",
+      "name": "1. My Profile",
       "item": [
         {
-          "name": "Create User (Admin Only)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Verify user creation",
-                  "if (pm.response.code === 201) {",
-                  "    const jsonData = pm.response.json();",
-                  "    pm.test(\"User created successfully\", function () {",
-                  "        pm.expect(jsonData.success).to.be.true;",
-                  "        pm.expect(jsonData.data.user).to.exist;",
-                  "        pm.expect(jsonData.data.totpSetup).to.exist;",
-                  "    });",
-                  "    ",
-                  "    // Log TOTP setup info",
-                  "    if (jsonData.data.totpSetup) {",
-                  "        console.log(\"TOTP Setup Info:\");",
-                  "        console.log(\"  QR Code URL: Base64 image (display to user)\");",
-                  "        console.log(\"  Secret: \" + jsonData.data.totpSetup.secret);",
-                  "        console.log(\"  Backup Codes: \" + jsonData.data.totpSetup.backupCodes.length + \" codes\");",
-                  "       console.log(\"\\n⚠️ IMPORTANT: User must save backup codes securely!\");",
-                  "    }",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"NewUserPassword123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"USER\",\n  \"storageQuota\": 10737418240\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users"]
-            },
-            "description": "**Create a new user account (Admin Only)**\n\nOnly admins can create users. Password must meet security requirements.\n\n**Password Requirements:**\n- Minimum 12 characters\n- At least one uppercase letter\n- At least one lowercase letter\n- At least one number\n- At least one special character\n\n**TOTP Setup (MANDATORY):**\n- TOTP is automatically set up for all new users\n- Response includes:\n  - `totpSetup.qrCodeUrl`: Base64-encoded QR code image (display to user)\n  - `totpSetup.secret`: TOTP secret for manual entry (if QR code cannot be scanned)\n  - `totpSetup.backupCodes`: Array of 10 backup codes (user MUST save these securely)\n\n**⚠️ IMPORTANT:**\n- User must scan the QR code with an authenticator app (Google Authenticator, Authy, etc.)\n- User must save backup codes in a secure location\n- User cannot login until TOTP is verified\n\n**Audit Logging:**\n- User creation logged as `USER_CREATED`\n- Includes creator ID, new user ID, and user information\n\n**Response:**\n- `user`: Created user information\n- `totpSetup`: TOTP setup information (QR code, secret, backup codes)"
-          },
-          "response": []
-        },
-        {
-          "name": "List Users (Admin Only)",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/users?page=1&limit=50&search=",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users"],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1",
-                  "description": "Page number (default: 1)"
-                },
-                {
-                  "key": "limit",
-                  "value": "50",
-                  "description": "Items per page (default: 50)"
-                },
-                {
-                  "key": "search",
-                  "value": "",
-                  "description": "Search by email or name (optional)"
-                }
-              ]
-            },
-            "description": "**List all users with pagination (Admin Only)**\n\nOnly admins can access this endpoint.\n\n**Query Parameters:**\n- `page`: Page number (default: 1)\n- `limit`: Items per page (default: 50)\n- `search`: Search by email or name (optional)\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- `users`: Array of user objects\n- `pagination`: Pagination information (page, limit, total, totalPages)"
-          },
-          "response": []
-        },
-        {
           "name": "Get Current User",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Verify token versioning",
-                  "if (pm.response.code === 200) {",
-                  "    const jsonData = pm.response.json();",
-                  "    if (jsonData.success && jsonData.data) {",
-                  "        // Check if token is still valid",
-                  "        pm.test(\"User data retrieved\", function () {",
-                  "            pm.expect(jsonData.data.id).to.exist;",
-                  "            pm.expect(jsonData.data.email).to.exist;",
-                  "        });",
-                  "        ",
-                  "        // If token was invalidated, we would get 401",
-                  "        console.log(\"Token is valid - token version matches user's current version\");",
-                  "    }",
-                  "} else if (pm.response.code === 401) {",
-                  "    const jsonData = pm.response.json();",
-                  "    if (jsonData.error && jsonData.error.message) {",
-                  "        console.log(\"Token invalidated: \" + jsonData.error.message);",
-                  "        console.log(\"This happens when password is changed - token version mismatch\");",
-                  "    }",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "profile"]
             }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "me"]
-            },
-            "description": "**Get current authenticated user's profile**\n\nReturns the profile information of the currently authenticated user.\n\n**Token Versioning:**\n- This endpoint validates token version\n- If password was changed, token version increments\n- Old tokens become invalid and return 401 with message: \"Token has been invalidated. Please login again.\"\n- This prevents token reuse after password compromise\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- User profile information including:\n  - `id`, `email`, `firstName`, `lastName`, `avatarUrl`\n  - `role`, `storageQuota`, `storageUsed`\n  - `emailVerified`, `totpEnabled`, `totpVerified`\n  - `createdAt`, `updatedAt`"
-          },
-          "response": []
+          }
         },
         {
-          "name": "Get Storage Analytics",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/users/me/storage",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "users", "me", "storage"]
-            },
-            "description": "**Get storage usage analytics**\n\nReturns detailed storage usage breakdown by file type for the current user.\n\n**Response:**\n- `totalUsed`: Total storage used in bytes\n- `totalQuota`: Total storage quota in bytes\n- `usageByType`: Breakdown by file type (images, videos, audio, documents, archives, others)"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Profile (with Avatar Upload)",
+          "name": "Update Profile (with Avatar)",
           "request": {
             "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "body": {
               "mode": "formdata",
               "formdata": [
-                {
-                  "key": "avatar",
-                  "type": "file",
-                  "src": "",
-                  "description": "Avatar image file (JPG, PNG, GIF, WEBP - max 5MB)"
-                },
-                {
-                  "key": "firstName",
-                  "value": "Updated",
-                  "type": "text",
-                  "description": "User's first name"
-                },
-                {
-                  "key": "lastName",
-                  "value": "Name",
-                  "type": "text",
-                  "description": "User's last name"
-                }
+                { "key": "avatar", "type": "file", "src": [], "description": "Avatar image file" },
+                { "key": "firstName", "value": "John", "type": "text" },
+                { "key": "lastName", "value": "Doe", "type": "text" }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/users/me/profile",
               "host": ["{{baseUrl}}"],
               "path": ["api", "users", "me", "profile"]
-            },
-            "description": "**Update current user's profile with avatar upload**\n\nUpdate the current authenticated user's profile information and optionally upload a new avatar image.\n\n**Request Type:** `multipart/form-data`\n\n**Form Fields:**\n- `avatar` (file, optional): Avatar image file\n  - **Allowed formats:** JPG, PNG, GIF, WEBP\n  - **Max size:** 5MB\n  - **Storage:** Uploaded to OCI Object Storage bucket under `avatars/{userId}/`\n  - **URL:** 7-day presigned URL returned\n- `firstName` (text, optional): User's first name\n- `lastName` (text, optional): User's last name\n\n**How to Test:**\n1. Click on the `avatar` field in Body > form-data\n2. Click 'Select Files' and choose an image from your computer\n3. Optionally update firstName and lastName fields\n4. Send the request\n\n**Avatar Storage:**\n- Avatar is uploaded to OCI Object Storage\n- Old avatar is automatically deleted when new one is uploaded\n- A presigned URL (valid for 7 days) is generated and stored in user profile\n- Avatar path: `avatars/{userId}/{timestamp}-{filename}`\n\n**Token Versioning:**\n- Token version is validated before allowing update\n- If token is invalid (password changed), returns 401\n\n**Rate Limiting:**\n- General API rate limit applies: 100 requests per 15 minutes per IP\n- Check `RateLimit-*` headers in response\n\n**Response:**\n- `id`: User ID\n- `email`: User email\n- `firstName`: Updated first name\n- `lastName`: Updated last name\n- `avatarUrl`: Presigned URL to the uploaded avatar (valid for 7 days)\n- `updatedAt`: Timestamp of the update\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"user-id\",\n    \"email\": \"user@example.com\",\n    \"firstName\": \"Updated\",\n    \"lastName\": \"Name\",\n    \"avatarUrl\": \"https://objectstorage.region.oci.customer-oci.com/p/{presigned-token}/...\",\n    \"updatedAt\": \"2026-01-20T18:00:00.000Z\"\n  },\n  \"message\": \"Profile updated successfully\"\n}\n```\n\n**⚠️ NOTES:**\n- All fields are optional - you can update just the avatar, just the name, or both\n- If you don't select an avatar file, only text fields will be updated\n- Presigned URLs expire after 7 days - frontend should handle renewal"
-          },
-          "response": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Storage & Sessions",
+      "item": [
+        {
+          "name": "Get Storage Analytics",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/storage",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "storage"]
+            }
+          }
         },
         {
           "name": "List Active Sessions",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/users/me/sessions",
               "host": ["{{baseUrl}}"],
               "path": ["api", "users", "me", "sessions"]
-            },
-            "description": "**List all active sessions**\n\nReturns a list of all active sessions for the current user, including session ID, device info, location, and timestamps."
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Revoke Session",
           "request": {
             "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/users/me/sessions/:sessionId",
               "host": ["{{baseUrl}}"],
               "path": ["api", "users", "me", "sessions", ":sessionId"],
-              "variable": [
-                {
-                  "key": "sessionId",
-                  "value": "",
-                  "description": "ID of the session to revoke"
-                }
-              ]
-            },
-            "description": "**Revoke a specific session**\n\nLogs out the device associated with the given session ID."
-          },
-          "response": []
+              "variable": [{ "key": "sessionId", "value": "" }]
+            }
+          }
         },
         {
-          "name": "Revoke All Other Sessions",
+          "name": "Revoke All Sessions",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/users/me/sessions/revoke-all",
               "host": ["{{baseUrl}}"],
               "path": ["api", "users", "me", "sessions", "revoke-all"]
-            },
-            "description": "**Revoke all other sessions**\n\nLogs out all devices except the current one."
-          },
-          "response": []
+            }
+          }
+        },
+        {
+          "name": "Login History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/me/login-history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "me", "login-history"]
+            }
+          }
         }
-      ],
-      "description": "User management and profile endpoints"
+      ]
+    },
+    {
+      "name": "3. Admin Management",
+      "item": [
+        {
+          "name": "List All Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/users?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"NewUserPassword123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"role\": \"USER\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"]
+            }
+          }
+        }
+      ]
     }
   ],
   "variable": [
