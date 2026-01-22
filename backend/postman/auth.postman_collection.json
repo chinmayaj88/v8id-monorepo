@@ -11,6 +11,24 @@
       "item": [
         {
           "name": "Step 1: Verify Credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.data) {",
+                  "        pm.environment.set(\"tempToken\", jsonData.data.tempToken);",
+                  "        pm.environment.set(\"userId\", jsonData.data.user.id);",
+                  "        console.log(\"✅ tempToken and userId saved to environment\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -22,12 +40,31 @@
               "raw": "{{baseUrl}}/api/auth/verify-credentials",
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "verify-credentials"]
-            },
-            "description": "Verify email and password. Returns a temporary token for TOTP."
+            }
           }
         },
         {
           "name": "Step 2: Verify TOTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.data) {",
+                  "        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+                  "        pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+                  "        pm.environment.set(\"sessionId\", jsonData.data.deviceSession.id);",
+                  "        pm.environment.unset(\"tempToken\");",
+                  "        console.log(\"✅ accessToken, refreshToken, and sessionId saved to environment\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -44,6 +81,24 @@
         },
         {
           "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.data) {",
+                  "        pm.environment.set(\"accessToken\", jsonData.data.accessToken);",
+                  "        pm.environment.set(\"refreshToken\", jsonData.data.refreshToken);",
+                  "        console.log(\"✅ Tokens refreshed and saved to environment\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -60,6 +115,22 @@
         },
         {
           "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.unset(\"accessToken\");",
+                  "    pm.environment.unset(\"refreshToken\");",
+                  "    pm.environment.unset(\"sessionId\");",
+                  "    console.log(\"✅ Session cleared from environment\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
