@@ -48,8 +48,7 @@ fun ProfileHeader(
             // Profile Image with Storage Ring
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clickable { onLogout() },
+                    .size(56.dp),
                 contentAlignment = Alignment.Center
             ) {
                 // Background Ring (Storage) - Green progress ring

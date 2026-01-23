@@ -102,14 +102,14 @@ export class UnifiedSearchUseCase {
           if (isTierAware) {
             thumbnailUrl = await (
               this.storageService as TierAwareStorageService
-            ).generatePresignedUrl(file.thumbnailObjectName, 86400, StorageTier.STANDARD);
+            ).generatePresignedUrl(file.thumbnailObjectName, 604800, StorageTier.STANDARD);
           } else {
             thumbnailUrl = await this.storageService.generatePresignedUrl(
               file.thumbnailObjectName,
-              86400
+              604800
             );
           }
-          this.urlCache?.set(cacheKey, thumbnailUrl, 72000);
+          this.urlCache?.set(cacheKey, thumbnailUrl, 600000);
         }
       } catch (error) {
         // Ignore error

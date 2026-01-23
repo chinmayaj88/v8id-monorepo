@@ -1,6 +1,6 @@
 /**
  * List Files Use Case
- * 
+ *
  * Handles file listing with filtering, pagination, and sorting.
  */
 
@@ -59,11 +59,14 @@ export class ListFilesUseCase {
     return await this.formatResult(result.files, result.total, page, limit);
   }
 
-  private async formatResult(files: File[], total: number, page: number, limit: number): Promise<ListFilesResult> {
+  private async formatResult(
+    files: File[],
+    total: number,
+    page: number,
+    limit: number
+  ): Promise<ListFilesResult> {
     // Generate thumbnail URLs in parallel for better performance
-    const fileDtos = await Promise.all(
-      files.map(file => this.fileToDto(file))
-    );
+    const fileDtos = await Promise.all(files.map(file => this.fileToDto(file)));
 
     return {
       files: fileDtos,
@@ -76,36 +79,38 @@ export class ListFilesUseCase {
 
   private async fileToDto(file: File): Promise<FileResponseDTO> {
     let thumbnailUrl: string | undefined;
-    
+
     // Generate presigned URL for thumbnail if it exists
     if (file.hasThumbnail() && file.thumbnailObjectName) {
       try {
         // Check cache first (reduces OCI API calls)
         const cacheKey = `thumbnail:${file.thumbnailObjectName}`;
         const cachedUrl = this.urlCache?.get(cacheKey);
-        
+
         if (cachedUrl) {
           thumbnailUrl = cachedUrl;
         } else {
           // Use tier-aware storage service - thumbnails are always in STANDARD tier
           const isTierAware = this.storageService instanceof TierAwareStorageService;
-          
+
           if (isTierAware) {
             // Thumbnails are always in STANDARD tier for fast access
-            thumbnailUrl = await (this.storageService as TierAwareStorageService).generatePresignedUrl(
+            thumbnailUrl = await (
+              this.storageService as TierAwareStorageService
+            ).generatePresignedUrl(
               file.thumbnailObjectName,
-              86400, // 24 hours expiration
+              604800, // 7 days expiration
               StorageTier.STANDARD
             );
           } else {
             thumbnailUrl = await this.storageService.generatePresignedUrl(
               file.thumbnailObjectName,
-              86400 // 24 hours expiration
+              604800 // 7 days expiration
             );
           }
-          
-          // Cache the URL (cache for 20 hours to ensure it's valid)
-          this.urlCache?.set(cacheKey, thumbnailUrl, 72000);
+
+          // Cache the URL (cache for ~7 days minus buffer)
+          this.urlCache?.set(cacheKey, thumbnailUrl, 600000);
         }
       } catch (error) {
         // Thumbnail URL generation failed - non-critical

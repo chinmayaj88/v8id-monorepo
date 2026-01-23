@@ -63,9 +63,43 @@ export class GenerateFileLinkUseCase {
       throw new Error('Folder links not yet supported');
     }
 
+    // Optimization: Check if an active, non-expired link already exists for this user and file
+    // We only reuse if maxDownloads is not specified (as that's usually for a unique share)
+    // and if the link has at least 1 hour left
+    if (dto.fileId && !dto.maxDownloads) {
+      const oneHourFromNow = new Date();
+      oneHourFromNow.setHours(oneHourFromNow.getHours() + 1);
+
+      const existingLink = await prisma.fileLink.findFirst({
+        where: {
+          userId,
+          fileId: dto.fileId,
+          isActive: true,
+          expiresAt: {
+            gt: oneHourFromNow,
+          },
+          maxDownloads: null, // Only reuse general viewing links
+        },
+        orderBy: {
+          expiresAt: 'desc',
+        },
+      });
+
+      if (existingLink) {
+        return {
+          id: existingLink.id,
+          linkToken: existingLink.linkToken,
+          linkUrl: `/api/files/link/${existingLink.linkToken}`,
+          expiresAt: existingLink.expiresAt.toISOString(),
+          maxDownloads: existingLink.maxDownloads ?? undefined,
+          downloadCount: existingLink.downloadCount,
+        };
+      }
+    }
+
     const linkToken = randomBytes(32).toString('hex');
 
-    const expiresInHours = dto.expiresInHours || 24;
+    const expiresInHours = dto.expiresInHours || 168; // 7 days default
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + expiresInHours);
 

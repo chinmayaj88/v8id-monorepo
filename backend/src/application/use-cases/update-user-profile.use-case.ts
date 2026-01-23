@@ -24,6 +24,8 @@ export interface UpdateProfileResponse {
   lastName: string | undefined;
   avatarUrl: string | undefined;
   role: string;
+  storageQuota: string;
+  storageUsed: string;
   updatedAt: Date;
 }
 
@@ -77,7 +79,7 @@ export class UpdateUserProfileUseCase {
     let avatarUrl: string | undefined;
     if (updatedUser.avatarPath) {
       try {
-        avatarUrl = await this.storageService.generatePresignedUrl(updatedUser.avatarPath, 3600);
+        avatarUrl = await this.storageService.generatePresignedUrl(updatedUser.avatarPath, 604800);
       } catch {
         // URL generation failed - return undefined
       }
@@ -90,6 +92,8 @@ export class UpdateUserProfileUseCase {
       lastName: updatedUser.lastName,
       avatarUrl,
       role: updatedUser.role,
+      storageQuota: updatedUser.storageQuota.toString(),
+      storageUsed: updatedUser.storageUsed.toString(),
       updatedAt: updatedUser.updatedAt,
     };
   }

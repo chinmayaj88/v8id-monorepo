@@ -56,9 +56,9 @@ fun LoginScreen(
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
 
-  var email by remember { mutableStateOf("") }
-  var password by remember { mutableStateOf("") }
-  var rememberMe by remember { mutableStateOf(false) }
+  var email by remember { mutableStateOf("jenachinmaya51@gmail.com") }
+  var password by remember { mutableStateOf("Chinmaya@6370") }
+  var rememberMe by remember { mutableStateOf(true) }
   var passwordVisible by remember { mutableStateOf(false) }
 
   // Track if TOTP verification is required

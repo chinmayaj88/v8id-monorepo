@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.v8idcloud.core.common.Constants
 import com.v8idcloud.core.common.security.CryptoManager
@@ -44,6 +45,8 @@ class StorageManager @Inject constructor(
         val USER_AVATAR_URL = stringPreferencesKey("user_avatar_url")
         val USER_STORAGE_QUOTA = stringPreferencesKey("user_storage_quota")
         val USER_STORAGE_USED = stringPreferencesKey("user_storage_used")
+        val LAST_SYNC_TIME = longPreferencesKey("last_sync_time")
+        val LAST_DASHBOARD_SYNC_TIME = longPreferencesKey("last_dashboard_sync_time")
         val REMEMBER_ME = booleanPreferencesKey("remember_me")
     }
 
@@ -155,6 +158,26 @@ class StorageManager @Inject constructor(
         preferences[USER_STORAGE_USED]?.let { cryptoManager.decrypt(it) }
     }
 
+    fun getLastSyncTime(): Flow<Long> = dataStore.data.map { preferences ->
+        preferences[LAST_SYNC_TIME] ?: 0L
+    }
+
+    suspend fun saveLastSyncTime(time: Long) {
+        dataStore.edit { preferences ->
+            preferences[LAST_SYNC_TIME] = time
+        }
+    }
+
+    fun getLastDashboardSyncTime(): Flow<Long> = dataStore.data.map { preferences ->
+        preferences[LAST_DASHBOARD_SYNC_TIME] ?: 0L
+    }
+
+    suspend fun saveLastDashboardSyncTime(time: Long) {
+        dataStore.edit { preferences ->
+            preferences[LAST_DASHBOARD_SYNC_TIME] = time
+        }
+    }
+
     suspend fun saveUserFirstName(firstName: String?) {
         dataStore.edit { preferences ->
             if (firstName != null) {
@@ -209,6 +232,7 @@ class StorageManager @Inject constructor(
             avatarUrl?.let { preferences[USER_AVATAR_URL] = cryptoManager.encrypt(it) }
             storageQuota?.let { preferences[USER_STORAGE_QUOTA] = cryptoManager.encrypt(it) }
             storageUsed?.let { preferences[USER_STORAGE_USED] = cryptoManager.encrypt(it) }
+            preferences[LAST_SYNC_TIME] = System.currentTimeMillis()
         }
     }
 
@@ -232,6 +256,8 @@ class StorageManager @Inject constructor(
             preferences.remove(USER_AVATAR_URL)
             preferences.remove(USER_STORAGE_QUOTA)
             preferences.remove(USER_STORAGE_USED)
+            preferences.remove(LAST_SYNC_TIME)
+            preferences.remove(LAST_DASHBOARD_SYNC_TIME)
         }
     }
 }

@@ -44,7 +44,8 @@ fun FileItemCard(
     onDownload: () -> Unit = {},
     onDelete: () -> Unit = {},
     onShare: () -> Unit = {},
-    onMoreClick: () -> Unit = {}
+    onMoreClick: () -> Unit = {},
+    onClick: () -> Unit = {}
 ) {
     // Menu width - fixed to ensure it doesn't go "out of view"
     val menuWidth = 160.dp
@@ -111,6 +112,7 @@ fun FileItemCard(
             modifier = Modifier
                 .offset(x = offset)
                 .fillMaxWidth()
+                .clickable(onClick = onClick)
                 .pointerInput(file.id) {
                     detectHorizontalDragGestures { change, dragAmount ->
                         change.consume()

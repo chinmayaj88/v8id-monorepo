@@ -11,6 +11,7 @@ import { ITotpService } from '../interfaces/totp-service.interface.js';
 import { IJwtService } from '../interfaces/jwt-service.interface.js';
 import { ISuspiciousActivityService } from '../interfaces/suspicious-activity-service.interface.js';
 import { IAuditLogService } from '../interfaces/audit-log-service.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
 import { ConfigServiceFactory } from '../../infrastructure/config/config-service.factory.js';
 
 export interface VerifyTotpLoginResult {
@@ -28,7 +29,10 @@ export interface VerifyTotpLoginResult {
     email: string;
     firstName?: string;
     lastName?: string;
+    avatarUrl?: string;
     role: string;
+    storageQuota: string;
+    storageUsed: string;
   };
 }
 
@@ -54,7 +58,8 @@ export class VerifyTotpLoginUseCase {
     private totpService: ITotpService,
     private jwtService: IJwtService,
     private suspiciousActivityService: ISuspiciousActivityService,
-    private auditLogService: IAuditLogService
+    private auditLogService: IAuditLogService,
+    private storageService: IStorageService
   ) {}
 
   async execute(
@@ -254,6 +259,16 @@ export class VerifyTotpLoginUseCase {
       }
     }
 
+    // Generate avatar URL if exists (valid for 7 days)
+    let avatarUrl: string | undefined;
+    if (user.avatarPath) {
+      try {
+        avatarUrl = await this.storageService.generatePresignedUrl(user.avatarPath, 604800);
+      } catch (error) {
+        console.error('Failed to generate avatar URL:', error);
+      }
+    }
+
     return {
       accessToken,
       refreshToken,
@@ -269,7 +284,10 @@ export class VerifyTotpLoginUseCase {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        avatarUrl,
         role: user.role,
+        storageQuota: user.storageQuota.toString(),
+        storageUsed: user.storageUsed.toString(),
       },
     };
   }

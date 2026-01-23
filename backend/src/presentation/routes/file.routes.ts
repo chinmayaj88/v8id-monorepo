@@ -201,7 +201,8 @@ const storageAnalyticsUseCase = new StorageAnalyticsUseCase(
 const previewFileUseCase = new PreviewFileUseCase(
   fileRepository,
   storageService,
-  fileShareRepository
+  fileShareRepository,
+  urlCache
 );
 const toggleFavoriteUseCase = new ToggleFavoriteUseCase(fileRepository, folderRepository);
 const listFavoritesUseCase = new ListFavoritesUseCase(fileRepository, folderRepository);

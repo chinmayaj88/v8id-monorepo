@@ -122,10 +122,25 @@ class HomeViewModel @Inject constructor(
 
     /**
      * Load dashboard data (storage, recent files, folders)
+     * uses lazy refresh - only fetches from network if older than 1 hour or forced
      */
-    fun loadDashboardData() {
+    fun loadDashboardData(forceRefresh: Boolean = false) {
         viewModelScope.launch {
             try {
+                // Lazy Refresh Check
+                val lastSync = storageManager.getLastDashboardSyncTime().first()
+                val oneHourInMillis = 60L * 60 * 1000
+                val now = System.currentTimeMillis()
+                
+                if (!forceRefresh && (now - lastSync < oneHourInMillis) && _dashboardData.value != null) {
+                    android.util.Log.d(TAG, "Dashboard refresh skipped: Data is fresh (Last sync: ${lastSync})")
+                    if (_uiState.value !is HomeUiState.Loaded) {
+                        updateUiState()
+                    }
+                    return@launch
+                }
+
+                android.util.Log.d(TAG, "Loading dashboard data (Force: $forceRefresh)...")
                 if (_uiState.value !is HomeUiState.Loaded) {
                     _uiState.value = HomeUiState.Loading
                 }
@@ -134,13 +149,24 @@ class HomeViewModel @Inject constructor(
                 val data = response.data
                 _dashboardData.value = data
                 
-                // Also sync user profile to ensure avatar and names are up to date
+                // Update storage info in local storage for other screens (like Account page)
+                storageManager.saveUserStorageInfo(
+                    quota = data.storage.total.toString(),
+                    used = data.storage.used.toString()
+                )
+
+                // Save sync time
+                storageManager.saveLastDashboardSyncTime(System.currentTimeMillis())
+                
+                // Also sync user profile (names, avatar) with lazy refresh (profile has its own 6-day check)
                 syncUserProfile()
                 
                 updateUiState()
             } catch (e: Exception) {
                 android.util.Log.e(TAG, "Failed to load dashboard", e)
-                _uiState.value = HomeUiState.Error(e.message ?: "Failed to load dashboard")
+                if (_dashboardData.value == null) {
+                    _uiState.value = HomeUiState.Error(e.message ?: "Failed to load dashboard")
+                }
             }
         }
     }
@@ -175,12 +201,21 @@ class HomeViewModel @Inject constructor(
      */
     private suspend fun syncUserProfile() {
         try {
-            android.util.Log.d(TAG, "Syncing user profile...")
+            // Lazy Refresh Check: Only sync if last sync was more than 6 days ago
+            val lastSync = storageManager.getLastSyncTime().first()
+            val sixDaysInMillis = 6L * 24 * 60 * 60 * 1000
+            val now = System.currentTimeMillis()
+            
+            if (now - lastSync < sixDaysInMillis) {
+                android.util.Log.d(TAG, "Sync skipped: Data is fresh (Last sync: ${lastSync})")
+                return
+            }
+
+            android.util.Log.d(TAG, "Syncing user profile (Last sync: ${lastSync})...")
             val response = userApiService.getCurrentUser()
             if (response.success && response.data != null) {
                 val user = response.data!!
                 android.util.Log.d(TAG, "Profile synced successfully: $user")
-                android.util.Log.d(TAG, "SYNC - Email: ${user.email}, Avatar: ${user.avatarUrl}")
                 
                 storageManager.saveUserInfo(
                     userId = user.id,
@@ -341,8 +376,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 fileApiService.deleteFile(fileId)
-                // Refresh dashboard after deletion
-                loadDashboardData()
+                // Refresh dashboard after deletion (forced)
+                loadDashboardData(forceRefresh = true)
             } catch (e: Exception) {
                 android.util.Log.e("HomeViewModel", "Delete error", e)
             }

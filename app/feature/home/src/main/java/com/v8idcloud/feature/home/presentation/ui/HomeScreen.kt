@@ -49,12 +49,28 @@ fun HomeScreen(
     val userLastNameFlow by viewModel.userLastName.collectAsState()
     val selectedFilter by viewModel.selectedFilter.collectAsState()
 
+    val userAvatarUrl by viewModel.userAvatarUrl.collectAsState()
+
     // State for filter menu visibility
     var showFilters by remember { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
 
     // State for tracking which file card is currently swiped/revealed
     var revealedFileId by remember { mutableStateOf<String?>(null) }
+
+    // Refresh data when screen becomes visible (including from background)
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.loadDashboardData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     val downloadEvent by viewModel.downloadEvent.collectAsState()
@@ -165,6 +181,7 @@ fun HomeScreen(
                 ProfileHeader(
                     userName = firstName.takeIf { it.isNotBlank() } ?: userName,
                     storagePercentage = if (uiState is HomeUiState.Loaded) (uiState as HomeUiState.Loaded).storageUsedPercentage else 0f,
+                    profileImageUrl = userAvatarUrl,
                     onLogout = { viewModel.logout(onLogoutSuccess = { navController.navigate("auth/login") { popUpTo(0) } }) },
                     onProfileClick = { navController.navigate("user") }
                 )
@@ -267,7 +284,10 @@ fun HomeScreen(
                             viewModel.downloadFile(file.id)
                         },
                         onDelete = { viewModel.deleteFile(file.id) },
-                        onShare = { viewModel.shareFile(file.id) }
+                        onShare = { viewModel.shareFile(file.id) },
+                        onClick = {
+                            navController.navigate("viewer?fileId=${file.id}&fileName=${file.name}&fileType=${file.mimeType ?: "*/*"}")
+                        }
                     )
                 }
             } else if (uiState is HomeUiState.Loading) {

@@ -50,18 +50,18 @@ export class GetFileUseCase {
               this.storageService as TierAwareStorageService
             ).generatePresignedUrl(
               file.thumbnailObjectName,
-              86400, // 24 hours
+              604800, // 7 days
               StorageTier.STANDARD
             );
           } else {
             thumbnailUrl = await this.storageService.generatePresignedUrl(
               file.thumbnailObjectName,
-              86400 // 24 hours
+              604800 // 7 days
             );
           }
 
-          // Cache for 20 hours
-          this.urlCache?.set(cacheKey, thumbnailUrl, 72000);
+          // Cache for ~7 days minus buffer
+          this.urlCache?.set(cacheKey, thumbnailUrl, 600000);
         }
       } catch (error) {
         // Thumbnail URL generation failed - non-critical

@@ -78,7 +78,7 @@ export class UserController {
       let avatarUrl: string | undefined;
       if (user.avatarPath) {
         try {
-          avatarUrl = await this.storageService.generatePresignedUrl(user.avatarPath, 3600);
+          avatarUrl = await this.storageService.generatePresignedUrl(user.avatarPath, 604800);
         } catch {
           // URL generation failed - continue without avatar
         }

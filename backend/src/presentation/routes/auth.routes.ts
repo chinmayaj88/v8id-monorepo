@@ -21,6 +21,7 @@ import { PasswordService } from '../../infrastructure/services/password.service.
 import { JwtService } from '../../infrastructure/services/jwt.service.js';
 import { TotpService } from '../../infrastructure/services/totp.service.js';
 import { SuspiciousActivityService } from '../../infrastructure/services/suspicious-activity.service.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 import { IEmailService } from '../../application/interfaces/email-service.interface.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import {
@@ -55,6 +56,7 @@ const auditLogService = new AuditLogService(auditLogRepository);
 const accountLockoutService = new AccountLockoutService(auditLogRepository);
 const suspiciousActivityService = new SuspiciousActivityService(auditLogRepository);
 const emailService: IEmailService = EmailServiceFactory.create();
+const storageService = new TierAwareStorageService();
 
 const verifyCredentialsUseCase = new VerifyCredentialsUseCase(
   userRepository,
@@ -72,7 +74,8 @@ const verifyTotpLoginUseCase = new VerifyTotpLoginUseCase(
   totpService,
   jwtService,
   suspiciousActivityService,
-  auditLogService
+  auditLogService,
+  storageService
 );
 const refreshTokenUseCase = new RefreshTokenUseCase(
   deviceSessionRepository,
@@ -133,17 +136,11 @@ router.post(
   validateBody(verifyCredentialsSchema),
   (req, res) => authController.verifyCredentials(req, res)
 );
-router.post(
-  '/verify-totp',
-  totpRateLimiter,
-  validateBody(verifyTotpSchema),
-  (req, res) => authController.verifyTotp(req, res)
+router.post('/verify-totp', totpRateLimiter, validateBody(verifyTotpSchema), (req, res) =>
+  authController.verifyTotp(req, res)
 );
-router.post(
-  '/refresh',
-  refreshRateLimiter,
-  validateBody(refreshTokenSchema),
-  (req, res) => authController.refresh(req, res)
+router.post('/refresh', refreshRateLimiter, validateBody(refreshTokenSchema), (req, res) =>
+  authController.refresh(req, res)
 );
 router.post(
   '/logout',
@@ -153,17 +150,11 @@ router.post(
 );
 
 // Password management routes
-router.post(
-  '/forgot-password',
-  authRateLimiter,
-  validateBody(forgotPasswordSchema),
-  (req, res) => authController.forgotPassword(req, res)
+router.post('/forgot-password', authRateLimiter, validateBody(forgotPasswordSchema), (req, res) =>
+  authController.forgotPassword(req, res)
 );
-router.post(
-  '/reset-password',
-  authRateLimiter,
-  validateBody(resetPasswordSchema),
-  (req, res) => authController.resetPassword(req, res)
+router.post('/reset-password', authRateLimiter, validateBody(resetPasswordSchema), (req, res) =>
+  authController.resetPassword(req, res)
 );
 router.post(
   '/change-password',
