@@ -19,8 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.VideoLibrary
 import com.v8idcloud.core.common.FolderData
 import com.v8idcloud.core.ui.theme.V8idColors
 
@@ -28,12 +31,12 @@ import com.v8idcloud.core.ui.theme.V8idColors
  * A card showing recent folders in a grid/row
  * Styled with soft lavender gradient to match Dropbox design
  */
+/**
+ * Static Quick Access Card with 4 main options
+ */
 @Composable
-fun RecentFoldersCard(
-    folders: List<FolderData>,
-    iconSize: Dp = 56.dp,
-    title: String = "Recent Files & Folders",
-    onMenuClick: () -> Unit = {}
+fun QuickAccessCard(
+    onOptionClick: (String) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -55,45 +58,77 @@ fun RecentFoldersCard(
                     shape = RoundedCornerShape(24.dp)
                 )
         ) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp)
+                    .padding(20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Header
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = title,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2D2D3A) // Dark text for contrast
-                    )
-                    androidx.compose.material3.IconButton(onClick = onMenuClick) {
-                        Icon(
-                            imageVector = Icons.Outlined.Menu,
-                            contentDescription = "Menu",
-                            tint = Color(0xFF2D2D3A) // Dark icon for contrast
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Grid of folders
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    folders.forEach { folder ->
-                        FolderItem(folder = folder, iconSize = iconSize)
-                    }
-                }
+                QuickAccessItem(
+                    name = "Images",
+                    icon = Icons.Filled.Image,
+                    color = Color(0xFF4CAF50),
+                    onClick = { onOptionClick("Images") }
+                )
+                QuickAccessItem(
+                    name = "Videos",
+                    icon = Icons.Filled.VideoLibrary,
+                    color = Color(0xFFE91E63),
+                    onClick = { onOptionClick("Videos") }
+                )
+                QuickAccessItem(
+                    name = "Docs",
+                    icon = Icons.Filled.Description,
+                    color = Color(0xFFFFC107),
+                    onClick = { onOptionClick("Docs") }
+                )
+                QuickAccessItem(
+                    name = "Folders",
+                    icon = Icons.Outlined.Folder,
+                    color = Color(0xFF7C3AED),
+                    onClick = { onOptionClick("Folders") }
+                )
             }
         }
+    }
+}
+
+@Composable
+fun QuickAccessItem(
+    name: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Surface(
+            modifier = Modifier.size(56.dp),
+            shape = CircleShape,
+            color = Color.White
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = name,
+                    tint = color,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = name,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF2D2D3A)
+        )
     }
 }
 

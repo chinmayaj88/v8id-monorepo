@@ -38,6 +38,7 @@ class HomeViewModel @Inject constructor(
     private val authApiService: AuthApiService,
     private val fileApiService: FileApiService,
     private val userApiService: UserApiService,
+    private val fileRepository: com.v8idcloud.core.data.repository.FileRepository,
     private val storageManager: StorageManager,
     private val configProvider: com.v8idcloud.core.common.ConfigProvider
 ) : ViewModel() {
@@ -124,48 +125,62 @@ class HomeViewModel @Inject constructor(
      * Load dashboard data (storage, recent files, folders)
      * uses lazy refresh - only fetches from network if older than 1 hour or forced
      */
+    /**
+     * Load dashboard data (storage, recent files, folders)
+     * uses offline-first repository
+     */
     fun loadDashboardData(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            try {
-                // Lazy Refresh Check
-                val lastSync = storageManager.getLastDashboardSyncTime().first()
-                val oneHourInMillis = 60L * 60 * 1000
-                val now = System.currentTimeMillis()
-                
-                if (!forceRefresh && (now - lastSync < oneHourInMillis) && _dashboardData.value != null) {
-                    android.util.Log.d(TAG, "Dashboard refresh skipped: Data is fresh (Last sync: ${lastSync})")
-                    if (_uiState.value !is HomeUiState.Loaded) {
-                        updateUiState()
+            if (_uiState.value !is HomeUiState.Loaded) {
+                _uiState.value = HomeUiState.Loading
+            }
+            
+            // Collect from Repository Flow (Cache + Network)
+            fileRepository.getDashboardData(forceRefresh).collect { result ->
+                when (result) {
+                    is com.v8idcloud.core.common.Result.Loading -> {
+                        if (_uiState.value !is HomeUiState.Loaded) {
+                             // Only show loading if we don't have data already
+                             _uiState.value = HomeUiState.Loading
+                        }
                     }
-                    return@launch
-                }
-
-                android.util.Log.d(TAG, "Loading dashboard data (Force: $forceRefresh)...")
-                if (_uiState.value !is HomeUiState.Loaded) {
-                    _uiState.value = HomeUiState.Loading
-                }
-                
-                val response = fileApiService.getDashboardData()
-                val data = response.data
-                _dashboardData.value = data
-                
-                // Update storage info in local storage for other screens (like Account page)
-                storageManager.saveUserStorageInfo(
-                    quota = data.storage.total.toString(),
-                    used = data.storage.used.toString()
-                )
-
-                // Save sync time
-                storageManager.saveLastDashboardSyncTime(System.currentTimeMillis())
-                
-                // Also sync user profile (names, avatar) with lazy refresh (profile has its own 6-day check)
-                syncUserProfile()
-                
-                updateUiState()
-            } catch (e: Exception) {
-                android.util.Log.e(TAG, "Failed to load dashboard", e)
-                if (_dashboardData.value == null) {
-                    _uiState.value = HomeUiState.Error(e.message ?: "Failed to load dashboard")
+                    is com.v8idcloud.core.common.Result.Success -> {
+                        val data = result.data
+                        val stats = data.stats
+                        if (stats != null) {
+                            // Convert Entity to UI Model
+                            val responseDto = DashboardResponseDto(
+                                storage = com.v8idcloud.core.data.network.StorageStatsDto(stats.storageTotal, stats.storageUsed, stats.storagePercentage),
+                                recentFiles = data.recentFiles.map { 
+                                     com.v8idcloud.core.data.network.SearchResultItemDto(
+                                         id = it.id, 
+                                         type = it.type, 
+                                         name = it.name, 
+                                         description = null,
+                                         updatedAt = it.updatedAt.toString(), 
+                                         mimeType = it.mimeType, 
+                                         size = it.size, 
+                                         thumbnailUrl = it.thumbnailUrl, 
+                                         color = it.color, 
+                                         parentId = it.parentId
+                                     )
+                                },
+                                folders = emptyList(), // Not used anymore for quick access
+                                stats = com.v8idcloud.core.data.network.DashboardStatsDto(stats.totalFiles, stats.totalFolders)
+                            )
+                            _dashboardData.value = responseDto
+                            updateUiState()
+                            
+                            // Sync profile if needed
+                            syncUserProfile()
+                        }
+                    }
+                    is com.v8idcloud.core.common.Result.Error -> {
+                        // Only show error if we have no data at all
+                        if (_dashboardData.value == null) {
+                            _uiState.value = HomeUiState.Error(result.exception.message ?: "Failed to load dashboard")
+                        }
+                    }
                 }
             }
         }
@@ -250,7 +265,7 @@ class HomeViewModel @Inject constructor(
                 id = item.id,
                 name = item.name,
                 size = (item.size ?: 0L).formatFileSize(),
-                timeAgo = item.updatedAt.formatTimeAgo(),
+                timeAgo = (item.updatedAt.toLongOrNull() ?: 0L).formatTimeAgo(),
                 icon = UiUtils.getFileIcon(item.mimeType),
                 thumbnailUrl = item.thumbnailUrl,
                 mimeType = item.mimeType
@@ -271,7 +286,7 @@ class HomeViewModel @Inject constructor(
             storageUsedPercentage = data.storage.percentage.toFloat(),
             storageUsedText = "${String.format("%.1f", data.storage.used / (1024.0 * 1024.0 * 1024.0))} GB used",
             recentFiles = filteredRecentFiles,
-            folders = folders,
+            folders = folders, // Kept for potential future use or other views
             totalFiles = data.stats.totalFiles,
             totalFolders = data.stats.totalFolders
         )

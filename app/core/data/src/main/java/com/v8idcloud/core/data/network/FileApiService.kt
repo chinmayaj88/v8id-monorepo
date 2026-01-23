@@ -28,6 +28,7 @@ interface FileApiService {
 
     @GET("files")
     suspend fun getFiles(
+        @Query("parentId") parentId: String? = null,
         @Query("type") type: String? = null,
         @Query("limit") limit: Int = 20,
         @Query("page") page: Int = 1

@@ -48,4 +48,12 @@ dependencies {
     
     // Coil for ImageLoader
     implementation(libs.coil.compose)
+
+    // Room Database & SQLCipher
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.room.paging)
+    implementation(libs.androidx.paging.runtime)
+    kapt(libs.androidx.room.compiler)
+    implementation(libs.sqlcipher)
 }

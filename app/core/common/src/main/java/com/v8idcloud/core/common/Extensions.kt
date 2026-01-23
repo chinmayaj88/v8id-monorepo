@@ -28,33 +28,46 @@ fun Long.formatFileSize(): String {
 }
 
 /**
+ * Format timestamp (Long) to relative time
+ */
+fun Long.formatTimeAgo(): String {
+    val now = System.currentTimeMillis()
+    val diff = now - this
+    
+    val seconds = diff / 1000
+    val minutes = seconds / 60
+    val hours = minutes / 60
+    val days = hours / 24
+    
+    return when {
+        days > 7 -> {
+             val outputSdf = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
+             outputSdf.format(java.util.Date(this))
+        }
+        days >= 1 -> "$days ${if (days == 1L) "day" else "days"} ago"
+        hours >= 1 -> "$hours ${if (hours == 1L) "hour" else "hours"} ago"
+        minutes >= 1 -> "$minutes ${if (minutes == 1L) "min" else "mins"} ago"
+        else -> "Just now"
+    }
+}
+
+/**
  * Format timestamp (ISO or Long) to relative time (e.g., "2 hours ago")
  */
 fun String?.formatTimeAgo(): String {
     if (this.isNullOrBlank()) return "Recently"
     
+    // Check if it's a Long string
+    val timestamp = this.toLongOrNull()
+    if (timestamp != null) {
+        return timestamp.formatTimeAgo()
+    }
+    
     return try {
         val sdf = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
         sdf.timeZone = java.util.TimeZone.getTimeZone("UTC")
         val date = sdf.parse(this) ?: return "Recently"
-        val now = System.currentTimeMillis()
-        val diff = now - date.time
-        
-        val seconds = diff / 1000
-        val minutes = seconds / 60
-        val hours = minutes / 60
-        val days = hours / 24
-        
-        when {
-            days > 7 -> {
-                 val outputSdf = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.US)
-                 outputSdf.format(date)
-            }
-            days >= 1 -> "$days ${if (days == 1L) "day" else "days"} ago"
-            hours >= 1 -> "$hours ${if (hours == 1L) "hour" else "hours"} ago"
-            minutes >= 1 -> "$minutes ${if (minutes == 1L) "min" else "mins"} ago"
-            else -> "Just now"
-        }
+        date.time.formatTimeAgo()
     } catch (e: Exception) {
         "Recently"
     }

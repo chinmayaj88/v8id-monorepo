@@ -24,7 +24,10 @@ data class FolderData(
     val name: String,
     val size: String,
     val icon: ImageVector,
-    val iconColor: Color
+    val iconColor: Color,
+    val isFolder: Boolean = true,
+    val mimeType: String? = null,
+    val thumbnailUrl: String? = null
 )
 
 /**

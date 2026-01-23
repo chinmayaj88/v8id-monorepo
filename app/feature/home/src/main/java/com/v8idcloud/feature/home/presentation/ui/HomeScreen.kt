@@ -239,10 +239,15 @@ fun HomeScreen(
 
                 // Quick Access Card
                 item {
-                    RecentFoldersCard(
-                        folders = state.folders,
-                        iconSize = dynamicFolderIconSize,
-                        onMenuClick = { /* Handle menu */ }
+                    QuickAccessCard(
+                        onOptionClick = { option ->
+                            when(option) {
+                                "Images" -> viewModel.setFilter("Images") // Or navigate
+                                "Videos" -> viewModel.setFilter("Videos")
+                                "Docs" -> viewModel.setFilter("Docs")
+                                "Folders" -> navController.navigate("folders")
+                            }
+                        }
                     )
                 }
 
