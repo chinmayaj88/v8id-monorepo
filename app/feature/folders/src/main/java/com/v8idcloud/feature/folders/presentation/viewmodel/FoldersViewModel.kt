@@ -1,5 +1,6 @@
 package com.v8idcloud.feature.folders.presentation.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
@@ -34,21 +35,28 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 @HiltViewModel
 class FoldersViewModel @Inject constructor(
     private val fileRepository: FileRepository,
-    private val fileApiService: FileApiService
+    private val fileApiService: FileApiService,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "FoldersViewModel"
     }
 
+    // Extract folderId and folderName from navigation arguments
+    private val navFolderId: String? = savedStateHandle["folderId"]
+    private val navFolderName: String? = savedStateHandle["folderName"]
+
     // Current Folder Context (Stack)
     // For breadcrumbs: List<Pair<Id, Name>>
-    private val _currentPath = MutableStateFlow<List<Pair<String?, String>>>(listOf(null to "Home"))
+    private val _currentPath = MutableStateFlow<List<Pair<String?, String>>>(
+        if (navFolderId != null) listOf(null to "Home", navFolderId to (navFolderName ?: "Folder")) 
+        else listOf(null to "Home")
+    )
     val currentPath: StateFlow<List<Pair<String?, String>>> = _currentPath.asStateFlow()
 
     // The active Paging Flow
-    // We observe this in the UI
-    private val _currentFolderId = MutableStateFlow<String?>(null)
+    private val _currentFolderId = MutableStateFlow<String?>(navFolderId)
     
     val pagedFiles: Flow<PagingData<FolderData>> = _currentFolderId
         .map { folderId -> 

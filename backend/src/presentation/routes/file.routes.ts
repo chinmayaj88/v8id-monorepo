@@ -175,7 +175,12 @@ const bulkRestoreFilesUseCase = new BulkRestoreFilesUseCase(
   userRepository,
   storageCache
 );
-const listFilesUseCase = new ListFilesUseCase(fileRepository, storageService, urlCache);
+const listFilesUseCase = new ListFilesUseCase(
+  fileRepository,
+  folderRepository,
+  storageService,
+  urlCache
+);
 const updateFileUseCase = new UpdateFileUseCase(fileRepository, folderRepository);
 const createFolderUseCase = new CreateFolderUseCase(folderRepository);
 const bulkMoveFilesUseCase = new BulkMoveFilesUseCase(fileRepository, folderRepository);
@@ -449,14 +454,6 @@ router.get('/', authenticate, validateQuery(listFilesQuerySchema), (req, res) =>
 // Unified search (Moved to top)
 // router.get('/search', authenticate, (req, res) => fileController.search(req as any, res));
 
-router.get('/:id', authenticate, (req, res) => fileController.getById(req as any, res));
-
-router.patch('/:id', authenticate, validateBody(updateFileSchema), (req, res) =>
-  fileController.update(req as any, res)
-);
-
-router.delete('/:id', authenticate, (req, res) => fileController.delete(req as any, res));
-
 // Folder routes
 router.post('/folders', authenticate, validateBody(createFolderSchema), (req, res) =>
   fileController.createFolder(req as any, res)
@@ -470,11 +467,22 @@ router.get('/folders', authenticate, validateQuery(listFoldersQuerySchema), (req
   fileController.listFolders(req as any, res)
 );
 
+router.get('/folders/templates', authenticate, (req, res) =>
+  fileController.listTemplates(req as any, res)
+);
+
+router.post('/folders/templates', authenticate, (req, res) =>
+  fileController.createTemplate(req as any, res)
+);
+
+router.post('/folders/templates/:templateId/create', authenticate, (req, res) =>
+  fileController.createFromTemplate(req as any, res)
+);
+
 router.get('/folders/:id', authenticate, (req, res) =>
   fileController.getFolderById(req as any, res)
 );
 
-// Specific routes before generic :id routes (order matters in Express)
 router.post('/folders/:id/restore', authenticate, (req, res) =>
   fileController.restoreFolder(req as any, res)
 );
@@ -491,18 +499,6 @@ router.post('/folders/:id/copy', authenticate, (req, res) =>
   fileController.copyFolder(req as any, res)
 );
 
-router.post('/folders/templates', authenticate, (req, res) =>
-  fileController.createTemplate(req as any, res)
-);
-
-router.get('/folders/templates', authenticate, (req, res) =>
-  fileController.listTemplates(req as any, res)
-);
-
-router.post('/folders/templates/:templateId/create', authenticate, (req, res) =>
-  fileController.createFromTemplate(req as any, res)
-);
-
 router.patch('/folders/:id', authenticate, validateBody(updateFolderSchema), (req, res) =>
   fileController.updateFolder(req as any, res)
 );
@@ -510,5 +506,52 @@ router.patch('/folders/:id', authenticate, validateBody(updateFolderSchema), (re
 router.delete('/folders/:id', authenticate, (req, res) =>
   fileController.deleteFolder(req as any, res)
 );
+
+// Specific file ID routes (must be before generic /:id)
+router.get('/:id/download', authenticate, (req, res) => fileController.download(req as any, res));
+router.post('/:id/restore', authenticate, (req, res) => fileController.restore(req as any, res));
+router.post('/:id/archive', authenticate, (req, res) => fileController.archive(req as any, res));
+router.post('/:id/share', authenticate, (req, res) => fileController.share(req as any, res));
+router.post('/:id/copy', authenticate, (req, res) => fileController.copyFile(req as any, res));
+router.get('/:id/preview', authenticate, (req, res) => fileController.preview(req as any, res));
+router.get('/:id/thumbnail', authenticate, (req, res) =>
+  fileController.getThumbnail(req as any, res)
+);
+router.post('/:id/thumbnail/regenerate', authenticate, (req, res) =>
+  fileController.regenerateThumbnail(req as any, res)
+);
+router.post('/:id/favorite', authenticate, (req, res) =>
+  fileController.toggleFavorite(req as any, res)
+);
+router.post('/:id/comments', authenticate, (req, res) =>
+  fileController.createComment(req as any, res)
+);
+router.get('/:id/comments', authenticate, (req, res) =>
+  fileController.listComments(req as any, res)
+);
+router.post('/:id/expiration', authenticate, (req, res) =>
+  fileController.setExpiration(req as any, res)
+);
+router.post('/:id/link', authenticate, (req, res) => fileController.generateLink(req as any, res));
+router.get('/:id/versions', authenticate, (req, res) =>
+  fileController.listVersions(req as any, res)
+);
+router.post('/:id/versions/:versionId/restore', authenticate, (req, res) =>
+  fileController.restoreVersion(req as any, res)
+);
+router.get('/:id/activity', authenticate, (req, res) =>
+  fileController.getActivity(req as any, res)
+);
+router.delete('/:id/permanent', authenticate, (req, res) =>
+  fileController.permanentDelete(req as any, res)
+);
+
+router.get('/:id', authenticate, (req, res) => fileController.getById(req as any, res));
+
+router.patch('/:id', authenticate, validateBody(updateFileSchema), (req, res) =>
+  fileController.update(req as any, res)
+);
+
+router.delete('/:id', authenticate, (req, res) => fileController.delete(req as any, res));
 
 export default router;

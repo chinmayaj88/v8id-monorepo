@@ -22,6 +22,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.activity.compose.BackHandler
 import com.v8idcloud.core.ui.theme.V8idColors
 import com.v8idcloud.core.ui.components.SearchBar
 import com.v8idcloud.core.ui.components.FolderRowItem
@@ -38,8 +39,11 @@ fun FoldersScreen(
     val currentPath by viewModel.currentPath.collectAsState()
 
     // Handle back press to navigate up the folder hierarchy
-    // Note: This needs to be hooked into the system back handler in a real app
-    // e.g. BackHandler { if (!viewModel.navigateUp()) navController.popBackStack() }
+    BackHandler {
+        if (!viewModel.navigateUp()) {
+            navController.popBackStack()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -195,7 +199,7 @@ fun FoldersScreen(
                                     viewModel.navigateToFolder(item.id, item.name)
                                 } else {
                                     // Navigate to File Viewer
-                                    // navController.navigate("viewer/${item.id}/${currentPath.last().first ?: "root"}")
+                                    navController.navigate("viewer?fileId=${item.id}&fileName=${item.name}&fileType=${item.mimeType ?: "*/*"}")
                                 }
                             },
                             onMoreClick = { /* Show options */ }

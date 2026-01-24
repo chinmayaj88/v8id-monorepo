@@ -72,9 +72,14 @@ fun AppNavGraph(
         }
         
         composable(
-            route = "folders?folderId={folderId}",
+            route = "folders?folderId={folderId}&folderName={folderName}",
             arguments = listOf(
                 navArgument("folderId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                },
+                navArgument("folderName") {
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null

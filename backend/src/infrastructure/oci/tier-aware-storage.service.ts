@@ -64,11 +64,11 @@ export class TierAwareStorageService implements IStorageService {
   private async getClient(): Promise<objectstorage.ObjectStorageClient> {
     if (this.client) return this.client;
 
-    const envTenancy = process.env.OCI_TENANCY_ID;
-    const envUser = process.env.OCI_USER_ID;
-    const envFingerprint = process.env.OCI_FINGERPRINT;
+    const envTenancy = (process.env.OCI_TENANCY_ID || '').trim();
+    const envUser = (process.env.OCI_USER_ID || '').trim();
+    const envFingerprint = (process.env.OCI_FINGERPRINT || '').trim();
     const envPrivateKey = process.env.OCI_PRIVATE_KEY;
-    const envPrivateKeyPath = process.env.OCI_PRIVATE_KEY_PATH;
+    const envPrivateKeyPath = (process.env.OCI_PRIVATE_KEY_PATH || '').trim();
 
     // Check if we have explicit credentials (typically Development)
     if (envTenancy && envUser && envFingerprint && (envPrivateKey || envPrivateKeyPath)) {
@@ -456,11 +456,20 @@ export class TierAwareStorageService implements IStorageService {
         parUrl,
         parId,
       };
-    } catch (error) {
+    } catch (error: any) {
+      console.error(`❌ OCI PAR Error [${tier}]:`);
+      console.dir(error, { depth: null });
+
+      let errorMessage = 'Unknown error';
+      if (error) {
+        errorMessage = error.message || error.code || JSON.stringify(error);
+        console.log('Error Properties:', Object.getOwnPropertyNames(error));
+        if (error.serviceCode) console.log('Service Code:', error.serviceCode);
+        if (error.statusCode) console.log('Status Code:', error.statusCode);
+      }
+
       throw new Error(
-        `Failed to create Pre-Authenticated Request for ${tier} tier: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
+        `Failed to create Pre-Authenticated Request for ${tier} tier: ${errorMessage}`
       );
     }
   }

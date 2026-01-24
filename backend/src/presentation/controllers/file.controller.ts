@@ -264,8 +264,9 @@ export class FileController {
   async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
+      const folderIdRaw = (req.query.folderId || req.query.parentId) as string | undefined;
       const dto: ListFilesDTO = {
-        folderId: req.query.folderId === 'null' ? null : (req.query.folderId as string | undefined),
+        folderId: folderIdRaw === 'null' || folderIdRaw === undefined ? null : folderIdRaw,
         status: req.query.status as any,
         type: req.query.type as any,
         search: req.query.search as string | undefined,
@@ -279,7 +280,7 @@ export class FileController {
 
       ResponseUtil.successWithPagination(
         res,
-        result.files,
+        result.items,
         {
           page: result.page,
           limit: result.limit,
@@ -315,7 +316,7 @@ export class FileController {
 
       ResponseUtil.successWithPagination(
         res,
-        result.files,
+        result.items,
         {
           page: result.page,
           limit: result.limit,
@@ -469,8 +470,9 @@ export class FileController {
   async createFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
+      const parentIdRaw = req.body.parentId || req.body.parentFolderId;
       const dto: CreateFolderDTO = {
-        parentId: req.body.parentId === 'null' ? null : req.body.parentId,
+        parentId: parentIdRaw === 'null' ? null : parentIdRaw,
         name: req.body.name,
         description: req.body.description,
         color: req.body.color,
@@ -492,8 +494,9 @@ export class FileController {
   async listFolders(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
+      const parentIdRaw = (req.query.parentId || req.query.parentFolderId) as string | undefined;
       const dto: ListFoldersDTO = {
-        parentId: req.query.parentId === 'null' ? null : (req.query.parentId as string | undefined),
+        parentId: parentIdRaw === 'null' ? null : parentIdRaw,
         includeDeleted: req.query.includeDeleted === 'true',
         search: req.query.search as string | undefined,
         page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,

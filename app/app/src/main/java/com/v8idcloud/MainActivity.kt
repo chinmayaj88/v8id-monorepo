@@ -8,6 +8,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import coil.ImageLoader
+import androidx.activity.viewModels
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import com.v8idcloud.core.ui.theme.V8idTheme
 import com.v8idcloud.navigation.AppNavGraph
 import dagger.hilt.android.AndroidEntryPoint
@@ -18,6 +21,8 @@ class MainActivity : ComponentActivity() {
     
     @Inject
     lateinit var imageLoader: ImageLoader
+
+    private val viewModel: MainViewModel by viewModels()
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,12 +38,16 @@ class MainActivity : ComponentActivity() {
             )
         )
         setContent {
+            val startDestination by viewModel.startDestination.collectAsState()
+
             V8idTheme {
-                AppNavGraph(
-                        startDestination = "auth/login",
+                if (startDestination != null) {
+                    AppNavGraph(
+                        startDestination = startDestination!!,
                         modifier = Modifier.fillMaxSize(),
                         imageLoader = imageLoader
-                )
+                    )
+                }
             }
         }
     }

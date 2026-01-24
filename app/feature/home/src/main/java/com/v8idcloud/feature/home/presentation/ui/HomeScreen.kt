@@ -203,7 +203,7 @@ fun HomeScreen(
                     searchResults = searchResults,
                     onSuggestionClick = { suggestion ->
                         if (suggestion.type == SuggestionType.FOLDER) {
-                            navController.navigate("folders?folderId=${suggestion.id}")
+                            navController.navigate("folders?folderId=${suggestion.id}&folderName=${suggestion.title}")
                         }
                     },
                     onFilterClick = { showFilters = !showFilters }

@@ -5,15 +5,17 @@
  */
 
 import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
 import { IStorageService } from '../interfaces/storage-service.interface.js';
-import { ListFilesDTO, FileResponseDTO } from '../dtos/file.dto.js';
-import { File } from '../../domain/entities/file.js';
+import { ListFilesDTO } from '../dtos/file.dto.js';
+import { SearchResultItemDTO } from '../dtos/search.dto.js';
+import { File, FileStatus, StorageTier } from '../../domain/entities/file.js';
+import { Folder } from '../../domain/entities/folder.js';
 import { UrlCacheService } from '../../infrastructure/services/url-cache.service.js';
 import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
-import { StorageTier } from '../../domain/entities/file.js';
 
 export interface ListFilesResult {
-  files: FileResponseDTO[];
+  items: SearchResultItemDTO[];
   total: number;
   page: number;
   limit: number;
@@ -23,6 +25,7 @@ export interface ListFilesResult {
 export class ListFilesUseCase {
   constructor(
     private fileRepository: IFileRepository,
+    private folderRepository: IFolderRepository,
     private storageService: IStorageService,
     private urlCache?: UrlCacheService
   ) {}
@@ -44,32 +47,72 @@ export class ListFilesUseCase {
       orderDirection: (dto.orderDirection || 'desc') as 'asc' | 'desc',
     };
 
-    // If folderId is explicitly null, get root files
-    if (dto.folderId === null) {
-      const result = await this.fileRepository.findRootFiles(userId, {
-        status,
+    // Determine how to fetch folders based on the context
+    let foldersPromise: Promise<{ folders: Folder[]; total: number }>;
+
+    if (dto.search) {
+      foldersPromise = this.folderRepository.findByUserId(userId, {
+        search: dto.search,
+        includeDeleted: status === FileStatus.DELETED,
         page,
         limit,
       });
-      return await this.formatResult(result.files, result.total, page, limit);
+    } else if (dto.folderId === null) {
+      foldersPromise = this.folderRepository.findRootFolders(userId, {
+        includeDeleted: status === FileStatus.DELETED,
+        page,
+        limit,
+      });
+    } else if (dto.folderId) {
+      foldersPromise = this.folderRepository.findChildren(dto.folderId, userId, {
+        includeDeleted: status === FileStatus.DELETED,
+        page,
+        limit,
+      });
+    } else if (status === FileStatus.DELETED) {
+      foldersPromise = this.folderRepository
+        .findByUserId(userId, {
+          includeDeleted: true,
+          page,
+          limit,
+        })
+        .then(res => ({
+          folders: res.folders.filter(f => f.isDeleted),
+          total: res.folders.filter(f => f.isDeleted).length,
+        }));
+    } else {
+      foldersPromise = Promise.resolve({ folders: [], total: 0 });
     }
 
-    // Otherwise, get files by folder or all files
-    const result = await this.fileRepository.findByUserId(userId, options);
-    return await this.formatResult(result.files, result.total, page, limit);
+    const [filesResult, foldersResult] = await Promise.all([
+      this.fileRepository.findByUserId(userId, options),
+      foldersPromise,
+    ]);
+
+    return await this.formatResult(
+      filesResult.files,
+      foldersResult.folders,
+      filesResult.total + foldersResult.total,
+      page,
+      limit
+    );
   }
 
   private async formatResult(
     files: File[],
+    folders: Folder[],
     total: number,
     page: number,
     limit: number
   ): Promise<ListFilesResult> {
-    // Generate thumbnail URLs in parallel for better performance
-    const fileDtos = await Promise.all(files.map(file => this.fileToDto(file)));
+    const fileItems = await Promise.all(files.map(file => this.mapFileToResult(file)));
+    const folderItems = folders.map(folder => this.mapFolderToResult(folder));
+
+    // Combine folders first, then files (common pattern in file explorers)
+    const combined = [...folderItems, ...fileItems];
 
     return {
-      files: fileDtos,
+      items: combined.slice(0, limit),
       total,
       page,
       limit,
@@ -77,67 +120,57 @@ export class ListFilesUseCase {
     };
   }
 
-  private async fileToDto(file: File): Promise<FileResponseDTO> {
+  private async mapFileToResult(file: File): Promise<SearchResultItemDTO> {
     let thumbnailUrl: string | undefined;
 
-    // Generate presigned URL for thumbnail if it exists
+    // Generate presigned URL for thumbnail (reused logic)
     if (file.hasThumbnail() && file.thumbnailObjectName) {
       try {
-        // Check cache first (reduces OCI API calls)
         const cacheKey = `thumbnail:${file.thumbnailObjectName}`;
         const cachedUrl = this.urlCache?.get(cacheKey);
 
         if (cachedUrl) {
           thumbnailUrl = cachedUrl;
         } else {
-          // Use tier-aware storage service - thumbnails are always in STANDARD tier
           const isTierAware = this.storageService instanceof TierAwareStorageService;
-
           if (isTierAware) {
-            // Thumbnails are always in STANDARD tier for fast access
             thumbnailUrl = await (
               this.storageService as TierAwareStorageService
-            ).generatePresignedUrl(
-              file.thumbnailObjectName,
-              604800, // 7 days expiration
-              StorageTier.STANDARD
-            );
+            ).generatePresignedUrl(file.thumbnailObjectName, 604800, StorageTier.STANDARD);
           } else {
             thumbnailUrl = await this.storageService.generatePresignedUrl(
               file.thumbnailObjectName,
-              604800 // 7 days expiration
+              604800
             );
           }
-
-          // Cache the URL (cache for ~7 days minus buffer)
           this.urlCache?.set(cacheKey, thumbnailUrl, 600000);
         }
       } catch (error) {
-        // Thumbnail URL generation failed - non-critical
-        // Continue without thumbnail URL
+        // Ignore error
       }
     }
 
     return {
       id: file.id,
-      userId: file.userId,
-      folderId: file.folderId,
+      type: 'file',
       name: file.name,
-      originalName: file.originalName,
+      description: file.description,
+      updatedAt: file.updatedAt.toISOString(),
       mimeType: file.mimeType,
       size: Number(file.size),
-      type: file.type,
-      status: file.status,
-      storageTier: file.storageTier,
       thumbnailUrl,
-      thumbnailGenerated: file.thumbnailGenerated,
-      description: file.description,
-      tags: file.tags,
-      metadata: file.metadata,
-      expiresAt: file.expiresAt?.toISOString(),
-      createdAt: file.createdAt.toISOString(),
-      updatedAt: file.updatedAt.toISOString(),
-      deletedAt: file.deletedAt?.toISOString(),
+    };
+  }
+
+  private mapFolderToResult(folder: Folder): SearchResultItemDTO {
+    return {
+      id: folder.id,
+      type: 'folder',
+      name: folder.name,
+      description: folder.description,
+      updatedAt: folder.updatedAt.toISOString(),
+      color: folder.color,
+      parentId: folder.parentId,
     };
   }
 }
