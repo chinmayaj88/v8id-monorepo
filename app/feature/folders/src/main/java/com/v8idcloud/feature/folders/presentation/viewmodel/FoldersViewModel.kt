@@ -9,8 +9,8 @@ import androidx.paging.map
 import com.v8idcloud.core.common.FolderData
 import com.v8idcloud.core.common.SearchSuggestion
 import com.v8idcloud.core.common.SuggestionType
-import com.v8idcloud.core.data.local.entity.FileEntity
 import com.v8idcloud.core.data.network.FileApiService
+import com.v8idcloud.core.data.network.SearchResultItemDto
 import com.v8idcloud.core.data.repository.FileRepository
 import com.v8idcloud.core.ui.utils.UiUtils
 import com.v8idcloud.core.ui.theme.V8idColors
@@ -123,37 +123,64 @@ class FoldersViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
+                android.util.Log.d(TAG, "Fetching path for folder: $id")
                 val response = fileApiService.getFolderPath(id)
-                if (response.success) {
+                if (response.success && response.data != null) {
                     val pathList = mutableListOf<Pair<String?, String>>(null to "Home")
-                    pathList.addAll(response.data.map { it.id to it.name })
+                    pathList.addAll(response.data.map { (it as SearchResultItemDto).id to it.name })
                     _currentPath.value = pathList
                 }
             } catch (e: Exception) {
-                // Fallback: manually update if API fails (stack-based)
-                // But preferred is API as it is more robust for deep links
+                // Prevent crash if API fails
+                android.util.Log.e(TAG, "Failed to fetch folder path: ${e.message}")
+                // Fallback: Just show current folder name if possible (or just Home)
+                // We don't have the name here easily unless passed, but safe default is better than crash
             }
         }
     }
 
-    private fun mapEntityToUiModel(entity: FileEntity): FolderData {
-        val (icon, color) = if (entity.type == "folder") {
-            getFolderIconAndColor(entity.name)
-        } else {
-             // Provide a default color for files instead of Color.Unspecified to avoid copy() crash
-             UiUtils.getFileIcon(entity.mimeType) to V8idColors.UI.TextSecondary
+    private fun mapEntityToUiModel(item: SearchResultItemDto): FolderData {
+        return try {
+            val folderName = item.name ?: "Unnamed Folder"
+            val (icon, color) = if (item.type == "folder") {
+                try {
+                   getFolderIconAndColor(folderName)
+                } catch(e: Exception) {
+                   Icons.Default.Folder to Color(0xFF7C3AED)
+                }
+            } else {
+                 val fallbackIcon = if (item.mimeType != null) UiUtils.getFileIcon(item.mimeType) else Icons.Default.Description
+                 fallbackIcon to V8idColors.UI.TextSecondary
+            }
+            
+            val itemColor = item.color
+            
+            FolderData(
+                id = item.id,
+                name = folderName,
+                size = if(item.type == "folder") "" else try { UiUtils.formatFileSize(item.size ?: 0L) } catch(e: Exception) { "0 B" },
+                icon = icon,
+                iconColor = if (!itemColor.isNullOrEmpty()) {
+                    try { UiUtils.parseColor(itemColor, color) } catch(e: Exception) { color }
+                } else color,
+                isFolder = item.type == "folder",
+                mimeType = item.mimeType ?: "application/octet-stream",
+                thumbnailUrl = item.thumbnailUrl
+            )
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Critical error mapping item ${item.id}: ${e.message}")
+            // Return safe fallback to prevent entire list crash
+            FolderData(
+                id = item.id,
+                name = "Error loading item",
+                size = "",
+                icon = Icons.Default.Error,
+                iconColor = Color.Red,
+                isFolder = false,
+                mimeType = "error",
+                thumbnailUrl = null
+            )
         }
-        
-        return FolderData(
-            id = entity.id,
-            name = entity.name,
-            size = if(entity.type == "folder") "" else UiUtils.formatFileSize(entity.size),
-            icon = icon,
-            iconColor = if (entity.color != null) UiUtils.parseColor(entity.color, color) else color,
-            isFolder = entity.type == "folder",
-            mimeType = entity.mimeType,
-            thumbnailUrl = entity.thumbnailUrl
-        )
     }
 
     /**
@@ -174,7 +201,7 @@ class FoldersViewModel @Inject constructor(
             try {
                 // Keep using API for global search for now
                 val response = fileApiService.unifiedSearch(query)
-                _searchResults.value = response.data.results.map { item ->
+                _searchResults.value = response.data.results.map { item: SearchResultItemDto ->
                     SearchSuggestion(
                         id = item.id,
                         title = item.name,
@@ -199,8 +226,8 @@ class FoldersViewModel @Inject constructor(
     }
 
     // Helper: Logic to style folders
-    private fun getFolderIconAndColor(name: String): Pair<ImageVector, Color> {
-        val lowerName = name.lowercase()
+    private fun getFolderIconAndColor(name: String?): Pair<ImageVector, Color> {
+        val lowerName = name?.lowercase() ?: ""
         return when {
             lowerName.contains("document") -> Icons.Default.Description to Color(0xFFFFC107)
             lowerName.contains("photo") || lowerName.contains("image") -> Icons.Default.PhotoLibrary to Color(0xFF4CAF50)

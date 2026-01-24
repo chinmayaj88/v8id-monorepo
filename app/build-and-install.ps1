@@ -53,6 +53,7 @@ Write-Host "`n4. Building project..." -ForegroundColor Yellow
 Write-Host "   Running: .\gradlew assembleDebug`n" -ForegroundColor Gray
 
 .\gradlew assembleDebug
+# .\gradlew assembleRelease
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`n[ERROR] Build failed!" -ForegroundColor Red

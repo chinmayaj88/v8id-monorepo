@@ -295,7 +295,8 @@ export class FileController {
   async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const folderIdRaw = (req.query.folderId || req.query.parentId) as string | undefined;
+      // Support both parentId and folderId for flexibility
+      const folderIdRaw = (req.query.parentId || req.query.folderId) as string | undefined;
       const dto: ListFilesDTO = {
         folderId: folderIdRaw === 'null' || folderIdRaw === undefined ? null : folderIdRaw,
         status: req.query.status as any,

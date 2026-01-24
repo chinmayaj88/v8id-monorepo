@@ -135,48 +135,30 @@ class HomeViewModel @Inject constructor(
                 _uiState.value = HomeUiState.Loading
             }
             
-            // Collect from Repository Flow (Cache + Network)
-            fileRepository.getDashboardData(forceRefresh).collect { result ->
+            // Collect from Repository Flow (Network Only)
+            fileRepository.getDashboardData().collect { result ->
                 when (result) {
                     is com.v8idcloud.core.common.Result.Loading -> {
                         if (_uiState.value !is HomeUiState.Loaded) {
-                             // Only show loading if we don't have data already
                              _uiState.value = HomeUiState.Loading
                         }
                     }
                     is com.v8idcloud.core.common.Result.Success -> {
                         val data = result.data
-                        val stats = data.stats
-                        if (stats != null) {
-                            // Convert Entity to UI Model
-                            val responseDto = DashboardResponseDto(
-                                storage = com.v8idcloud.core.data.network.StorageStatsDto(stats.storageTotal, stats.storageUsed, stats.storagePercentage),
-                                recentFiles = data.recentFiles.map { 
-                                     com.v8idcloud.core.data.network.SearchResultItemDto(
-                                         id = it.id, 
-                                         type = it.type, 
-                                         name = it.name, 
-                                         description = null,
-                                         updatedAt = it.updatedAt.toString(), 
-                                         mimeType = it.mimeType, 
-                                         size = it.size, 
-                                         thumbnailUrl = it.thumbnailUrl, 
-                                         color = it.color, 
-                                         parentId = it.parentId
-                                     )
-                                },
-                                folders = emptyList(), // Not used anymore for quick access
-                                stats = com.v8idcloud.core.data.network.DashboardStatsDto(stats.totalFiles, stats.totalFolders)
-                            )
-                            _dashboardData.value = responseDto
-                            updateUiState()
-                            
-                            // Sync profile if needed
-                            syncUserProfile()
-                        }
+                        // Map Repository DashboardData to UI DTO
+                        val responseDto = DashboardResponseDto(
+                            storage = com.v8idcloud.core.data.network.StorageStatsDto(data.storageTotal, data.storageUsed, data.storagePercentage),
+                            recentFiles = data.recentFiles,
+                            folders = emptyList(), // Not used anymore for quick access
+                            stats = com.v8idcloud.core.data.network.DashboardStatsDto(data.totalFiles, data.totalFolders)
+                        )
+                        _dashboardData.value = responseDto
+                        updateUiState()
+                        
+                        // Sync profile if needed
+                        syncUserProfile()
                     }
                     is com.v8idcloud.core.common.Result.Error -> {
-                        // Only show error if we have no data at all
                         if (_dashboardData.value == null) {
                             _uiState.value = HomeUiState.Error(result.exception.message ?: "Failed to load dashboard")
                         }

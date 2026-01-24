@@ -197,8 +197,10 @@ fun FoldersScreen(
                 items(
                     count = pagedFiles.itemCount,
                     key = { index -> 
-                        // Use key for optimization if item is loaded
-                        pagedFiles.peek(index)?.id ?: index 
+                        // Use a composite key that combines index and id if available
+                        // This prevents crashes during state restoration with many items
+                        val id = try { pagedFiles.peek(index)?.id } catch(e: Exception) { null }
+                        id ?: "placeholder_$index"
                     }
                 ) { index ->
                     val item = pagedFiles[index]

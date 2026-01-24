@@ -51,6 +51,7 @@ export const updateFileSchema = z.object({
  * List files query schema
  */
 export const listFilesQuerySchema = z.object({
+  parentId: z.string().nullable().optional(),
   folderId: z.string().nullable().optional(),
   status: z.nativeEnum(FileStatus).optional(),
   type: z.nativeEnum(FileType).optional(),

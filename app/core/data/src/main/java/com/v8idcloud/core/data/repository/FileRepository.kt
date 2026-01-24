@@ -1,125 +1,69 @@
 package com.v8idcloud.core.data.repository
 
-import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
-import androidx.room.withTransaction
-import com.v8idcloud.core.data.local.V8idDatabase
-import com.v8idcloud.core.data.local.entity.DashboardStatsEntity
-import com.v8idcloud.core.data.local.entity.FileEntity
-import com.v8idcloud.core.data.local.entity.RecentFileEntity
-import com.v8idcloud.core.data.network.DashboardResponseDto
 import com.v8idcloud.core.data.network.FileApiService
-import com.v8idcloud.core.data.paging.FileRemoteMediator
+import com.v8idcloud.core.data.network.SearchResultItemDto
+import com.v8idcloud.core.data.paging.FilePagingSource
 import com.v8idcloud.core.common.Result
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
 import javax.inject.Singleton
 
 interface FileRepository {
-    fun getFilesStream(folderId: String?): Flow<PagingData<FileEntity>>
+    fun getFilesStream(folderId: String?): Flow<PagingData<SearchResultItemDto>>
     
-    // Dashboard (Offline First)
-    fun getDashboardData(forceRefresh: Boolean): Flow<Result<DashboardData>>
+    // Dashboard (Network Only)
+    fun getDashboardData(): Flow<Result<DashboardData>>
 }
 
 data class DashboardData(
-    val stats: DashboardStatsEntity?,
-    val recentFiles: List<RecentFileEntity>
+    val storageTotal: Long,
+    val storageUsed: Long,
+    val storagePercentage: Double,
+    val totalFiles: Int,
+    val totalFolders: Int,
+    val recentFiles: List<SearchResultItemDto>
 )
 
 @Singleton
 class FileRepositoryImpl @Inject constructor(
-    private val apiService: FileApiService,
-    private val database: V8idDatabase
+    private val apiService: FileApiService
 ) : FileRepository {
 
-    @OptIn(ExperimentalPagingApi::class)
-    override fun getFilesStream(folderId: String?): Flow<PagingData<FileEntity>> {
+    override fun getFilesStream(folderId: String?): Flow<PagingData<SearchResultItemDto>> {
         return Pager(
             config = PagingConfig(
                 pageSize = 20,
-                enablePlaceholders = true,
-                prefetchDistance = 10
+                enablePlaceholders = false,
+                initialLoadSize = 20
             ),
-            remoteMediator = FileRemoteMediator(
-                folderId = folderId,
-                apiService = apiService,
-                database = database
-            ),
-            pagingSourceFactory = { database.fileDao().getFilesByParent(folderId) }
+            pagingSourceFactory = { FilePagingSource(apiService, folderId) }
         ).flow
     }
 
-    override fun getDashboardData(forceRefresh: Boolean): Flow<Result<DashboardData>> = channelFlow {
-        val dao = database.dashboardDao()
-
-        // 1. Emit Cache Immediately
-        val cachedStats = dao.getStatsSync()
-        val cachedFiles = dao.getRecentFilesSync()
-        
-        if (cachedStats != null || cachedFiles.isNotEmpty()) {
-            send(Result.Success(DashboardData(cachedStats, cachedFiles)))
-        } else {
-             send(Result.Loading)
-        }
-
-        // 2. Fetch Network if needed
-        val shouldFetch = forceRefresh || cachedStats == null || 
-                         (System.currentTimeMillis() - cachedStats.lastUpdated > 60 * 60 * 1000) // 1 hr
-
-        if (shouldFetch) {
-            try {
-                val response = apiService.getDashboardData()
-                if (response.success && response.data != null) {
-                    val data = response.data!!
-                    
-                    // Map to Entities
-                    val statsEntity = DashboardStatsEntity(
-                        id = 0,
-                        storageUsed = data.storage.used,
-                        storageTotal = data.storage.total,
-                        storagePercentage = data.storage.percentage,
-                        totalFiles = data.stats.totalFiles,
-                        totalFolders = data.stats.totalFolders
-                    )
-                    
-                    val fileEntities = data.recentFiles.map { dto ->
-                        RecentFileEntity(
-                            id = dto.id,
-                            parentId = null,
-                            name = dto.name,
-                            type = dto.type,
-                            mimeType = dto.mimeType,
-                            size = dto.size ?: 0L,
-                            thumbnailUrl = dto.thumbnailUrl,
-                            color = dto.color,
-                            updatedAt = System.currentTimeMillis() // Or dto.updatedAt
-                        )
-                    }
-
-                    // Save to DB (Update Cache)
-                    database.withTransaction {
-                        dao.insertStats(statsEntity)
-                        dao.clearRecentFiles()
-                        dao.insertRecentFiles(fileEntities)
-                    }
-                    
-                    // Emit New Data
-                    send(Result.Success(DashboardData(statsEntity, fileEntities)))
-                } else {
-                    if (cachedStats == null) {
-                        send(Result.Error(Exception(response.message ?: "Failed to fetch dashboard")))
-                    }
-                }
-            } catch (e: Exception) {
-                if (cachedStats == null) {
-                    send(Result.Error(e))
-                }
+    override fun getDashboardData(): Flow<Result<DashboardData>> = flow {
+        emit(Result.Loading)
+        try {
+            val response = apiService.getDashboardData()
+            if (response.success && response.data != null) {
+                val data = response.data!!
+                val result = DashboardData(
+                    storageTotal = data.storage.total,
+                    storageUsed = data.storage.used,
+                    storagePercentage = data.storage.percentage,
+                    totalFiles = data.stats.totalFiles,
+                    totalFolders = data.stats.totalFolders,
+                    recentFiles = data.recentFiles
+                )
+                emit(Result.Success(result))
+            } else {
+                emit(Result.Error(Exception(response.message ?: "Failed to fetch dashboard")))
             }
+        } catch (e: Exception) {
+            emit(Result.Error(e))
         }
     }
 }

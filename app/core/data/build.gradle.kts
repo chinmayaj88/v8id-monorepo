@@ -22,6 +22,9 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    buildFeatures {
+        buildConfig = true
+    }
 }
 
 dependencies {
@@ -49,11 +52,6 @@ dependencies {
     // Coil for ImageLoader
     implementation(libs.coil.compose)
 
-    // Room Database & SQLCipher
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.room.paging)
+    // Paging
     implementation(libs.androidx.paging.runtime)
-    kapt(libs.androidx.room.compiler)
-    implementation(libs.sqlcipher)
 }
