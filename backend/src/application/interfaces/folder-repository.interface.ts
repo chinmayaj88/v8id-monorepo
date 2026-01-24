@@ -3,6 +3,8 @@ import { Folder } from '../../domain/entities/folder.js';
 export interface IFolderRepository {
   findById(id: string): Promise<Folder | null>;
 
+  findByName(userId: string, name: string, parentId: string | null): Promise<Folder | null>;
+
   create(folderData: {
     userId: string;
     parentId?: string | null;

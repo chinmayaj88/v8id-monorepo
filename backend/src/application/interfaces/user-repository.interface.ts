@@ -45,4 +45,6 @@ export interface IUserRepository {
     limit?: number;
     search?: string;
   }): Promise<{ users: User[]; total: number }>;
+
+  searchByEmail(query: string, limit?: number): Promise<User[]>;
 }

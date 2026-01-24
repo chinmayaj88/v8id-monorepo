@@ -1,25 +1,52 @@
 {
   "info": {
     "_postman_id": "files-folders-collection",
-    "name": "files and folder",
-    "description": "File and folder management endpoints for v8id-cloud.",
+    "name": "Files and Folders",
+    "description": "File and folder management endpoints for v8id-cloud.\n\n**Features:**\n- Single/Multiple file upload (up to 100MB)\n- Chunked large file upload (up to 5GB) with pause/resume/cancel\n- Folder operations with tree structure\n- Universal search\n- User access sharing",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "1. File Upload & Management",
+      "name": "1. File Upload",
       "item": [
         {
-          "name": "Standard Upload",
+          "name": "Single File Upload (up to 100MB)",
           "request": {
             "method": "POST",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "file", "type": "file", "src": [] },
-                { "key": "folderId", "value": "", "type": "text" },
-                { "key": "name", "value": "test-file.txt", "type": "text" }
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "File to upload (max 100MB)"
+                },
+                {
+                  "key": "folderId",
+                  "value": "",
+                  "type": "text",
+                  "description": "Optional folder ID to upload into"
+                },
+                {
+                  "key": "name",
+                  "value": "",
+                  "type": "text",
+                  "description": "Optional custom file name"
+                },
+                {
+                  "key": "description",
+                  "value": "",
+                  "type": "text",
+                  "description": "Optional description"
+                },
+                {
+                  "key": "storageTier",
+                  "value": "STANDARD",
+                  "type": "text",
+                  "description": "STANDARD or ARCHIVE"
+                }
               ]
             },
             "url": {
@@ -30,7 +57,82 @@
           }
         },
         {
-          "name": "Initiate Upload",
+          "name": "Multiple Files Upload",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "Multiple files (max 100MB each)"
+                },
+                {
+                  "key": "folderId",
+                  "value": "",
+                  "type": "text",
+                  "description": "Optional folder ID"
+                },
+                {
+                  "key": "storageTier",
+                  "value": "STANDARD",
+                  "type": "text",
+                  "description": "STANDARD or ARCHIVE"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload-multiple",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload-multiple"]
+            }
+          }
+        },
+        {
+          "name": "Folder Upload (with tree structure)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "Files with webkitRelativePath"
+                },
+                {
+                  "key": "folderStructure",
+                  "value": "",
+                  "type": "text",
+                  "description": "JSON array of folder paths to create"
+                },
+                {
+                  "key": "parentFolderId",
+                  "value": "",
+                  "type": "text",
+                  "description": "Optional parent folder ID"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload-folder",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload-folder"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Chunked Upload (up to 5GB)",
+      "item": [
+        {
+          "name": "Initiate Chunked Upload",
           "request": {
             "method": "POST",
             "header": [
@@ -39,13 +141,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fileName\": \"large-file.zip\",\n  \"fileSize\": 104857600,\n  \"mimeType\": \"application/zip\",\n  \"folderId\": null\n}"
+              "raw": "{\n  \"fileName\": \"large-video.mp4\",\n  \"fileSize\": 5368709120,\n  \"mimeType\": \"video/mp4\",\n  \"folderId\": null,\n  \"storageTier\": \"STANDARD\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/files/upload/initiate",
               "host": ["{{baseUrl}}"],
               "path": ["api", "files", "upload", "initiate"]
-            }
+            },
+            "description": "Initiate a large file upload (up to 5GB). Returns sessionId and upload URL."
           }
         },
         {
@@ -56,21 +159,25 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "sessionId", "value": "{{uploadSessionId}}", "type": "text" },
-                { "key": "chunkNumber", "value": "1", "type": "text" },
-                { "key": "chunk", "type": "file", "src": [] },
-                { "key": "isLastChunk", "value": "false", "type": "text" }
+                {
+                  "key": "chunk",
+                  "type": "file",
+                  "src": [],
+                  "description": "Chunk data (5MB default)"
+                },
+                { "key": "chunkNumber", "value": "1", "type": "text" }
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/files/upload/chunk",
+              "raw": "{{baseUrl}}/api/files/upload/chunk/:sessionId",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "upload", "chunk"]
+              "path": ["api", "files", "upload", "chunk", ":sessionId"],
+              "variable": [{ "key": "sessionId", "value": "{{uploadSessionId}}" }]
             }
           }
         },
         {
-          "name": "Resume Upload",
+          "name": "Resume Upload (Get Progress)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
@@ -79,200 +186,87 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "files", "upload", ":sessionId", "resume"],
               "variable": [{ "key": "sessionId", "value": "{{uploadSessionId}}" }]
-            }
+            },
+            "description": "Get upload progress for resuming. Returns uploaded chunks and bytes."
           }
         },
         {
-          "name": "Complete Upload",
+          "name": "Complete Chunked Upload",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
               "raw": "{{baseUrl}}/api/files/upload/:sessionId/complete",
               "host": ["{{baseUrl}}"],
               "path": ["api", "files", "upload", ":sessionId", "complete"],
               "variable": [{ "key": "sessionId", "value": "{{uploadSessionId}}" }]
-            }
-          }
-        },
-        {
-          "name": "Update File",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"updated-filename.txt\",\n  \"description\": \"An updated description\"\n}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/files/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id"],
-              "variable": [{ "key": "id", "value": "{{fileId}}" }]
-            }
+            "description": "Finalize chunked upload after all chunks are uploaded."
           }
         },
         {
-          "name": "Delete File (Trash)",
+          "name": "Cancel Upload",
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/files/:id",
+              "raw": "{{baseUrl}}/api/files/upload/:sessionId/cancel",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id"],
-              "variable": [{ "key": "id", "value": "{{fileId}}" }]
-            }
-          }
-        },
-        {
-          "name": "Permanent Delete File",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/files/:id/permanent",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id", "permanent"],
-              "variable": [{ "key": "id", "value": "{{fileId}}" }]
-            }
+              "path": ["api", "files", "upload", ":sessionId", "cancel"],
+              "variable": [{ "key": "sessionId", "value": "{{uploadSessionId}}" }]
+            },
+            "description": "Cancel chunked upload and delete partial data."
           }
         }
       ]
     },
     {
-      "name": "2. Folder Operations",
+      "name": "3. File Operations",
       "item": [
         {
-          "name": "Create Folder",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"New Workspace\",\n  \"parentId\": null,\n  \"color\": \"#FF5733\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/files/folders",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "folders"]
-            }
-          }
-        },
-        {
-          "name": "List Folders",
+          "name": "List Files (Root or Folder)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/files/folders?parentId=null",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "folders"],
-              "query": [{ "key": "parentId", "value": "null" }]
-            }
-          }
-        },
-        {
-          "name": "Get Folder Details",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/files/folders/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "folders", ":id"],
-              "variable": [{ "key": "id", "value": "{{folderId}}" }]
-            }
-          }
-        },
-        {
-          "name": "Get Folder Path (Breadcrumbs)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/files/folders/:id/path",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "folders", ":id", "path"],
-              "variable": [{ "key": "id", "value": "{{folderId}}" }]
-            }
-          }
-        },
-        {
-          "name": "Update Folder",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Folder Name\",\n  \"color\": \"#33FF57\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/files/folders/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "folders", ":id"],
-              "variable": [{ "key": "id", "value": "{{folderId}}" }]
-            }
-          }
-        },
-        {
-          "name": "Delete Folder (Trash)",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/files/folders/:id",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "folders", ":id"],
-              "variable": [{ "key": "id", "value": "{{folderId}}" }]
-            }
-          }
-        },
-        {
-          "name": "Permanent Delete Folder",
-          "request": {
-            "method": "DELETE",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/files/folders/:id/permanent",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "folders", ":id", "permanent"],
-              "variable": [{ "key": "id", "value": "{{folderId}}" }]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "3. File Retrieval & Consumption",
-      "item": [
-        {
-          "name": "List Files and Folders (Root)",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/files?parentId=null",
+              "raw": "{{baseUrl}}/api/files?type=file&folderId=",
               "host": ["{{baseUrl}}"],
               "path": ["api", "files"],
-              "query": [{ "key": "parentId", "value": "null" }]
-            }
+              "query": [
+                { "key": "type", "value": "file", "description": "file or folder (for tabs)" },
+                {
+                  "key": "folderId",
+                  "value": "",
+                  "description": "null/empty for root files (not in any folder)"
+                },
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "limit", "value": "20", "disabled": true },
+                { "key": "orderBy", "value": "createdAt", "disabled": true },
+                { "key": "orderDirection", "value": "desc", "disabled": true }
+              ]
+            },
+            "description": "List files at root (folderId empty) or inside a folder."
           }
         },
         {
-          "name": "Get File Metadata",
+          "name": "List Folders (Root or Subfolder)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files?type=folder&parentId=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files"],
+              "query": [
+                { "key": "type", "value": "folder", "description": "file or folder (for tabs)" },
+                { "key": "parentId", "value": "", "description": "null/empty for root folders" }
+              ]
+            },
+            "description": "List folders at root (parentId empty) or inside a parent folder."
+          }
+        },
+        {
+          "name": "Get File Details",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
@@ -294,31 +288,67 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "files", ":id", "download"],
               "variable": [{ "key": "id", "value": "{{fileId}}" }]
-            }
+            },
+            "description": "Returns presigned URL for direct download."
           }
         },
         {
-          "name": "Preview File",
+          "name": "Update File",
           "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"renamed-file.txt\",\n  \"description\": \"Updated description\",\n  \"folderId\": null\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/files/:id/preview",
+              "raw": "{{baseUrl}}/api/files/:id",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id", "preview"],
+              "path": ["api", "files", ":id"],
               "variable": [{ "key": "id", "value": "{{fileId}}" }]
             }
           }
         },
         {
-          "name": "Get Thumbnail",
+          "name": "Delete File (Soft Delete)",
           "request": {
-            "method": "GET",
+            "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/files/:id/thumbnail",
+              "raw": "{{baseUrl}}/api/files/:id",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id", "thumbnail"],
+              "path": ["api", "files", ":id"],
+              "variable": [{ "key": "id", "value": "{{fileId}}" }]
+            },
+            "description": "Moves file to trash."
+          }
+        },
+        {
+          "name": "Permanent Delete File",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id/permanent",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id", "permanent"],
+              "variable": [{ "key": "id", "value": "{{fileId}}" }]
+            },
+            "description": "Permanently delete from trash and OCI storage."
+          }
+        },
+        {
+          "name": "Restore File from Trash",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/:id/restore",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", ":id", "restore"],
               "variable": [{ "key": "id", "value": "{{fileId}}" }]
             }
           }
@@ -326,35 +356,160 @@
       ]
     },
     {
-      "name": "4. Advanced Features",
+      "name": "4. Folder Operations",
       "item": [
         {
-          "name": "Unified Search",
+          "name": "Create Folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Folder\",\n  \"parentId\": null,\n  \"description\": \"Folder description\",\n  \"color\": \"#FF5733\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders"]
+            }
+          }
+        },
+        {
+          "name": "Get Folder Contents",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/files/search?q=test",
+              "raw": "{{baseUrl}}/api/files/folders/:id/contents",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders", ":id", "contents"],
+              "variable": [{ "key": "id", "value": "{{folderId}}" }]
+            },
+            "description": "Get folder contents with files and subfolders."
+          }
+        },
+        {
+          "name": "Get Folder Path (Breadcrumbs)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders/:id/path",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders", ":id", "path"],
+              "variable": [{ "key": "id", "value": "{{folderId}}" }]
+            },
+            "description": "Get full path from root to current folder for breadcrumb navigation."
+          }
+        },
+        {
+          "name": "Update Folder",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Renamed Folder\",\n  \"color\": \"#33FF57\",\n  \"parentId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders", ":id"],
+              "variable": [{ "key": "id", "value": "{{folderId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Folder (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders", ":id"],
+              "variable": [{ "key": "id", "value": "{{folderId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Permanent Delete Folder",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders/:id/permanent",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders", ":id", "permanent"],
+              "variable": [{ "key": "id", "value": "{{folderId}}" }]
+            },
+            "description": "Permanently delete folder and all contents."
+          }
+        },
+        {
+          "name": "Restore Folder from Trash",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/folders/:id/restore",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "folders", ":id", "restore"],
+              "variable": [{ "key": "id", "value": "{{folderId}}" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Search",
+      "item": [
+        {
+          "name": "Universal Search (Files & Folders)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/search?q=test&limit=20",
               "host": ["{{baseUrl}}"],
               "path": ["api", "files", "search"],
-              "query": [{ "key": "q", "value": "test" }]
-            }
+              "query": [
+                { "key": "q", "value": "test", "description": "Search query" },
+                { "key": "limit", "value": "20", "description": "Max results" }
+              ]
+            },
+            "description": "Search across all files and folders. Returns ranked results."
           }
-        },
+        }
+      ]
+    },
+    {
+      "name": "6. Sharing",
+      "item": [
         {
-          "name": "Dashboard Data",
+          "name": "Search Users (for sharing)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/files/dashboard",
+              "raw": "{{baseUrl}}/api/files/users/search?q=john@example.com",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "dashboard"]
-            }
+              "path": ["api", "files", "users", "search"],
+              "query": [
+                { "key": "q", "value": "john@example.com", "description": "Email to search" }
+              ]
+            },
+            "description": "Search users by email for sharing. Returns minimal user info."
           }
         },
         {
-          "name": "Bulk Delete",
+          "name": "Share File/Folder by Email",
           "request": {
             "method": "POST",
             "header": [
@@ -363,116 +518,63 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fileIds\": [\"id1\", \"id2\"],\n  \"folderIds\": [\"fid1\"]\n}"
+              "raw": "{\n  \"fileId\": \"file-id-here\",\n  \"folderId\": null,\n  \"email\": \"user@example.com\",\n  \"permission\": \"VIEW\"\n}",
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/files/bulk/delete",
+              "raw": "{{baseUrl}}/api/files/share",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "bulk", "delete"]
-            }
-          }
-        },
-        {
-          "name": "Bulk Move",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fileIds\": [\"id1\"],\n  \"folderIds\": [],\n  \"targetFolderId\": \"target-folder-id\"\n}"
+              "path": ["api", "files", "share"]
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/files/bulk/move",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "bulk", "move"]
-            }
+            "description": "Share a file or folder with another user. Permissions: VIEW, EDIT"
           }
         },
         {
-          "name": "Bulk Restore",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"fileIds\": [\"id1\"],\n  \"folderIds\": [\"fid1\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/files/bulk/restore",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "bulk", "restore"]
-            }
-          }
-        },
-        {
-          "name": "Share File",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"userId\": \"target-user-id\",\n  \"permission\": \"READ\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/files/:id/share",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id", "share"],
-              "variable": [{ "key": "id", "value": "{{fileId}}" }]
-            }
-          }
-        },
-        {
-          "name": "Generate Public Link",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"expiresInHours\": 24\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/files/:id/link",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id", "link"],
-              "variable": [{ "key": "id", "value": "{{fileId}}" }]
-            }
-          }
-        },
-        {
-          "name": "Public Redirect Access",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/api/files/link/:token",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "link", ":token"],
-              "variable": [{ "key": "token", "value": "" }]
-            }
-          }
-        },
-        {
-          "name": "List Favorites",
+          "name": "List My Shares",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": {
-              "raw": "{{baseUrl}}/api/files/favorites",
+              "raw": "{{baseUrl}}/api/files/shares",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "favorites"]
-            }
+              "path": ["api", "files", "shares"]
+            },
+            "description": "List all files/folders I've shared with others."
           }
         },
         {
-          "name": "List Trash",
+          "name": "List Shared with Me",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/shared-with-me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "shared-with-me"]
+            },
+            "description": "List all files/folders shared with me by others."
+          }
+        },
+        {
+          "name": "Remove Share",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/shares/:shareId",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "shares", ":shareId"],
+              "variable": [{ "key": "shareId", "value": "" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Trash",
+      "item": [
+        {
+          "name": "List Trash (Files & Folders)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
@@ -484,60 +586,13 @@
           }
         }
       ]
-    },
-    {
-      "name": "5. Versioning & Activity",
-      "item": [
-        {
-          "name": "List File Versions",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/files/:id/versions",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id", "versions"],
-              "variable": [{ "key": "id", "value": "{{fileId}}" }]
-            }
-          }
-        },
-        {
-          "name": "Restore File Version",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/files/:id/versions/:versionId/restore",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id", "versions", ":versionId", "restore"],
-              "variable": [
-                { "key": "id", "value": "{{fileId}}" },
-                { "key": "versionId", "value": "" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get File Activity",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": {
-              "raw": "{{baseUrl}}/api/files/:id/activity",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", ":id", "activity"],
-              "variable": [{ "key": "id", "value": "{{fileId}}" }]
-            }
-          }
-        }
-      ]
     }
   ],
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:4000",
-      "type": "string"
-    }
+    { "key": "baseUrl", "value": "http://localhost:4000", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "fileId", "value": "", "type": "string" },
+    { "key": "folderId", "value": "", "type": "string" },
+    { "key": "uploadSessionId", "value": "", "type": "string" }
   ]
 }

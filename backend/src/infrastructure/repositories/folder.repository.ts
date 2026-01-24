@@ -40,6 +40,23 @@ export class FolderRepository implements IFolderRepository {
     return this.toDomain(folder);
   }
 
+  async findByName(userId: string, name: string, parentId: string | null): Promise<Folder | null> {
+    const folder = await prisma.folder.findFirst({
+      where: {
+        userId,
+        name,
+        parentId: parentId ?? null,
+        isDeleted: false,
+      },
+    });
+
+    if (!folder) {
+      return null;
+    }
+
+    return this.toDomain(folder);
+  }
+
   async create(folderData: {
     userId: string;
     parentId?: string | null;

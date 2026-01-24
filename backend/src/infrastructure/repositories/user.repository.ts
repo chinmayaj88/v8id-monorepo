@@ -189,4 +189,19 @@ export class UserRepository implements IUserRepository {
       total,
     };
   }
+
+  async searchByEmail(query: string, limit: number = 10): Promise<User[]> {
+    const searchQuery = query.toLowerCase().trim();
+
+    const users = await prisma.user.findMany({
+      where: {
+        email: { contains: searchQuery },
+        isActive: true,
+      },
+      take: limit,
+      orderBy: { email: 'asc' },
+    });
+
+    return users.map(user => this.toDomain(user));
+  }
 }

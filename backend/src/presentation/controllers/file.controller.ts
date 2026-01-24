@@ -1,7 +1,8 @@
 /**
  * File Controller
  *
- * Handles HTTP requests related to file operations.
+ * Handles HTTP requests related to file and folder operations.
+ * Clean implementation with essential methods only.
  */
 
 import { Response } from 'express';
@@ -18,41 +19,19 @@ import { DeleteFolderUseCase } from '../../application/use-cases/delete-folder.u
 import { PermanentDeleteFolderUseCase } from '../../application/use-cases/permanent-delete-folder.use-case.js';
 import { RestoreFolderUseCase } from '../../application/use-cases/restore-folder.use-case.js';
 import { ListFoldersUseCase } from '../../application/use-cases/list-folders.use-case.js';
-import { ArchiveFileUseCase } from '../../application/use-cases/archive-file.use-case.js';
 import { GetFileUseCase } from '../../application/use-cases/get-file.use-case.js';
 import { GetFolderUseCase } from '../../application/use-cases/get-folder.use-case.js';
-import { ShareFileUseCase } from '../../application/use-cases/share-file.use-case.js';
-import { ListSharedFilesUseCase } from '../../application/use-cases/list-shared-files.use-case.js';
-import { UnshareFileUseCase } from '../../application/use-cases/unshare-file.use-case.js';
-import { BulkDeleteFilesUseCase } from '../../application/use-cases/bulk-delete-files.use-case.js';
-import { BulkMoveFilesUseCase } from '../../application/use-cases/bulk-move-files.use-case.js';
-import { BulkRestoreFilesUseCase } from '../../application/use-cases/bulk-restore-files.use-case.js';
-import { CopyFileUseCase } from '../../application/use-cases/copy-file.use-case.js';
-import { CopyFolderUseCase } from '../../application/use-cases/copy-folder.use-case.js';
-import { StorageAnalyticsUseCase } from '../../application/use-cases/storage-analytics.use-case.js';
 import { PreviewFileUseCase } from '../../application/use-cases/preview-file.use-case.js';
-import { ToggleFavoriteUseCase } from '../../application/use-cases/toggle-favorite.use-case.js';
-import { ListFavoritesUseCase } from '../../application/use-cases/list-favorites.use-case.js';
-import { CreateFileCommentUseCase } from '../../application/use-cases/create-file-comment.use-case.js';
-import { ListFileCommentsUseCase } from '../../application/use-cases/list-file-comments.use-case.js';
-import { SetFileExpirationUseCase } from '../../application/use-cases/set-file-expiration.use-case.js';
-import { GenerateFileLinkUseCase } from '../../application/use-cases/generate-file-link.use-case.js';
-import { ListFileVersionsUseCase } from '../../application/use-cases/list-file-versions.use-case.js';
-import { RestoreFileVersionUseCase } from '../../application/use-cases/restore-file-version.use-case.js';
-import { CreateFolderTemplateUseCase } from '../../application/use-cases/create-folder-template.use-case.js';
-import { CreateFolderFromTemplateUseCase } from '../../application/use-cases/create-folder-from-template.use-case.js';
-import { ListFolderTemplatesUseCase } from '../../application/use-cases/list-folder-templates.use-case.js';
-import { GetFileActivityUseCase } from '../../application/use-cases/get-file-activity.use-case.js';
 import { InitiateUploadUseCase } from '../../application/use-cases/initiate-upload.use-case.js';
 import { ChunkUploadUseCase } from '../../application/use-cases/chunk-upload.use-case.js';
 import { CompleteUploadUseCase } from '../../application/use-cases/complete-upload.use-case.js';
 import { ResumeUploadUseCase } from '../../application/use-cases/resume-upload.use-case.js';
-import { CreateFileVersionUseCase } from '../../application/use-cases/create-file-version.use-case.js';
+import { CancelUploadUseCase } from '../../application/use-cases/cancel-upload.use-case.js';
+import { ShareByEmailUseCase } from '../../application/use-cases/share-by-email.use-case.js';
+import { ListSharedFilesUseCase } from '../../application/use-cases/list-shared-files.use-case.js';
+import { UnshareFileUseCase } from '../../application/use-cases/unshare-file.use-case.js';
+import { SearchUsersUseCase } from '../../application/use-cases/search-users.use-case.js';
 import { UnifiedSearchUseCase } from '../../application/use-cases/unified-search.use-case.js';
-import { GenerateThumbnailUseCase } from '../../application/use-cases/generate-thumbnail.use-case.js';
-import { RegenerateThumbnailUseCase } from '../../application/use-cases/regenerate-thumbnail.use-case.js';
-import { GetDashboardDataUseCase } from '../../application/use-cases/get-dashboard-data.use-case.js';
-import { AccessFileLinkUseCase } from '../../application/use-cases/access-file-link.use-case.js';
 import { GetFolderPathUseCase } from '../../application/use-cases/get-folder-path.use-case.js';
 import {
   UploadFileDTO,
@@ -72,35 +51,17 @@ export class FileController {
     private chunkUploadUseCase: ChunkUploadUseCase,
     private resumeUploadUseCase: ResumeUploadUseCase,
     private completeUploadUseCase: CompleteUploadUseCase,
+    private cancelUploadUseCase: CancelUploadUseCase,
     private downloadFileUseCase: DownloadFileUseCase,
     private deleteFileUseCase: DeleteFileUseCase,
     private permanentDeleteFileUseCase: PermanentDeleteFileUseCase,
     private restoreFileUseCase: RestoreFileUseCase,
-    private archiveFileUseCase: ArchiveFileUseCase,
     private getFileUseCase: GetFileUseCase,
     private getFolderUseCase: GetFolderUseCase,
-    private shareFileUseCase: ShareFileUseCase,
+    private shareByEmailUseCase: ShareByEmailUseCase,
     private listSharedFilesUseCase: ListSharedFilesUseCase,
     private unshareFileUseCase: UnshareFileUseCase,
-    private bulkDeleteFilesUseCase: BulkDeleteFilesUseCase,
-    private bulkMoveFilesUseCase: BulkMoveFilesUseCase,
-    private bulkRestoreFilesUseCase: BulkRestoreFilesUseCase,
-    private copyFileUseCase: CopyFileUseCase,
-    private copyFolderUseCase: CopyFolderUseCase,
-    private storageAnalyticsUseCase: StorageAnalyticsUseCase,
     private previewFileUseCase: PreviewFileUseCase,
-    private toggleFavoriteUseCase: ToggleFavoriteUseCase,
-    private listFavoritesUseCase: ListFavoritesUseCase,
-    private createFileCommentUseCase: CreateFileCommentUseCase,
-    private listFileCommentsUseCase: ListFileCommentsUseCase,
-    private setFileExpirationUseCase: SetFileExpirationUseCase,
-    private generateFileLinkUseCase: GenerateFileLinkUseCase,
-    private listFileVersionsUseCase: ListFileVersionsUseCase,
-    private restoreFileVersionUseCase: RestoreFileVersionUseCase,
-    private createFolderTemplateUseCase: CreateFolderTemplateUseCase,
-    private createFolderFromTemplateUseCase: CreateFolderFromTemplateUseCase,
-    private listFolderTemplatesUseCase: ListFolderTemplatesUseCase,
-    private getFileActivityUseCase: GetFileActivityUseCase,
     private listFilesUseCase: ListFilesUseCase,
     private updateFileUseCase: UpdateFileUseCase,
     private createFolderUseCase: CreateFolderUseCase,
@@ -109,75 +70,16 @@ export class FileController {
     private permanentDeleteFolderUseCase: PermanentDeleteFolderUseCase,
     private restoreFolderUseCase: RestoreFolderUseCase,
     private listFoldersUseCase: ListFoldersUseCase,
-    private createFileVersionUseCase: CreateFileVersionUseCase,
-    private generateThumbnailUseCase: GenerateThumbnailUseCase,
-    private regenerateThumbnailUseCase: RegenerateThumbnailUseCase,
     private unifiedSearchUseCase: UnifiedSearchUseCase,
-    private getDashboardDataUseCase: GetDashboardDataUseCase,
     private getFolderPathUseCase: GetFolderPathUseCase,
-    private accessFileLinkUseCase: AccessFileLinkUseCase
+    private searchUsersUseCase: SearchUsersUseCase
   ) {}
 
-  /**
-   * GET /api/files/folders/:id/path
-   * Get full folder path for breadcrumbs
-   */
-  async getFolderPath(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const folderId = req.params.id as string;
+  // ==========================================
+  // FILE UPLOAD
+  // ==========================================
 
-      if (!folderId) {
-        ResponseUtil.validationError(res, 'Folder ID is required');
-        return;
-      }
-
-      const result = await this.getFolderPathUseCase.execute(userId, folderId);
-
-      ResponseUtil.success(res, result, 'Folder path retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get folder path';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'GET_FOLDER_PATH_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/link/:token
-   * Access a file via public link
-   */
-  async accessLink(req: any, res: Response): Promise<void> {
-    try {
-      const token = req.params.token as string;
-
-      if (!token) {
-        ResponseUtil.validationError(res, 'Token is required');
-        return;
-      }
-
-      const result = await this.accessFileLinkUseCase.execute(token);
-
-      // Redirect to the PAR URL (OCI Object Storage)
-      res.redirect(result.url);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to access link';
-      if (message.includes('not found') || message.includes('expired')) {
-        ResponseUtil.notFound(res, message);
-      } else {
-        ResponseUtil.error(res, 'ACCESS_LINK_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/upload
-   * Upload a new file
-   */
+  /** POST /api/files/upload - Single file upload */
   async upload(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
@@ -202,7 +104,7 @@ export class FileController {
             ? JSON.parse(req.body.metadata)
             : req.body.metadata
           : undefined,
-        storageTier: req.body.storageTier || undefined, // Accept storageTier from request (STANDARD or ARCHIVE)
+        storageTier: req.body.storageTier || undefined,
       };
 
       const result = await this.uploadFileUseCase.execute(
@@ -212,7 +114,6 @@ export class FileController {
         file.originalname,
         file.mimetype
       );
-
       ResponseUtil.created(res, result, 'File uploaded successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'File upload failed';
@@ -220,85 +121,196 @@ export class FileController {
     }
   }
 
-  /**
-   * GET /api/files/:id/download
-   * Download a file
-   */
-  async download(req: AuthenticatedRequest, res: Response): Promise<void> {
+  /** POST /api/files/upload-multiple - Multiple files upload */
+  async uploadMultiple(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const fileId = req.params.id as string;
+      const files = req.files as Express.Multer.File[];
 
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
+      if (!files || files.length === 0) {
+        ResponseUtil.validationError(res, 'No files provided');
         return;
       }
 
-      const result = await this.downloadFileUseCase.execute(userId, fileId);
-
-      res.setHeader('Content-Type', result.contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
-      res.setHeader('Content-Length', result.contentLength.toString());
-
-      if (result.metadata) {
-        Object.entries(result.metadata).forEach(([key, value]) => {
-          res.setHeader(`X-Meta-${key}`, value);
-        });
+      const results = [];
+      for (const file of files) {
+        const dto: UploadFileDTO = {
+          folderId: req.body.folderId || null,
+          storageTier: req.body.storageTier || undefined,
+        };
+        const result = await this.uploadFileUseCase.execute(
+          userId,
+          dto,
+          file.buffer,
+          file.originalname,
+          file.mimetype
+        );
+        results.push(result);
       }
 
-      res.send(result.file);
+      ResponseUtil.created(
+        res,
+        { files: results, count: results.length },
+        `${results.length} files uploaded successfully`
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'File download failed';
+      const message = error instanceof Error ? error.message : 'File upload failed';
+      ResponseUtil.error(res, 'UPLOAD_ERROR', message, 500);
+    }
+  }
+
+  // ==========================================
+  // CHUNKED UPLOAD
+  // ==========================================
+
+  /** POST /api/files/upload/initiate - Start chunked upload */
+  async initiateUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const dto = {
+        fileName: req.body.fileName,
+        fileSize: req.body.fileSize,
+        mimeType: req.body.mimeType,
+        folderId: req.body.folderId || null,
+        chunkSize: req.body.chunkSize,
+        storageTier: req.body.storageTier || undefined,
+      };
+
+      const result = await this.initiateUploadUseCase.execute(userId, dto);
+      ResponseUtil.success(res, result, 'Upload session initiated successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to initiate upload';
+      if (message.includes('quota') || message.includes('storage')) {
+        ResponseUtil.error(res, 'STORAGE_QUOTA_ERROR', message, 400);
+      } else {
+        ResponseUtil.error(res, 'INITIATE_UPLOAD_ERROR', message, 500);
+      }
+    }
+  }
+
+  /** POST /api/files/upload/chunk/:sessionId - Upload a chunk */
+  async uploadChunk(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const sessionId = req.params.sessionId;
+      const chunk = req.file;
+
+      if (!sessionId) {
+        ResponseUtil.validationError(res, 'Session ID is required');
+        return;
+      }
+
+      if (!chunk) {
+        ResponseUtil.validationError(res, 'No chunk file provided');
+        return;
+      }
+
+      const dto = {
+        sessionId,
+        chunkNumber: parseInt(req.body.chunkNumber, 10),
+        chunkData: chunk.buffer,
+        isLastChunk: req.body.isLastChunk === true || req.body.isLastChunk === 'true',
+      };
+
+      const result = await this.chunkUploadUseCase.execute(userId, dto);
+      ResponseUtil.success(res, result, 'Chunk uploaded successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to upload chunk';
       if (message.includes('not found')) {
         ResponseUtil.notFound(res, message);
       } else if (message.includes('Access denied')) {
         ResponseUtil.forbidden(res, message);
       } else {
-        ResponseUtil.error(res, 'DOWNLOAD_ERROR', message, 500);
+        ResponseUtil.error(res, 'CHUNK_UPLOAD_ERROR', message, 500);
       }
     }
   }
 
-  /**
-   * GET /api/files/:id
-   * Get file metadata
-   */
-  async getById(req: AuthenticatedRequest, res: Response): Promise<void> {
+  /** GET /api/files/upload/:sessionId/resume - Get upload progress */
+  async resumeUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const fileId = req.params.id as string;
+      const sessionId = req.params.sessionId;
 
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
+      if (!sessionId) {
+        ResponseUtil.validationError(res, 'Session ID is required');
         return;
       }
 
-      const result = await this.getFileUseCase.execute(userId, fileId);
-
-      ResponseUtil.success(res, result, 'File retrieved successfully');
+      const result = await this.resumeUploadUseCase.execute(userId, sessionId);
+      ResponseUtil.success(res, result, 'Upload session retrieved successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get file';
+      const message = error instanceof Error ? error.message : 'Failed to resume upload';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else {
+        ResponseUtil.error(res, 'RESUME_UPLOAD_ERROR', message, 500);
+      }
+    }
+  }
+
+  /** POST /api/files/upload/:sessionId/complete - Complete chunked upload */
+  async completeUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const sessionId = req.params.sessionId;
+
+      if (!sessionId) {
+        ResponseUtil.validationError(res, 'Session ID is required');
+        return;
+      }
+
+      const result = await this.completeUploadUseCase.execute(userId, { sessionId });
+      ResponseUtil.success(res, result, 'Upload completed successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to complete upload';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else {
+        ResponseUtil.error(res, 'COMPLETE_UPLOAD_ERROR', message, 500);
+      }
+    }
+  }
+
+  /** DELETE /api/files/upload/:sessionId/cancel - Cancel chunked upload */
+  async cancelUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const sessionId = req.params.sessionId;
+
+      if (!sessionId) {
+        ResponseUtil.validationError(res, 'Session ID is required');
+        return;
+      }
+
+      const result = await this.cancelUploadUseCase.execute(userId, sessionId);
+      ResponseUtil.success(res, result, 'Upload cancelled successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to cancel upload';
       if (message.includes('not found')) {
         ResponseUtil.notFound(res, message);
       } else if (message.includes('Access denied')) {
         ResponseUtil.forbidden(res, message);
       } else {
-        ResponseUtil.error(res, 'GET_FILE_ERROR', message, 500);
+        ResponseUtil.error(res, 'CANCEL_UPLOAD_ERROR', message, 500);
       }
     }
   }
 
-  /**
-   * GET /api/files
-   * List files with filtering and pagination
-   */
+  // ==========================================
+  // FILE/FOLDER LISTING
+  // ==========================================
+
+  /** GET /api/files - List files and folders */
   async list(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      // Support both parentId and folderId for flexibility
       const folderIdRaw = (req.query.parentId || req.query.folderId) as string | undefined;
       const dto: ListFilesDTO = {
-        folderId: folderIdRaw === 'null' || folderIdRaw === undefined ? null : folderIdRaw,
+        folderId:
+          folderIdRaw === 'null' || folderIdRaw === '' || folderIdRaw === undefined
+            ? null
+            : folderIdRaw,
         status: req.query.status as any,
         type: req.query.type as any,
         search: req.query.search as string | undefined,
@@ -327,21 +339,31 @@ export class FileController {
     }
   }
 
-  /**
-   * GET /api/files/trash
-   * List deleted files (trash)
-   */
+  /** GET /api/files/search - Universal search */
+  async search(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const dto = {
+        search: (req.query.q || req.query.search) as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
+      };
+
+      const result = await this.unifiedSearchUseCase.execute(userId, dto);
+      ResponseUtil.success(res, result, 'Search completed successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Search failed';
+      ResponseUtil.error(res, 'SEARCH_ERROR', message, 500);
+    }
+  }
+
+  /** GET /api/files/trash - List trash items */
   async listTrash(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const dto: ListFilesDTO = {
-        status: 'DELETED' as any, // Only show deleted files
-        type: req.query.type as any,
-        search: req.query.search as string | undefined,
+        status: 'DELETED' as any,
         page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
         limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
-        orderBy: req.query.orderBy as any,
-        orderDirection: req.query.orderDirection as 'asc' | 'desc' | undefined,
       };
 
       const result = await this.listFilesUseCase.execute(userId, dto);
@@ -355,27 +377,108 @@ export class FileController {
           total: result.total,
           totalPages: result.totalPages,
         },
-        'Trash files retrieved successfully'
+        'Trash retrieved successfully'
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to list trash files';
-      ResponseUtil.error(res, 'LIST_TRASH_FILES_ERROR', message, 500);
+      const message = error instanceof Error ? error.message : 'Failed to list trash';
+      ResponseUtil.error(res, 'LIST_TRASH_ERROR', message, 500);
     }
   }
 
-  /**
-   * PATCH /api/files/:id
-   * Update file metadata
-   */
-  async update(req: AuthenticatedRequest, res: Response): Promise<void> {
+  // ==========================================
+  // FILE OPERATIONS
+  // ==========================================
+
+  /** GET /api/files/:id - Get file details */
+  async getById(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const fileId = req.params.id as string;
+      const fileId = req.params.id;
 
       if (!fileId) {
         ResponseUtil.validationError(res, 'File ID is required');
         return;
       }
+
+      const result = await this.getFileUseCase.execute(userId, fileId);
+      ResponseUtil.success(res, result, 'File retrieved successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get file';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else {
+        ResponseUtil.error(res, 'GET_FILE_ERROR', message, 500);
+      }
+    }
+  }
+
+  /** GET /api/files/:id/download - Download file */
+  async download(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const fileId = req.params.id;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
+
+      const result = await this.downloadFileUseCase.execute(userId, fileId);
+
+      res.setHeader('Content-Type', result.contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+      res.setHeader('Content-Length', result.contentLength.toString());
+      res.send(result.file);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'File download failed';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else {
+        ResponseUtil.error(res, 'DOWNLOAD_ERROR', message, 500);
+      }
+    }
+  }
+
+  /** GET /api/files/:id/preview - Preview file (inline viewing) */
+  async preview(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const fileId = req.params.id;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
+
+      const result = await this.previewFileUseCase.execute(userId, fileId);
+      ResponseUtil.success(res, result, 'Preview URL generated successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to generate preview';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else {
+        ResponseUtil.error(res, 'PREVIEW_ERROR', message, 500);
+      }
+    }
+  }
+
+  /** PATCH /api/files/:id - Update file */
+  async update(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const fileId = req.params.id;
+
+      if (!fileId) {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
+
       const dto: UpdateFileDTO = {
         name: req.body.name,
         folderId:
@@ -390,7 +493,6 @@ export class FileController {
       };
 
       const result = await this.updateFileUseCase.execute(userId, fileId, dto);
-
       ResponseUtil.success(res, result, 'File updated successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update file';
@@ -404,14 +506,11 @@ export class FileController {
     }
   }
 
-  /**
-   * DELETE /api/files/:id
-   * Delete a file (soft delete - moves to trash)
-   */
+  /** DELETE /api/files/:id - Soft delete file */
   async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const fileId = req.params.id as string;
+      const fileId = req.params.id;
 
       if (!fileId) {
         ResponseUtil.validationError(res, 'File ID is required');
@@ -419,7 +518,6 @@ export class FileController {
       }
 
       await this.deleteFileUseCase.execute(userId, fileId);
-
       ResponseUtil.success(res, undefined, 'File moved to trash successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete file';
@@ -433,14 +531,11 @@ export class FileController {
     }
   }
 
-  /**
-   * DELETE /api/files/:id/permanent
-   * Permanently delete a file from trash
-   */
+  /** DELETE /api/files/:id/permanent - Permanent delete */
   async permanentDelete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const fileId = req.params.id as string;
+      const fileId = req.params.id;
 
       if (!fileId) {
         ResponseUtil.validationError(res, 'File ID is required');
@@ -448,7 +543,6 @@ export class FileController {
       }
 
       await this.permanentDeleteFileUseCase.execute(userId, fileId);
-
       ResponseUtil.success(res, undefined, 'File permanently deleted successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to permanently delete file';
@@ -456,22 +550,17 @@ export class FileController {
         ResponseUtil.notFound(res, message);
       } else if (message.includes('Access denied')) {
         ResponseUtil.forbidden(res, message);
-      } else if (message.includes('must be in trash')) {
-        ResponseUtil.validationError(res, message);
       } else {
-        ResponseUtil.error(res, 'PERMANENT_DELETE_FILE_ERROR', message, 500);
+        ResponseUtil.error(res, 'PERMANENT_DELETE_ERROR', message, 500);
       }
     }
   }
 
-  /**
-   * POST /api/files/:id/restore
-   * Restore a soft-deleted file
-   */
+  /** POST /api/files/:id/restore - Restore from trash */
   async restore(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const fileId = req.params.id as string;
+      const fileId = req.params.id;
 
       if (!fileId) {
         ResponseUtil.validationError(res, 'File ID is required');
@@ -479,7 +568,6 @@ export class FileController {
       }
 
       const result = await this.restoreFileUseCase.execute(userId, fileId);
-
       ResponseUtil.success(res, result, 'File restored successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to restore file';
@@ -487,18 +575,17 @@ export class FileController {
         ResponseUtil.notFound(res, message);
       } else if (message.includes('Access denied')) {
         ResponseUtil.forbidden(res, message);
-      } else if (message.includes('cannot be restored')) {
-        ResponseUtil.validationError(res, message);
       } else {
-        ResponseUtil.error(res, 'RESTORE_FILE_ERROR', message, 500);
+        ResponseUtil.error(res, 'RESTORE_ERROR', message, 500);
       }
     }
   }
 
-  /**
-   * POST /api/files/folders
-   * Create a new folder
-   */
+  // ==========================================
+  // FOLDER OPERATIONS
+  // ==========================================
+
+  /** POST /api/files/folders - Create folder */
   async createFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
@@ -511,7 +598,6 @@ export class FileController {
       };
 
       const result = await this.createFolderUseCase.execute(userId, dto);
-
       ResponseUtil.created(res, result, 'Folder created successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create folder';
@@ -519,89 +605,85 @@ export class FileController {
     }
   }
 
-  /**
-   * GET /api/files/folders
-   * List folders with filtering
-   */
-  async listFolders(req: AuthenticatedRequest, res: Response): Promise<void> {
+  /** GET /api/files/folders/:id/contents - Get folder contents */
+  async getFolderContents(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const parentIdRaw = (req.query.parentId || req.query.parentFolderId) as string | undefined;
-      const dto: ListFoldersDTO = {
-        parentId: parentIdRaw === 'null' ? null : parentIdRaw,
-        includeDeleted: req.query.includeDeleted === 'true',
-        search: req.query.search as string | undefined,
-        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
-        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
-      };
-
-      const result = await this.listFoldersUseCase.execute(userId, dto);
-
-      ResponseUtil.successWithPagination(
-        res,
-        result.folders,
-        {
-          page: result.page,
-          limit: result.limit,
-          total: result.total,
-          totalPages: result.totalPages,
-        },
-        'Folders retrieved successfully'
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to list folders';
-      ResponseUtil.error(res, 'LIST_FOLDERS_ERROR', message, 500);
-    }
-  }
-
-  /**
-   * GET /api/files/folders/trash
-   * List deleted folders (trash)
-   */
-  async listTrashFolders(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const dto: ListFoldersDTO = {
-        includeDeleted: true, // Only show deleted folders
-        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
-        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
-      };
-
-      const result = await this.listFoldersUseCase.execute(userId, dto);
-
-      // Filter to only show deleted folders
-      const deletedFolders = result.folders.filter(folder => folder.isDeleted);
-
-      ResponseUtil.successWithPagination(
-        res,
-        deletedFolders,
-        {
-          page: result.page,
-          limit: result.limit,
-          total: deletedFolders.length,
-          totalPages: Math.ceil(deletedFolders.length / (result.limit || 20)),
-        },
-        'Trash folders retrieved successfully'
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to list trash folders';
-      ResponseUtil.error(res, 'LIST_TRASH_FOLDERS_ERROR', message, 500);
-    }
-  }
-
-  /**
-   * PATCH /api/files/folders/:id
-   * Update folder metadata
-   */
-  async updateFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const folderId = req.params.id as string;
+      const folderId = req.params.id;
 
       if (!folderId) {
         ResponseUtil.validationError(res, 'Folder ID is required');
         return;
       }
+
+      // Get folder details
+      const folder = await this.getFolderUseCase.execute(userId, folderId);
+
+      // Get files in folder
+      const filesDto: ListFilesDTO = { folderId };
+      const files = await this.listFilesUseCase.execute(userId, filesDto);
+
+      // Get subfolders
+      const foldersDto: ListFoldersDTO = { parentId: folderId };
+      const subfolders = await this.listFoldersUseCase.execute(userId, foldersDto);
+
+      ResponseUtil.success(
+        res,
+        {
+          folder,
+          files: files.items,
+          subfolders: subfolders.folders,
+        },
+        'Folder contents retrieved successfully'
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get folder contents';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else {
+        ResponseUtil.error(res, 'GET_FOLDER_CONTENTS_ERROR', message, 500);
+      }
+    }
+  }
+
+  /** GET /api/files/folders/:id/path - Get breadcrumbs */
+  async getFolderPath(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const folderId = req.params.id;
+
+      if (!folderId) {
+        ResponseUtil.validationError(res, 'Folder ID is required');
+        return;
+      }
+
+      const result = await this.getFolderPathUseCase.execute(userId, folderId);
+      ResponseUtil.success(res, result, 'Folder path retrieved successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get folder path';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else {
+        ResponseUtil.error(res, 'GET_FOLDER_PATH_ERROR', message, 500);
+      }
+    }
+  }
+
+  /** PATCH /api/files/folders/:id - Update folder */
+  async updateFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const folderId = req.params.id;
+
+      if (!folderId) {
+        ResponseUtil.validationError(res, 'Folder ID is required');
+        return;
+      }
+
       const dto: UpdateFolderDTO = {
         name: req.body.name,
         parentId:
@@ -615,7 +697,6 @@ export class FileController {
       };
 
       const result = await this.updateFolderUseCase.execute(userId, folderId, dto);
-
       ResponseUtil.success(res, result, 'Folder updated successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update folder';
@@ -629,23 +710,19 @@ export class FileController {
     }
   }
 
-  /**
-   * DELETE /api/files/folders/:id
-   * Delete a folder (soft delete - moves to trash)
-   */
+  /** DELETE /api/files/folders/:id - Soft delete folder */
   async deleteFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const folderId = req.params.id as string;
+      const folderId = req.params.id;
 
       if (!folderId) {
         ResponseUtil.validationError(res, 'Folder ID is required');
         return;
       }
+
       const forceDelete = req.query.forceDelete === 'true';
-
       await this.deleteFolderUseCase.execute(userId, folderId, forceDelete);
-
       ResponseUtil.success(res, undefined, 'Folder moved to trash successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete folder';
@@ -659,14 +736,11 @@ export class FileController {
     }
   }
 
-  /**
-   * DELETE /api/files/folders/:id/permanent
-   * Permanently delete a folder from trash
-   */
+  /** DELETE /api/files/folders/:id/permanent - Permanent delete folder */
   async permanentDeleteFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const folderId = req.params.id as string;
+      const folderId = req.params.id;
 
       if (!folderId) {
         ResponseUtil.validationError(res, 'Folder ID is required');
@@ -674,7 +748,6 @@ export class FileController {
       }
 
       await this.permanentDeleteFolderUseCase.execute(userId, folderId);
-
       ResponseUtil.success(res, undefined, 'Folder permanently deleted successfully');
     } catch (error) {
       const message =
@@ -683,22 +756,17 @@ export class FileController {
         ResponseUtil.notFound(res, message);
       } else if (message.includes('Access denied')) {
         ResponseUtil.forbidden(res, message);
-      } else if (message.includes('must be in trash')) {
-        ResponseUtil.validationError(res, message);
       } else {
         ResponseUtil.error(res, 'PERMANENT_DELETE_FOLDER_ERROR', message, 500);
       }
     }
   }
 
-  /**
-   * POST /api/files/folders/:id/restore
-   * Restore a soft-deleted folder
-   */
+  /** POST /api/files/folders/:id/restore - Restore folder from trash */
   async restoreFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const folderId = req.params.id as string;
+      const folderId = req.params.id;
 
       if (!folderId) {
         ResponseUtil.validationError(res, 'Folder ID is required');
@@ -706,7 +774,6 @@ export class FileController {
       }
 
       const result = await this.restoreFolderUseCase.execute(userId, folderId);
-
       ResponseUtil.success(res, result, 'Folder restored successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to restore folder';
@@ -714,252 +781,87 @@ export class FileController {
         ResponseUtil.notFound(res, message);
       } else if (message.includes('Access denied')) {
         ResponseUtil.forbidden(res, message);
-      } else if (message.includes('cannot be restored')) {
-        ResponseUtil.validationError(res, message);
       } else {
         ResponseUtil.error(res, 'RESTORE_FOLDER_ERROR', message, 500);
       }
     }
   }
 
-  /**
-   * POST /api/files/upload/initiate
-   * Initiate a chunked/resumable file upload
-   */
-  async initiateUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
+  // ==========================================
+  // SHARING
+  // ==========================================
+
+  /** GET /api/files/users/search - Search users for sharing */
+  async searchUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const dto = {
-        fileName: req.body.fileName,
-        fileSize: req.body.fileSize,
-        mimeType: req.body.mimeType,
+        query: (req.query.q || req.query.email || req.query.search) as string,
+        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 10,
+      };
+
+      const result = await this.searchUsersUseCase.execute(userId, dto);
+      ResponseUtil.success(res, result, 'Users found successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'User search failed';
+      ResponseUtil.error(res, 'SEARCH_USERS_ERROR', message, 500);
+    }
+  }
+
+  /** POST /api/files/share - Share by email */
+  async shareByEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const dto = {
+        fileId: req.body.fileId || null,
         folderId: req.body.folderId || null,
-        chunkSize: req.body.chunkSize,
-        storageTier: req.body.storageTier || undefined, // Accept storageTier for chunked uploads
+        email: req.body.email,
+        permission: req.body.permission || 'VIEW',
       };
 
-      const result = await this.initiateUploadUseCase.execute(userId, dto);
-
-      ResponseUtil.success(res, result, 'Upload session initiated successfully');
+      const result = await this.shareByEmailUseCase.execute(userId, dto);
+      ResponseUtil.success(res, result, 'Shared successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to initiate upload';
+      const message = error instanceof Error ? error.message : 'Failed to share';
       if (message.includes('not found')) {
         ResponseUtil.notFound(res, message);
-      } else if (message.includes('quota') || message.includes('storage')) {
-        ResponseUtil.error(res, 'STORAGE_QUOTA_ERROR', message, 400);
+      } else if (message.includes('Access denied') || message.includes('yourself')) {
+        ResponseUtil.validationError(res, message);
       } else {
-        ResponseUtil.error(res, 'INITIATE_UPLOAD_ERROR', message, 500);
+        ResponseUtil.error(res, 'SHARE_ERROR', message, 500);
       }
     }
   }
 
-  /**
-   * POST /api/files/upload/chunk
-   * Upload a single chunk of a file
-   */
-  async uploadChunk(req: AuthenticatedRequest, res: Response): Promise<void> {
+  /** GET /api/files/shares - List my shares */
+  async listShares(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const chunk = req.file;
-
-      if (!chunk) {
-        ResponseUtil.validationError(res, 'No chunk file provided');
-        return;
-      }
-
-      const dto = {
-        sessionId: req.body.sessionId,
-        chunkNumber: parseInt(req.body.chunkNumber, 10),
-        chunkData: chunk.buffer,
-        isLastChunk: req.body.isLastChunk === true || req.body.isLastChunk === 'true',
-      };
-
-      const result = await this.chunkUploadUseCase.execute(userId, dto);
-
-      ResponseUtil.success(res, result, 'Chunk uploaded successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to upload chunk';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else if (message.includes('Invalid chunk') || message.includes('expired')) {
-        ResponseUtil.error(res, 'CHUNK_UPLOAD_ERROR', message, 400);
-      } else {
-        ResponseUtil.error(res, 'CHUNK_UPLOAD_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/upload/:sessionId/resume
-   * Resume an interrupted upload
-   */
-  async resumeUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const sessionId = req.params.sessionId;
-
-      if (!sessionId) {
-        ResponseUtil.validationError(res, 'Session ID is required');
-        return;
-      }
-
-      const result = await this.resumeUploadUseCase.execute(userId, sessionId);
-
-      ResponseUtil.success(res, result, 'Upload session resumed successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to resume upload';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else if (message.includes('expired') || message.includes('completed')) {
-        ResponseUtil.error(res, 'RESUME_UPLOAD_ERROR', message, 400);
-      } else {
-        ResponseUtil.error(res, 'RESUME_UPLOAD_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/upload/:sessionId/complete
-   * Complete an upload after all chunks are uploaded
-   */
-  async completeUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const sessionId = req.params.sessionId;
-
-      if (!sessionId) {
-        ResponseUtil.validationError(res, 'Session ID is required');
-        return;
-      }
-
-      const dto = {
-        sessionId,
-        name: req.body.name,
-        description: req.body.description,
-        tags: req.body.tags,
-        metadata: req.body.metadata,
-      };
-
-      const result = await this.completeUploadUseCase.execute(userId, dto);
-
-      ResponseUtil.created(res, result, 'File uploaded successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to complete upload';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else if (message.includes('incomplete') || message.includes('expired')) {
-        ResponseUtil.error(res, 'COMPLETE_UPLOAD_ERROR', message, 400);
-      } else {
-        ResponseUtil.error(res, 'COMPLETE_UPLOAD_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/:id/archive
-   * Archive a file
-   */
-  async archive(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
-        return;
-      }
-
-      const result = await this.archiveFileUseCase.execute(userId, fileId);
-
-      ResponseUtil.success(res, result, 'File archived successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to archive file';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else if (message.includes('cannot be archived')) {
-        ResponseUtil.error(res, 'ARCHIVE_ERROR', message, 400);
-      } else {
-        ResponseUtil.error(res, 'ARCHIVE_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/:id/share
-   * Share a file or folder with another user
-   */
-  async share(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-      const dto = {
-        fileId: fileId || null,
-        folderId: req.body.folderId || null,
-        sharedWithId: req.body.sharedWithId,
-        permission: req.body.permission,
-      };
-
-      const result = await this.shareFileUseCase.execute(userId, dto);
-
-      ResponseUtil.success(
-        res,
-        {
-          id: result.id,
-          fileId: result.fileId,
-          folderId: result.folderId,
-          ownerId: result.ownerId,
-          sharedWithId: result.sharedWithId,
-          permission: result.permission,
-          createdAt: result.createdAt.toISOString(),
-          updatedAt: result.updatedAt.toISOString(),
-        },
-        'File/folder shared successfully'
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to share file/folder';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied') || message.includes('Cannot share')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'SHARE_ERROR', message, 400);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/shared
-   * List files and folders shared with the user
-   */
-  async listShared(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-
       const result = await this.listSharedFilesUseCase.execute(userId);
+      ResponseUtil.success(res, result, 'Shares retrieved successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to list shares';
+      ResponseUtil.error(res, 'LIST_SHARES_ERROR', message, 500);
+    }
+  }
 
-      ResponseUtil.success(res, result, 'Shared files and folders retrieved successfully');
+  /** GET /api/files/shared-with-me - List files shared with me */
+  async listSharedWithMe(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const result = await this.listSharedFilesUseCase.execute(userId);
+      ResponseUtil.success(res, result, 'Shared files retrieved successfully');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to list shared files';
       ResponseUtil.error(res, 'LIST_SHARED_ERROR', message, 500);
     }
   }
 
-  /**
-   * DELETE /api/files/shares/:shareId
-   * Unshare a file or folder
-   */
-  async unshare(req: AuthenticatedRequest, res: Response): Promise<void> {
+  /** DELETE /api/files/shares/:shareId - Remove share */
+  async removeShare(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const shareId = req.params.shareId as string;
+      const shareId = req.params.shareId;
 
       if (!shareId) {
         ResponseUtil.validationError(res, 'Share ID is required');
@@ -967,764 +869,16 @@ export class FileController {
       }
 
       await this.unshareFileUseCase.execute(userId, shareId);
-
       ResponseUtil.success(res, undefined, 'Share removed successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to unshare';
+      const message = error instanceof Error ? error.message : 'Failed to remove share';
       if (message.includes('not found')) {
         ResponseUtil.notFound(res, message);
       } else if (message.includes('Access denied')) {
         ResponseUtil.forbidden(res, message);
       } else {
-        ResponseUtil.error(res, 'UNSHARE_ERROR', message, 500);
+        ResponseUtil.error(res, 'REMOVE_SHARE_ERROR', message, 500);
       }
-    }
-  }
-
-  /**
-   * POST /api/files/bulk/delete
-   * Bulk delete multiple files
-   */
-  async bulkDelete(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const dto = {
-        fileIds: req.body.fileIds,
-      };
-
-      const result = await this.bulkDeleteFilesUseCase.execute(userId, dto);
-
-      ResponseUtil.success(
-        res,
-        result,
-        `Bulk delete completed. ${result.deleted} deleted, ${result.failed} failed.`
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to bulk delete files';
-      ResponseUtil.error(res, 'BULK_DELETE_ERROR', message, 400);
-    }
-  }
-
-  /**
-   * POST /api/files/bulk/move
-   * Bulk move multiple files
-   */
-  async bulkMove(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const dto = {
-        fileIds: req.body.fileIds,
-        folderId: req.body.folderId === 'null' ? null : req.body.folderId,
-      };
-
-      const result = await this.bulkMoveFilesUseCase.execute(userId, dto);
-
-      ResponseUtil.success(
-        res,
-        result,
-        `Bulk move completed. ${result.moved} moved, ${result.failed} failed.`
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to bulk move files';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'BULK_MOVE_ERROR', message, 400);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/bulk/restore
-   * Bulk restore multiple files from trash
-   */
-  async bulkRestore(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const dto = {
-        fileIds: req.body.fileIds,
-      };
-
-      const result = await this.bulkRestoreFilesUseCase.execute(userId, dto);
-
-      ResponseUtil.success(
-        res,
-        result,
-        `Bulk restore completed. ${result.restored} restored, ${result.failed} failed.`
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to bulk restore files';
-      ResponseUtil.error(res, 'BULK_RESTORE_ERROR', message, 400);
-    }
-  }
-
-  /**
-   * POST /api/files/:id/copy
-   * Copy a file
-   */
-  async copyFile(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
-        return;
-      }
-
-      const dto = {
-        targetFolderId: req.body.targetFolderId === 'null' ? null : req.body.targetFolderId,
-        newName: req.body.newName,
-      };
-
-      const result = await this.copyFileUseCase.execute(userId, fileId, dto);
-
-      ResponseUtil.created(res, result, 'File copied successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to copy file';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else if (message.includes('quota') || message.includes('storage')) {
-        ResponseUtil.error(res, 'STORAGE_QUOTA_ERROR', message, 400);
-      } else {
-        ResponseUtil.error(res, 'COPY_FILE_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/analytics
-   * Get storage analytics
-   */
-  async getStorageAnalytics(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-
-      const result = await this.storageAnalyticsUseCase.execute(userId);
-
-      ResponseUtil.success(res, result, 'Storage analytics retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get storage analytics';
-      ResponseUtil.error(res, 'STORAGE_ANALYTICS_ERROR', message, 500);
-    }
-  }
-
-  /**
-   * GET /api/files/:id/preview
-   * Preview a file
-   */
-  async preview(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
-        return;
-      }
-
-      const result = await this.previewFileUseCase.execute(userId, fileId);
-
-      ResponseUtil.success(res, result, 'File preview generated successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to preview file';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'PREVIEW_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/:id/thumbnail
-   * Get thumbnail for a file (redirects to presigned URL or generates if missing)
-   */
-  async getThumbnail(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
-        return;
-      }
-
-      // Get the file first
-      const file = await this.getFileUseCase.execute(userId, fileId);
-
-      // If thumbnail exists, redirect to it
-      if (file.thumbnailUrl) {
-        res.redirect(file.thumbnailUrl);
-        return;
-      }
-
-      // If no thumbnail, try to generate it
-      const result = await this.generateThumbnailUseCase.execute(fileId);
-
-      if (!result.success) {
-        if (result.error?.includes('not supported')) {
-          ResponseUtil.error(res, 'THUMBNAIL_NOT_SUPPORTED', result.error, 400);
-        } else {
-          ResponseUtil.error(
-            res,
-            'THUMBNAIL_ERROR',
-            result.error || 'Failed to generate thumbnail',
-            500
-          );
-        }
-        return;
-      }
-
-      // Get updated file with thumbnail URL
-      const updatedFile = await this.getFileUseCase.execute(userId, fileId);
-      if (updatedFile.thumbnailUrl) {
-        res.redirect(updatedFile.thumbnailUrl);
-      } else {
-        ResponseUtil.error(res, 'THUMBNAIL_NOT_AVAILABLE', 'Thumbnail URL not available', 404);
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get thumbnail';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'THUMBNAIL_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/:id/thumbnail/regenerate
-   * Manually regenerate thumbnail for a file
-   */
-  async regenerateThumbnail(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
-        return;
-      }
-
-      const result = await this.regenerateThumbnailUseCase.execute(userId, fileId);
-
-      if (!result.success) {
-        if (result.error?.includes('not found')) {
-          ResponseUtil.notFound(res, result.error);
-        } else if (result.error?.includes('Access denied')) {
-          ResponseUtil.forbidden(res, result.error);
-        } else if (result.error?.includes('not supported')) {
-          ResponseUtil.error(res, 'THUMBNAIL_NOT_SUPPORTED', result.error, 400);
-        } else {
-          ResponseUtil.error(
-            res,
-            'THUMBNAIL_ERROR',
-            result.error || 'Failed to regenerate thumbnail',
-            500
-          );
-        }
-        return;
-      }
-
-      ResponseUtil.success(
-        res,
-        {
-          thumbnailObjectName: result.thumbnailObjectName,
-        },
-        'Thumbnail regenerated successfully'
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to regenerate thumbnail';
-      ResponseUtil.error(res, 'THUMBNAIL_ERROR', message, 500);
-    }
-  }
-
-  /**
-   * POST /api/files/:id/favorite
-   * Toggle favorite status for a file or folder
-   */
-  async toggleFavorite(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-      const dto = {
-        fileId: fileId || null,
-        folderId: req.body.folderId || null,
-      };
-
-      const result = await this.toggleFavoriteUseCase.execute(userId, dto);
-
-      ResponseUtil.success(res, result, result.message);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to toggle favorite';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'TOGGLE_FAVORITE_ERROR', message, 400);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/favorites
-   * List favorite files and folders
-   */
-  async listFavorites(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-
-      const result = await this.listFavoritesUseCase.execute(userId);
-
-      ResponseUtil.success(res, result, 'Favorites retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to list favorites';
-      ResponseUtil.error(res, 'LIST_FAVORITES_ERROR', message, 500);
-    }
-  }
-
-  /**
-   * POST /api/files/:id/comments
-   * Create a comment on a file or folder
-   */
-  async createComment(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-      const dto = {
-        fileId: fileId || null,
-        folderId: req.body.folderId || null,
-        content: req.body.content,
-      };
-
-      const result = await this.createFileCommentUseCase.execute(userId, dto);
-
-      ResponseUtil.created(res, result, 'Comment created successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create comment';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'CREATE_COMMENT_ERROR', message, 400);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/:id/comments
-   * List comments on a file or folder
-   */
-  async listComments(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const fileId = req.params.id as string;
-      const folderId = req.query.folderId as string | undefined;
-
-      const result = await this.listFileCommentsUseCase.execute(fileId || null, folderId || null);
-
-      ResponseUtil.success(res, result, 'Comments retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to list comments';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'LIST_COMMENTS_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/:id/expiration
-   * Set file expiration date
-   */
-  async setExpiration(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
-        return;
-      }
-
-      const dto = {
-        expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : null,
-      };
-
-      await this.setFileExpirationUseCase.execute(userId, fileId, dto);
-
-      ResponseUtil.success(res, undefined, 'File expiration set successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to set file expiration';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else if (message.includes('must be in the future')) {
-        ResponseUtil.error(res, 'EXPIRATION_ERROR', message, 400);
-      } else {
-        ResponseUtil.error(res, 'EXPIRATION_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/:id/link
-   * Generate a temporary download link
-   */
-  async generateLink(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-      const dto = {
-        fileId: fileId || null,
-        // If fileId is present, force folderId to null to avoid conflict in UseCase
-        folderId: fileId ? null : req.body.folderId || null,
-        expiresInHours: req.body.expiresInHours,
-        maxDownloads: req.body.maxDownloads,
-      };
-
-      const result = await this.generateFileLinkUseCase.execute(userId, dto);
-
-      ResponseUtil.created(res, result, 'Download link generated successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to generate link';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'GENERATE_LINK_ERROR', message, 400);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/:id/versions
-   * List file versions
-   */
-  async listVersions(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
-        return;
-      }
-
-      const result = await this.listFileVersionsUseCase.execute(userId, fileId);
-
-      ResponseUtil.success(res, result, 'File versions retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to list file versions';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'LIST_VERSIONS_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/:id/versions/:versionId/restore
-   * Restore a file version
-   */
-  async restoreVersion(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-      const versionId = req.params.versionId as string;
-
-      if (!fileId || !versionId) {
-        ResponseUtil.validationError(res, 'File ID and Version ID are required');
-        return;
-      }
-
-      const result = await this.restoreFileVersionUseCase.execute(userId, fileId, versionId);
-
-      ResponseUtil.success(res, result, 'File version restored successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to restore file version';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'RESTORE_VERSION_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/:id/activity
-   * Get file activity log
-   */
-  async getActivity(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const fileId = req.params.id as string;
-
-      if (!fileId) {
-        ResponseUtil.validationError(res, 'File ID is required');
-        return;
-      }
-
-      const result = await this.getFileActivityUseCase.execute(userId, fileId);
-
-      ResponseUtil.success(res, result, 'File activity retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get file activity';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'GET_ACTIVITY_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/folders/:id
-   * Get folder metadata by ID
-   */
-  async getFolderById(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const folderId = req.params.id as string;
-
-      if (!folderId) {
-        ResponseUtil.validationError(res, 'Folder ID is required');
-        return;
-      }
-
-      const result = await this.getFolderUseCase.execute(userId, folderId);
-
-      ResponseUtil.success(res, result, 'Folder retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to get folder';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'GET_FOLDER_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/folders/:id/share
-   * Share a folder with another user
-   */
-  async shareFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const folderId = req.params.id as string;
-      const dto = {
-        fileId: null,
-        folderId: folderId || null,
-        sharedWithId: req.body.sharedWithId,
-        permission: req.body.permission,
-      };
-
-      const result = await this.shareFileUseCase.execute(userId, dto);
-
-      ResponseUtil.success(
-        res,
-        {
-          id: result.id,
-          fileId: result.fileId,
-          folderId: result.folderId,
-          ownerId: result.ownerId,
-          sharedWithId: result.sharedWithId,
-          permission: result.permission,
-          createdAt: result.createdAt.toISOString(),
-          updatedAt: result.updatedAt.toISOString(),
-        },
-        'Folder shared successfully'
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to share folder';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied') || message.includes('Cannot share')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'SHARE_FOLDER_ERROR', message, 400);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/folders/:id/copy
-   * Copy a folder
-   */
-  async copyFolder(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const folderId = req.params.id as string;
-
-      if (!folderId) {
-        ResponseUtil.validationError(res, 'Folder ID is required');
-        return;
-      }
-
-      const dto = {
-        targetParentId: req.body.targetParentId === 'null' ? null : req.body.targetParentId,
-        newName: req.body.newName,
-      };
-
-      const result = await this.copyFolderUseCase.execute(userId, folderId, dto);
-
-      ResponseUtil.created(res, result, 'Folder copied successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to copy folder';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else if (message.includes('quota') || message.includes('storage')) {
-        ResponseUtil.error(res, 'STORAGE_QUOTA_ERROR', message, 400);
-      } else {
-        ResponseUtil.error(res, 'COPY_FOLDER_ERROR', message, 500);
-      }
-    }
-  }
-
-  /**
-   * POST /api/files/folders/templates
-   * Create a folder template
-   */
-  async createTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const dto = {
-        name: req.body.name,
-        description: req.body.description,
-        sourceFolderId: req.body.sourceFolderId,
-      };
-
-      const result = await this.createFolderTemplateUseCase.execute(userId, dto);
-
-      ResponseUtil.created(res, result, 'Folder template created successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create folder template';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'CREATE_TEMPLATE_ERROR', message, 400);
-      }
-    }
-  }
-
-  /**
-   * GET /api/files/folders/templates
-   * List folder templates
-   */
-  async listTemplates(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-
-      const result = await this.listFolderTemplatesUseCase.execute(userId);
-
-      ResponseUtil.success(res, result, 'Folder templates retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to list folder templates';
-      ResponseUtil.error(res, 'LIST_TEMPLATES_ERROR', message, 500);
-    }
-  }
-
-  /**
-   * POST /api/files/folders/templates/:templateId/create
-   * Create folder from template
-   */
-  async createFromTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const templateId = req.params.templateId as string;
-
-      if (!templateId) {
-        ResponseUtil.validationError(res, 'Template ID is required');
-        return;
-      }
-
-      const dto = {
-        templateId,
-        parentId: req.body.parentId === 'null' ? null : req.body.parentId,
-        name: req.body.name,
-      };
-
-      const result = await this.createFolderFromTemplateUseCase.execute(userId, dto);
-
-      ResponseUtil.created(res, { folderId: result }, 'Folder created from template successfully');
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to create folder from template';
-      if (message.includes('not found')) {
-        ResponseUtil.notFound(res, message);
-      } else if (message.includes('Access denied')) {
-        ResponseUtil.forbidden(res, message);
-      } else {
-        ResponseUtil.error(res, 'CREATE_FROM_TEMPLATE_ERROR', message, 400);
-      }
-    }
-  }
-  /**
-   * GET /api/files/search
-   * Unified search for files and folders
-   */
-  async search(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      const userId = req.user!.id;
-      const dto = {
-        search: req.query.q as string, // 'q' is standard for search params
-        limit: req.query.limit ? parseInt(req.query.limit as string, 10) : undefined,
-      };
-
-      if (!dto.search) {
-        ResponseUtil.validationError(res, 'Search query (q) is required');
-        return;
-      }
-
-      const result = await this.unifiedSearchUseCase.execute(userId, dto); // Standard call
-
-      ResponseUtil.success(res, result, 'Search results retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to perform search';
-      ResponseUtil.error(res, 'SEARCH_ERROR', message, 500);
-    }
-  }
-
-  /**
-   * GET /api/files/dashboard
-   */
-  async dashboard(req: Request, res: Response): Promise<void> {
-    try {
-      const userId = (req as any).user.id;
-      const result = await this.getDashboardDataUseCase.execute(userId);
-      ResponseUtil.success(res, result, 'Dashboard data retrieved successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to retrieve dashboard data';
-      ResponseUtil.error(res, 'DASHBOARD_ERROR', message);
     }
   }
 }

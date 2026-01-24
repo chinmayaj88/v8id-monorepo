@@ -253,7 +253,6 @@ model File {
   folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
   uploadSession UploadSession? @relation(fields: [uploadSessionId], references: [id], onDelete: SetNull)
   shares FileShare[]
-  versions FileVersion[]
   favorites FileFavorite[]
   comments FileComment[]
   links FileLink[]
@@ -297,23 +296,7 @@ model FileShare {
   @@map("file_shares")
 }
 
-// File Version Model - Track file versions
-model FileVersion {
-  id            String     @id @default(cuid())
-  fileId        String
-  versionNumber Int
-  ociObjectName String     @unique @db.VarChar(500)
-  size          BigInt
-  hash          String     @db.VarChar(64)
-  createdAt     DateTime   @default(now())
 
-  // Relations
-  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
-
-  @@index([fileId])
-  @@unique([fileId, versionNumber])
-  @@map("file_versions")
-}
 
 // File Favorite Model - User favorites/bookmarks
 model FileFavorite {
