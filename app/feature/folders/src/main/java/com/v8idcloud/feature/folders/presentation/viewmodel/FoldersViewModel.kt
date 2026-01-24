@@ -13,6 +13,7 @@ import com.v8idcloud.core.data.local.entity.FileEntity
 import com.v8idcloud.core.data.network.FileApiService
 import com.v8idcloud.core.data.repository.FileRepository
 import com.v8idcloud.core.ui.utils.UiUtils
+import com.v8idcloud.core.ui.theme.V8idColors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -47,23 +48,25 @@ class FoldersViewModel @Inject constructor(
     private val navFolderId: String? = savedStateHandle["folderId"]
     private val navFolderName: String? = savedStateHandle["folderName"]
 
-    // Current Folder Context (Stack)
-    // For breadcrumbs: List<Pair<Id, Name>>
-    private val _currentPath = MutableStateFlow<List<Pair<String?, String>>>(
-        if (navFolderId != null) listOf(null to "Home", navFolderId to (navFolderName ?: "Folder")) 
-        else listOf(null to "Home")
-    )
+    // Current Folder Context (Path for Breadcrumbs)
+    private val _currentPath = MutableStateFlow<List<Pair<String?, String>>>(listOf(null to "Home"))
     val currentPath: StateFlow<List<Pair<String?, String>>> = _currentPath.asStateFlow()
 
     // The active Paging Flow
     private val _currentFolderId = MutableStateFlow<String?>(navFolderId)
+
+    init {
+        // Initial path setup
+        if (navFolderId != null) {
+            updatePathForFolder(navFolderId)
+        }
+    }
     
     val pagedFiles: Flow<PagingData<FolderData>> = _currentFolderId
-        .map { folderId -> 
-           // When folder ID changes, we get a NEW stream from Repository
+        .flatMapLatest { folderId -> 
+           // Use flatMapLatest to cancel previous stream and start a new one
            fileRepository.getFilesStream(folderId)
         }
-        .flatMapLatest { it } // Flatten the stream of streams
         .map { pagingData ->
             pagingData.map { entity -> mapEntityToUiModel(entity) }
         }
@@ -79,34 +82,66 @@ class FoldersViewModel @Inject constructor(
     private var searchJob: Job? = null
 
     /**
-     * Navigate to a folder (Push to stack)
+     * Navigate to a folder
      */
     fun navigateToFolder(id: String, name: String) {
-        _currentPath.value = _currentPath.value + (id to name)
         _currentFolderId.value = id
+        updatePathForFolder(id)
     }
 
     /**
-     * Navigate back (Pop from stack)
-     * Returns true if handled, false if at root (should exit app/screen)
+     * Navigate back
+     * Returns true if handled, false if at root
      */
     fun navigateUp(): Boolean {
         val current = _currentPath.value
         if (current.size > 1) {
-            val newPath = current.dropLast(1)
-            _currentPath.value = newPath
-            _currentFolderId.value = newPath.last().first
+            val parentFolder = current.getOrNull(current.size - 2)
+            val parentId = parentFolder?.first
+            _currentFolderId.value = parentId
+            updatePathForFolder(parentId)
             return true
         }
         return false
+    }
+
+    /**
+     * Jumps to a specific folder in the breadcrumb path
+     */
+    fun navigateToPathIndex(index: Int) {
+        val target = _currentPath.value.getOrNull(index)
+        val id = target?.first
+        _currentFolderId.value = id
+        updatePathForFolder(id)
+    }
+
+    private fun updatePathForFolder(id: String?) {
+        if (id == null) {
+            _currentPath.value = listOf(null to "Home")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val response = fileApiService.getFolderPath(id)
+                if (response.success) {
+                    val pathList = mutableListOf<Pair<String?, String>>(null to "Home")
+                    pathList.addAll(response.data.map { it.id to it.name })
+                    _currentPath.value = pathList
+                }
+            } catch (e: Exception) {
+                // Fallback: manually update if API fails (stack-based)
+                // But preferred is API as it is more robust for deep links
+            }
+        }
     }
 
     private fun mapEntityToUiModel(entity: FileEntity): FolderData {
         val (icon, color) = if (entity.type == "folder") {
             getFolderIconAndColor(entity.name)
         } else {
-             // Use UiUtils for files
-             UiUtils.getFileIcon(entity.mimeType) to Color.Unspecified
+             // Provide a default color for files instead of Color.Unspecified to avoid copy() crash
+             UiUtils.getFileIcon(entity.mimeType) to V8idColors.UI.TextSecondary
         }
         
         return FolderData(

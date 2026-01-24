@@ -53,6 +53,7 @@ import { GenerateThumbnailUseCase } from '../../application/use-cases/generate-t
 import { RegenerateThumbnailUseCase } from '../../application/use-cases/regenerate-thumbnail.use-case.js';
 import { GetDashboardDataUseCase } from '../../application/use-cases/get-dashboard-data.use-case.js';
 import { AccessFileLinkUseCase } from '../../application/use-cases/access-file-link.use-case.js';
+import { GetFolderPathUseCase } from '../../application/use-cases/get-folder-path.use-case.js';
 import {
   UploadFileDTO,
   UpdateFileDTO,
@@ -113,8 +114,38 @@ export class FileController {
     private regenerateThumbnailUseCase: RegenerateThumbnailUseCase,
     private unifiedSearchUseCase: UnifiedSearchUseCase,
     private getDashboardDataUseCase: GetDashboardDataUseCase,
+    private getFolderPathUseCase: GetFolderPathUseCase,
     private accessFileLinkUseCase: AccessFileLinkUseCase
   ) {}
+
+  /**
+   * GET /api/files/folders/:id/path
+   * Get full folder path for breadcrumbs
+   */
+  async getFolderPath(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const folderId = req.params.id as string;
+
+      if (!folderId) {
+        ResponseUtil.validationError(res, 'Folder ID is required');
+        return;
+      }
+
+      const result = await this.getFolderPathUseCase.execute(userId, folderId);
+
+      ResponseUtil.success(res, result, 'Folder path retrieved successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get folder path';
+      if (message.includes('not found')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else {
+        ResponseUtil.error(res, 'GET_FOLDER_PATH_ERROR', message, 500);
+      }
+    }
+  }
 
   /**
    * GET /api/files/link/:token

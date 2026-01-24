@@ -43,7 +43,7 @@ class FileRepositoryImpl @Inject constructor(
             config = PagingConfig(
                 pageSize = 20,
                 enablePlaceholders = true,
-                prefetchDistance = 5
+                prefetchDistance = 10
             ),
             remoteMediator = FileRemoteMediator(
                 folderId = folderId,

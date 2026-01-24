@@ -49,6 +49,7 @@ import { GenerateThumbnailUseCase } from '../../application/use-cases/generate-t
 import { RegenerateThumbnailUseCase } from '../../application/use-cases/regenerate-thumbnail.use-case.js';
 import { UnifiedSearchUseCase } from '../../application/use-cases/unified-search.use-case.js';
 import { GetDashboardDataUseCase } from '../../application/use-cases/get-dashboard-data.use-case.js';
+import { GetFolderPathUseCase } from '../../application/use-cases/get-folder-path.use-case.js';
 import { ThumbnailService } from '../../infrastructure/services/thumbnail.service.js';
 import { UrlCacheService } from '../../infrastructure/services/url-cache.service.js';
 import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
@@ -132,6 +133,7 @@ const getDashboardDataUseCase = new GetDashboardDataUseCase(
   storageService,
   urlCache
 );
+const getFolderPathUseCase = new GetFolderPathUseCase(folderRepository);
 
 const uploadFileUseCase = new UploadFileUseCase(
   fileRepository,
@@ -315,6 +317,7 @@ const fileController = new FileController(
   regenerateThumbnailUseCase,
   unifiedSearchUseCase,
   getDashboardDataUseCase,
+  getFolderPathUseCase,
   accessFileLinkUseCase
 );
 
@@ -477,6 +480,10 @@ router.post('/folders/templates', authenticate, (req, res) =>
 
 router.post('/folders/templates/:templateId/create', authenticate, (req, res) =>
   fileController.createFromTemplate(req as any, res)
+);
+
+router.get('/folders/:id/path', authenticate, (req, res) =>
+  fileController.getFolderPath(req as any, res)
 );
 
 router.get('/folders/:id', authenticate, (req, res) =>

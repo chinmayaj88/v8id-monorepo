@@ -84,11 +84,26 @@ export class ListFilesUseCase {
       foldersPromise = Promise.resolve({ folders: [], total: 0 });
     }
 
-    const [filesResult, foldersResult] = await Promise.all([
-      this.fileRepository.findByUserId(userId, options),
-      foldersPromise,
-    ]);
+    // USER REQUIREMENT:
+    // - Root (folderId=null): Fetch ONLY Parent Folders (No Files)
+    // - Subfolder (folderId=xyz): Fetch Files + Folders
+    // - Search: Fetch Everything
 
+    let filesPromise: Promise<{ files: File[]; total: number }>;
+
+    if (dto.search) {
+      // Search mode: Fetch files matching query
+      filesPromise = this.fileRepository.findByUserId(userId, options);
+    } else if (dto.folderId === null || dto.folderId === undefined) {
+      // Root mode: Fetch ONLY Folders, return empty files
+      // This matches the specific logic: "fetch all the folders who are parent... when click... fetch files and folder"
+      filesPromise = Promise.resolve({ files: [], total: 0 });
+    } else {
+      // Subfolder mode: Fetch files in this folder
+      filesPromise = this.fileRepository.findByUserId(userId, options);
+    }
+
+    const [filesResult, foldersResult] = await Promise.all([filesPromise, foldersPromise]);
     return await this.formatResult(
       filesResult.files,
       foldersResult.folders,

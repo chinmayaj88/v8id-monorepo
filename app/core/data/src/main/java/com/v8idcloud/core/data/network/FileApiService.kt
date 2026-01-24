@@ -26,6 +26,9 @@ interface FileApiService {
         @retrofit2.http.Body request: GenerateLinkRequest = GenerateLinkRequest()
     ): FileApiResponse<FileLinkResponseDto>
 
+    @GET("files/folders/{id}/path")
+    suspend fun getFolderPath(@retrofit2.http.Path("id") id: String): FileApiResponse<List<SearchResultItemDto>>
+
     @GET("files")
     suspend fun getFiles(
         @Query("parentId") parentId: String? = null,

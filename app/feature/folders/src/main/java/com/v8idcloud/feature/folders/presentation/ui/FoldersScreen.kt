@@ -8,8 +8,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -69,32 +72,40 @@ fun FoldersScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Title / Breadcrumbs
-                    Column {
-                        val currentFolder = currentPath.lastOrNull()
-                        Text(
-                            text = currentFolder?.second ?: "V8id Cloud",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = V8idColors.UI.TextPrimary
-                        )
-                        if (currentPath.size > 1) {
-                            Text(
-                                text = "Back to ${currentPath.getOrNull(currentPath.size - 2)?.second ?: "Home"}",
-                                fontSize = 14.sp,
-                                color = V8idColors.UI.TextSecondary,
-                                modifier = Modifier.clickable { 
-                                   if (!viewModel.navigateUp()) {
-                                       // At root
-                                   }
+                    // Dynamic Breadcrumbs
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            currentPath.forEachIndexed { index, path ->
+                                Text(
+                                    text = path.second,
+                                    fontSize = if (index == currentPath.size - 1) 24.sp else 16.sp,
+                                    fontWeight = if (index == currentPath.size - 1) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (index == currentPath.size - 1) V8idColors.UI.TextPrimary else V8idColors.UI.TextSecondary,
+                                    modifier = Modifier.clickable { 
+                                        viewModel.navigateToPathIndex(index)
+                                    }
+                                )
+                                if (index < currentPath.size - 1) {
+                                    Icon(
+                                        Icons.Default.ChevronRight,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = V8idColors.UI.TextTertiary
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
                     
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        /* Action Icons (Upload/Options) - Same as before */
-                        // ... (Kept brief for brevity, can restore full UI)
+                        /* Action Icons (Upload/Options) */
                          Surface(
                             modifier = Modifier.size(40.dp),
                             shape = CircleShape,
@@ -112,7 +123,7 @@ fun FoldersScreen(
             // Search Bar
             item {
                 SearchBar(
-                    hint = "Search in ${currentPath.last().second}",
+                    hint = "Search in ${currentPath.lastOrNull()?.second ?: "Cloud"}",
                     searchQuery = searchQuery,
                     onQueryChange = { viewModel.onSearchQueryChange(it) },
                     searchResults = searchResults,
@@ -199,7 +210,9 @@ fun FoldersScreen(
                                     viewModel.navigateToFolder(item.id, item.name)
                                 } else {
                                     // Navigate to File Viewer
-                                    navController.navigate("viewer?fileId=${item.id}&fileName=${item.name}&fileType=${item.mimeType ?: "*/*"}")
+                                    val encodedName = java.net.URLEncoder.encode(item.name, "UTF-8")
+                                    val encodedType = java.net.URLEncoder.encode(item.mimeType ?: "*/*", "UTF-8")
+                                    navController.navigate("viewer?fileId=${item.id}&fileName=$encodedName&fileType=$encodedType")
                                 }
                             },
                             onMoreClick = { /* Show options */ }

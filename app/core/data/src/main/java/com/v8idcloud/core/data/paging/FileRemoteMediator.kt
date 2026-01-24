@@ -22,16 +22,9 @@ class FileRemoteMediator(
     private val effectiveFolderId = folderId ?: "root"
 
     override suspend fun initialize(): InitializeAction {
-        // Cached data is valid for 1 hour, otherwise refresh
-        val remoteKey = database.remoteKeyDao().getRemoteKey(effectiveFolderId)
-        val cacheTimeout = 60 * 60 * 1000L // 1 hour
-        
-        return if (remoteKey != null && 
-            (System.currentTimeMillis() - remoteKey.lastUpdated < cacheTimeout)) {
-            InitializeAction.SKIP_INITIAL_REFRESH
-        } else {
-            InitializeAction.LAUNCH_INITIAL_REFRESH
-        }
+        // Always refresh when a new mediator is created (navigation happens)
+        // This ensures the user sees the latest data as requested ("fetch again")
+        return InitializeAction.LAUNCH_INITIAL_REFRESH
     }
 
     override suspend fun load(

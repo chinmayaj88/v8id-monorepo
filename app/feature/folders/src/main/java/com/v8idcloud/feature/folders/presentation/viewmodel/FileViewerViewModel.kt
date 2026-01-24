@@ -59,7 +59,12 @@ class FileViewerViewModel @Inject constructor(
                         baseUrl
                     }
                     
-                    val fullUrl = if (rawUrl.startsWith("http")) rawUrl else "$adjustedBase/${rawUrl.trimStart('/')}"
+                    var fullUrl = if (rawUrl.startsWith("http")) rawUrl else "$adjustedBase/${rawUrl.trimStart('/')}"
+                    
+                    // Fix for Android Emulator accessing localhost
+                    if (fullUrl.contains("localhost")) {
+                        fullUrl = fullUrl.replace("localhost", "10.0.2.2")
+                    }
                     
                     var localFile: java.io.File? = null
                     var textContent: String? = null

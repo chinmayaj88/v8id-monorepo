@@ -5,7 +5,9 @@ This directory contains Postman collections for testing the v8id-cloud backend A
 ## Collections
 
 ### 1. **Authentication** (`auth.postman_collection.json`)
+
 Authentication and security endpoints:
+
 - Verify Credentials (Step 1 of login)
 - Verify TOTP (Step 2 of login)
 - Refresh Token
@@ -18,7 +20,9 @@ Authentication and security endpoints:
 - Get Backup Codes Status
 
 ### 2. **Users** (`users.postman_collection.json`)
+
 User management endpoints:
+
 - Create User (Admin Only)
 - List Users (Admin Only)
 - Get Current User
@@ -28,19 +32,20 @@ User management endpoints:
 - Revoke All Sessions
 - Get Login History
 
-### 3. **Files & Folders** (`files-folders.postman_collection.json`)
+### 3. **files and folder** (`files-and-folder.postman_collection.json`)
+
 File and folder management endpoints:
+
 - **File Operations:**
-  - Upload File (small files)
+  - Standard Upload (small files)
   - Initiate Upload (large files, chunked)
   - Upload Chunk
   - Resume Upload
   - Complete Upload
   - Download File
-  - Get File
+  - Get File Metadata
   - Update File
-  - Delete File
-  - Restore File
+  - Delete File (Trash)
   - Permanent Delete File
   - Archive File
   - Copy File
@@ -57,13 +62,13 @@ File and folder management endpoints:
   - Create File Version
   - Restore File Version
   - Get File Activity
-  - List Files
+  - List Files and Folders (Root)
   - List Trash
 - **Folder Operations:**
   - Create Folder
-  - Get Folder
+  - Get Folder Details
   - Update Folder
-  - Delete Folder
+  - Delete Folder (Trash)
   - Restore Folder
   - Permanent Delete Folder
   - List Folders
@@ -74,23 +79,24 @@ File and folder management endpoints:
   - List Folder Templates
   - Create Folder From Template
 - **Bulk Operations:**
-  - Bulk Delete Files
-  - Bulk Move Files
-  - Bulk Restore Files
+  - Bulk Delete
+  - Bulk Move
+  - Bulk Restore
 - **Sharing:**
   - Share File
   - List Shared Files
   - Unshare File
-- **Analytics:**
+- **Analytics & Search:**
+  - Unified Search
+  - Dashboard Data
   - Get Storage Analytics
-
-### 4. **Testing** (`testing.postman_collection.json`)
-Testing and utility endpoints (if available)
 
 ## Environment
 
 ### **v8id-cloud Local** (`v8id-cloud-api.postman_environment.json`)
+
 Environment variables for local development:
+
 - `baseUrl`: `http://localhost:4000`
 - `accessToken`: JWT access token (auto-populated after login)
 - `refreshToken`: JWT refresh token (auto-populated after login)
@@ -119,6 +125,7 @@ Environment variables for local development:
    - Select the environment in the top-right dropdown
 
 3. **Start Backend Server:**
+
    ```bash
    cd backend
    pnpm dev
@@ -137,7 +144,9 @@ Environment variables for local development:
 ## Important Notes
 
 ### Storage Tiers
+
 The API supports two storage tiers:
+
 - **STANDARD**: For frequently accessed files (default)
   - Fast retrieval, low latency
   - Thumbnails generated automatically
@@ -150,18 +159,22 @@ The API supports two storage tiers:
 Specify `storageTier` in upload requests: `"STANDARD"` or `"ARCHIVE"`
 
 ### Rate Limiting
+
 All endpoints include rate limiting. Check response headers:
+
 - `RateLimit-Limit`: Maximum requests allowed
 - `RateLimit-Remaining`: Remaining requests in window
 - `RateLimit-Reset`: Unix timestamp when limit resets
 
 ### Authentication Flow
+
 1. **Step 1**: Verify Credentials → Returns `tempToken` (expires in 5 minutes)
 2. **Step 2**: Verify TOTP → Returns `accessToken` and `refreshToken`
 3. Use `accessToken` in `Authorization: Bearer {token}` header
 4. Refresh `accessToken` using `refreshToken` when it expires
 
 ### Password Requirements
+
 - Minimum 12 characters
 - At least one uppercase letter
 - At least one lowercase letter
@@ -169,6 +182,7 @@ All endpoints include rate limiting. Check response headers:
 - At least one special character
 
 ### File Upload
+
 - **Small files (< 10MB)**: Use "Upload File" endpoint (multipart/form-data)
 - **Large files (>= 10MB)**: Use chunked upload flow:
   1. Initiate Upload → Get `sessionId` and `parUrl`
@@ -183,20 +197,24 @@ All endpoints include rate limiting. Check response headers:
 ## Troubleshooting
 
 ### 401 Unauthorized
+
 - Token may have expired → Use "Refresh Token" endpoint
 - Token may have been invalidated (password changed) → Login again
 - Check that `Authorization: Bearer {token}` header is present
 
 ### 429 Too Many Requests
+
 - Rate limit exceeded → Wait for reset time (check `RateLimit-Reset` header)
 - Reduce request frequency
 
 ### 400 Bad Request
+
 - Check request body format
 - Verify required fields are present
 - Check validation error messages in response
 
 ### 500 Internal Server Error
+
 - Check backend server logs
 - Verify database connection
 - Verify OCI Object Storage configuration
