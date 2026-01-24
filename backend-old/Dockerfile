@@ -53,7 +53,7 @@ RUN pnpm build
 # =========================
 FROM node:22-alpine AS production
 
-# 🔹 Define pnpm global bin directory
+# 🔹 FIX: define pnpm global bin directory
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 
@@ -109,4 +109,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 # -------------------------
 # Start app
 # -------------------------
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/src/index.js"]

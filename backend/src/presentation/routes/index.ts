@@ -1,19 +1,31 @@
+import { Router } from 'express';
+
 /**
- * Route Definitions
- * 
- * Defines all API routes and maps them to controllers.
+ * API Routes aggregator
+ * Open/Closed Principle: Easy to add new route modules
  */
+const router = Router();
 
-import { Router, type IRouter } from 'express';
-import authRoutes from './auth.routes.js';
-import userRoutes from './user.routes.js';
-import fileRoutes from './file.routes.js';
+// Future route modules will be added here
+// Example:
+// import authRoutes from './auth.routes.js';
+// import userRoutes from './user.routes.js';
+// router.use('/auth', authRoutes);
+// router.use('/users', userRoutes);
 
-const router: IRouter = Router();
-
-// API routes
-router.use('/auth', authRoutes);
-router.use('/users', userRoutes);
-router.use('/files', fileRoutes);
+// API info route
+router.get('/', (_req, res) => {
+  res.json({
+    success: true,
+    data: {
+      message: 'v8id-cloud API v2',
+      version: '2.0.0',
+      endpoints: {
+        health: 'GET /health',
+        api: 'GET /api',
+      },
+    },
+  });
+});
 
 export default router;

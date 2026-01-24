@@ -1,25 +1,23 @@
 # Domain Layer
 
-The **Domain Layer** is the innermost layer and contains the core business logic. It has **no dependencies** on other layers.
+The **innermost layer** containing enterprise business rules.
 
-## Structure
+## Contents
 
-- **entities/** - Core business entities (User, File, Folder, etc.)
-- **value-objects/** - Immutable value objects (Email, FilePath, etc.)
-- **services/** - Domain services that contain business logic that doesn't belong to a single entity
+- **Entities**: Core business objects with identity and lifecycle
+- **Value Objects**: Immutable objects defined by their attributes
+- **Domain Events**: Events representing something that happened in the domain
+- **Domain Services**: Stateless operations that don't belong to entities
 
-## Rules
+## SOLID Principles
 
-- ✅ Can contain business logic
-- ✅ Can define interfaces for repositories (but not implementations)
-- ❌ Cannot depend on application, infrastructure, or presentation layers
-- ❌ Cannot use external libraries (except for types/utilities)
-- ❌ Cannot access databases, APIs, or file systems directly
+- **Single Responsibility**: Each entity/value object has one reason to change
+- **Open/Closed**: Domain objects are open for extension, closed for modification
+- **Dependency Rule**: This layer has NO dependencies on outer layers
 
-## Examples
+## Guidelines
 
-- `User` entity with business rules
-- `File` entity with validation logic
-- `Email` value object with validation
-- `FilePermissions` value object
-
+1. No framework dependencies (no Express, no Prisma, etc.)
+2. Pure TypeScript/JavaScript only
+3. Business logic lives here
+4. Entities should be self-validating

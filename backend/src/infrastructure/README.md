@@ -1,26 +1,22 @@
 # Infrastructure Layer
 
-The **Infrastructure Layer** implements the interfaces defined in the application layer. It handles external concerns like databases, APIs, and file systems.
+Contains **external concerns** and implementations.
 
-## Structure
+## Contents
 
-- **repositories/** - Concrete implementations of repository interfaces
-- **database/** - Database connection, migrations, models
-- **oci/** - OCI Object Storage client and implementations
-- **config/** - Configuration management (environment variables, etc.)
+- **Config**: Environment and configuration management
+- **Database**: Database connections and ORM setup
+- **Repositories**: Concrete implementations of repository interfaces
+- **Services**: External service integrations (email, storage, etc.)
 
-## Rules
+## SOLID Principles
 
-- ✅ Can depend on application and domain layers
-- ✅ Implements interfaces from application layer
-- ✅ Handles external services (OCI, databases, APIs)
-- ✅ Can use external libraries and frameworks
-- ❌ Should not contain business logic (that belongs in domain/application)
+- **Dependency Inversion**: Implements interfaces defined in Application layer
+- **Single Responsibility**: Each implementation has one concern
 
-## Examples
+## Guidelines
 
-- `FileRepository` - Implements IFileRepository using OCI Object Storage
-- `UserRepository` - Implements IUserRepository using database
-- `OciStorageClient` - OCI Object Storage client wrapper
-- `DatabaseConnection` - Database connection and query handling
-
+1. Implements interfaces from Application layer
+2. Contains all external dependencies (Prisma, OCI SDK, etc.)
+3. Configuration and environment handling
+4. Database migrations and connections

@@ -1,19 +1,11 @@
-/**
- * Standardized API Response Utility
- * 
- * Ensures all API responses follow a consistent structure for frontend consumption.
- */
-
-import { Response } from 'express';
+import type { Response } from 'express';
 
 /**
- * Standard API Response Structure
+ * API Response structure
  */
-export interface ApiResponse<T = unknown> {
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
-  message?: string;
-  meta?: Record<string, unknown>;
   error?: {
     code: string;
     message: string;
@@ -22,62 +14,37 @@ export interface ApiResponse<T = unknown> {
 }
 
 /**
- * Pagination metadata
- */
-export interface PaginationMeta {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
-/**
- * Response utility class for standardized API responses
+ * Standardized response utility
+ * Single Responsibility: Only handles response formatting
  */
 export class ResponseUtil {
   /**
    * Send a successful response
-   * 
-   * @param res Express response object
-   * @param data Response data (optional)
-   * @param message Success message (optional)
-   * @param statusCode HTTP status code (default: 200)
-   * @param meta Additional metadata (pagination, etc.)
    */
-  static success<T>(
-    res: Response,
-    data?: T,
-    message?: string,
-    statusCode: number = 200,
-    meta?: Record<string, unknown>
-  ): void {
+  static success<T>(res: Response, data: T, statusCode: number = 200): void {
     const response: ApiResponse<T> = {
       success: true,
+      data,
     };
-
-    if (data !== undefined) {
-      response.data = data;
-    }
-
-    if (message) {
-      response.message = message;
-    }
-
-    if (meta) {
-      response.meta = meta;
-    }
-
     res.status(statusCode).json(response);
   }
 
   /**
+   * Send a created response (201)
+   */
+  static created<T>(res: Response, data: T): void {
+    ResponseUtil.success(res, data, 201);
+  }
+
+  /**
+   * Send a no content response (204)
+   */
+  static noContent(res: Response): void {
+    res.status(204).send();
+  }
+
+  /**
    * Send an error response
-   * 
-   * @param res Express response object
-   * @param code Error code (e.g., 'VALIDATION_ERROR', 'NOT_FOUND')
-   * @param message Error message
-   * @param statusCode HTTP status code (default: 400)
-   * @param details Additional error details (optional)
    */
   static error(
     res: Response,
@@ -86,121 +53,52 @@ export class ResponseUtil {
     statusCode: number = 400,
     details?: unknown
   ): void {
+    const error: ApiResponse['error'] = {
+      code,
+      message,
+    };
+    if (details !== undefined) {
+      error!.details = details;
+    }
     const response: ApiResponse = {
       success: false,
-      error: {
-        code,
-        message,
-      },
+      error,
     };
-
-    if (details !== undefined) {
-      response.error!.details = details;
-    }
-
     res.status(statusCode).json(response);
   }
 
   /**
-   * Send a success response with pagination metadata
-   * 
-   * @param res Express response object
-   * @param data Response data
-   * @param pagination Pagination metadata
-   * @param message Success message (optional)
-   * @param statusCode HTTP status code (default: 200)
+   * Send a not found error (404)
    */
-  static successWithPagination<T>(
-    res: Response,
-    data: T,
-    pagination: PaginationMeta,
-    message?: string,
-    statusCode: number = 200
-  ): void {
-    this.success(res, data, message, statusCode, {
-      pagination,
-    });
+  static notFound(res: Response, message: string = 'Resource not found'): void {
+    ResponseUtil.error(res, 'NOT_FOUND', message, 404);
   }
 
   /**
-   * Send a created response (201)
-   * 
-   * @param res Express response object
-   * @param data Response data
-   * @param message Success message (optional)
+   * Send an unauthorized error (401)
    */
-  static created<T>(
-    res: Response,
-    data: T,
-    message?: string
-  ): void {
-    this.success(res, data, message || 'Resource created successfully', 201);
+  static unauthorized(res: Response, message: string = 'Unauthorized'): void {
+    ResponseUtil.error(res, 'UNAUTHORIZED', message, 401);
   }
 
   /**
-   * Send a not found response (404)
-   * 
-   * @param res Express response object
-   * @param message Error message (optional)
+   * Send a forbidden error (403)
    */
-  static notFound(
-    res: Response,
-    message: string = 'Resource not found'
-  ): void {
-    this.error(res, 'NOT_FOUND', message, 404);
+  static forbidden(res: Response, message: string = 'Forbidden'): void {
+    ResponseUtil.error(res, 'FORBIDDEN', message, 403);
   }
 
   /**
-   * Send an unauthorized response (401)
-   * 
-   * @param res Express response object
-   * @param message Error message (optional)
+   * Send an internal server error (500)
    */
-  static unauthorized(
-    res: Response,
-    message: string = 'Authentication required'
-  ): void {
-    this.error(res, 'UNAUTHORIZED', message, 401);
+  static internalError(res: Response, message: string = 'Internal server error'): void {
+    ResponseUtil.error(res, 'INTERNAL_ERROR', message, 500);
   }
 
   /**
-   * Send a forbidden response (403)
-   * 
-   * @param res Express response object
-   * @param message Error message (optional)
+   * Send a validation error (422)
    */
-  static forbidden(
-    res: Response,
-    message: string = 'Access forbidden'
-  ): void {
-    this.error(res, 'FORBIDDEN', message, 403);
-  }
-
-  /**
-   * Send a validation error response (400)
-   * 
-   * @param res Express response object
-   * @param message Error message
-   * @param details Validation details (optional)
-   */
-  static validationError(
-    res: Response,
-    message: string,
-    details?: unknown
-  ): void {
-    this.error(res, 'VALIDATION_ERROR', message, 400, details);
-  }
-
-  /**
-   * Send an internal server error response (500)
-   * 
-   * @param res Express response object
-   * @param message Error message (optional)
-   */
-  static internalError(
-    res: Response,
-    message: string = 'Internal server error'
-  ): void {
-    this.error(res, 'INTERNAL_ERROR', message, 500);
+  static validationError(res: Response, details: unknown): void {
+    ResponseUtil.error(res, 'VALIDATION_ERROR', 'Validation failed', 422, details);
   }
 }
