@@ -8,7 +8,7 @@ import { ResponseUtil } from '../utils/response.util.js';
 export const validateBody = (schema: ZodTypeAny) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.body = await schema.parseAsync(req.body);
+      req.body = await schema.parseAsync(req.body || {});
       next();
     } catch (error) {
       if (error instanceof ZodError) {

@@ -12,6 +12,7 @@ export interface AuthenticatedRequest extends Request {
     email: string;
     role: string;
   };
+  sessionId?: string;
 }
 
 export function authMiddleware(
@@ -58,6 +59,7 @@ export function authMiddleware(
         email: user.email,
         role: user.role,
       };
+      req.sessionId = session.id;
 
       next();
     } catch (_error) {
@@ -84,4 +86,3 @@ export function adminMiddleware() {
     next();
   };
 }
-

@@ -125,8 +125,9 @@ export class AuthController {
         return;
       }
 
-      // Get session ID from request (could be in body or header)
-      const sessionId = req.body.sessionId || (req.headers['x-session-id'] as string);
+      // Get session ID from request (set by authMiddleware) or explicitly in body/header
+      const sessionId =
+        req.sessionId || req.body.sessionId || (req.headers['x-session-id'] as string);
 
       if (!sessionId) {
         ResponseUtil.validationError(res, 'Session ID is required');
@@ -327,4 +328,3 @@ export class AuthController {
     }
   }
 }
-
