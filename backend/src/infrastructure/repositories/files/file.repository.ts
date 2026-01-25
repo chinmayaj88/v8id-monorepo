@@ -89,6 +89,8 @@ export class FileRepository implements IFileRepository {
       tier?: StorageTier;
       isDeleted?: boolean;
       folderId?: string | null;
+      limit?: number;
+      offset?: number;
     }
   ): Promise<File[]> {
     const where: Prisma.FileWhereInput = {
@@ -111,6 +113,8 @@ export class FileRepository implements IFileRepository {
     return prisma.file.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      take: options?.limit,
+      skip: options?.offset,
     });
   }
 

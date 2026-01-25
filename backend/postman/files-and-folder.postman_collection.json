@@ -77,9 +77,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/folders",
+              "raw": "{{baseUrl}}/api/folders?limit=10&offset=0",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "folders"]
+              "path": ["api", "folders"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items to return"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Number of items to skip"
+                }
+              ]
             }
           },
           "response": []
@@ -103,6 +115,16 @@
                 {
                   "key": "parentId",
                   "value": "{{folderId}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of items to return"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Number of items to skip"
                 }
               ]
             }

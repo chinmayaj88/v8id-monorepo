@@ -40,6 +40,8 @@ export interface IFileRepository {
       tier?: StorageTier;
       isDeleted?: boolean;
       folderId?: string | null;
+      limit?: number;
+      offset?: number;
     }
   ): Promise<File[]>;
 

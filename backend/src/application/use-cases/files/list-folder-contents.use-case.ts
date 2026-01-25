@@ -3,6 +3,8 @@ import { IFileRepository, IFolderRepository } from '../../interfaces/index.js';
 
 export interface ListFolderContentsDTO {
   parentId?: string | null; // Null for root
+  limit?: number;
+  offset?: number;
 }
 
 export interface ListFolderContentsResult {
@@ -20,6 +22,7 @@ export class ListFolderContentsUseCase {
 
   async execute(userId: string, dto: ListFolderContentsDTO): Promise<ListFolderContentsResult> {
     const parentId = dto.parentId ?? null;
+    const { limit, offset } = dto;
 
     // 1. Get current folder details and breadcrumbs if not root
     let currentFolder: Folder | null = null;
@@ -56,10 +59,20 @@ export class ListFolderContentsUseCase {
     }
 
     // 2. Fetch Folders
-    const folders = await this.folderRepository.findByParentId(parentId, userId);
+    const folders = await this.folderRepository.findAllByUserId(userId, {
+      parentId,
+      isDeleted: false,
+      limit,
+      offset,
+    });
 
     // 3. Fetch Files
-    const files = await this.fileRepository.findByFolderId(parentId, userId);
+    const files = await this.fileRepository.findAllByUserId(userId, {
+      folderId: parentId,
+      isDeleted: false,
+      limit,
+      offset,
+    });
 
     return {
       folders,

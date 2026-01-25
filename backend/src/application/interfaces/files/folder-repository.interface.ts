@@ -38,6 +38,8 @@ export interface IFolderRepository {
       search?: string;
       parentId?: string | null;
       isDeleted?: boolean;
+      limit?: number;
+      offset?: number;
     }
   ): Promise<Folder[]>;
 }

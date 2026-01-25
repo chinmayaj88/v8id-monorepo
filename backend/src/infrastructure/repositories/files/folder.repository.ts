@@ -102,6 +102,8 @@ export class FolderRepository implements IFolderRepository {
       search?: string;
       parentId?: string | null;
       isDeleted?: boolean;
+      limit?: number;
+      offset?: number;
     }
   ): Promise<Folder[]> {
     const where: any = {
@@ -120,6 +122,8 @@ export class FolderRepository implements IFolderRepository {
     return prisma.folder.findMany({
       where,
       orderBy: { name: 'asc' },
+      take: options?.limit,
+      skip: options?.offset,
     });
   }
 }

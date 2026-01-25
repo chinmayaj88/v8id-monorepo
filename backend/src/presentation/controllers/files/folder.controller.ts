@@ -40,9 +40,13 @@ export class FolderController {
       }
 
       const parentId = (req.query.parentId as string) || null;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
 
       const contents = await this.listFolderContentsUseCase.execute(req.user.id, {
         parentId,
+        limit,
+        offset,
       });
 
       ResponseUtil.success(res, contents);
