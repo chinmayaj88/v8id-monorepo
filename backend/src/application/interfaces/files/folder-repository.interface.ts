@@ -32,5 +32,12 @@ export interface IFolderRepository {
    */
   findDescendants(folderId: string, userId: string): Promise<Folder[]>;
 
-  findAllByUserId(userId: string): Promise<Folder[]>;
+  findAllByUserId(
+    userId: string,
+    options?: {
+      search?: string;
+      parentId?: string | null;
+      isDeleted?: boolean;
+    }
+  ): Promise<Folder[]>;
 }

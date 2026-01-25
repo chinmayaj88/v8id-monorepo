@@ -96,12 +96,30 @@ export class FolderRepository implements IFolderRepository {
     });
   }
 
-  async findAllByUserId(userId: string): Promise<Folder[]> {
+  async findAllByUserId(
+    userId: string,
+    options?: {
+      search?: string;
+      parentId?: string | null;
+      isDeleted?: boolean;
+    }
+  ): Promise<Folder[]> {
+    const where: any = {
+      userId,
+      isDeleted: options?.isDeleted ?? false,
+    };
+
+    if (options?.search) {
+      where.name = { contains: options.search };
+    }
+
+    if (options?.parentId !== undefined) {
+      where.parentId = options.parentId;
+    }
+
     return prisma.folder.findMany({
-      where: {
-        userId,
-        isDeleted: false,
-      },
+      where,
+      orderBy: { name: 'asc' },
     });
   }
 }
