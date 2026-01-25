@@ -30,3 +30,5 @@ function loadEnvConfig(): EnvConfig {
 }
 
 export const envConfig = loadEnvConfig();
+
+

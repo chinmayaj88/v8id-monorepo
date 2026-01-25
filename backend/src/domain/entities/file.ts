@@ -231,3 +231,4 @@ export class File {
     return this.isStandardTier() && this.canHaveThumbnail();
   }
 }
+

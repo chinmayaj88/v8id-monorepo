@@ -65,3 +65,4 @@ export class Folder {
     return this.id !== folderId && this.isActive();
   }
 }
+

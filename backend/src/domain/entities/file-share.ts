@@ -57,3 +57,4 @@ export class FileShare {
     return this.permission === SharePermission.VIEW_ONLY;
   }
 }
+

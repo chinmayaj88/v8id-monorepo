@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import type { IConfigService } from '../../application/interfaces/config-service.interface.js';
+import type { IConfigService } from '../../application/interfaces/index.js';
 
 /**
  * Local Environment Configuration Service
@@ -73,3 +73,5 @@ export class LocalEnvConfigService implements IConfigService {
     }
   }
 }
+
+

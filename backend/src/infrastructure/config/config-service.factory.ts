@@ -1,4 +1,4 @@
-import type { IConfigService } from '../../application/interfaces/config-service.interface.js';
+import type { IConfigService } from '../../application/interfaces/index.js';
 import { LocalEnvConfigService } from './local-env-config.service.js';
 import { OciVaultConfigService } from './oci-vault-config.service.js';
 
@@ -58,3 +58,5 @@ export class ConfigServiceFactory {
     this.instance = null;
   }
 }
+
+

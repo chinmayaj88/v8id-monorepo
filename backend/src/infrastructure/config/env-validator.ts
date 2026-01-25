@@ -6,7 +6,7 @@
  * Throws errors in production if required variables are missing or using defaults.
  */
 
-import type { IConfigService } from '../../application/interfaces/config-service.interface.js';
+import type { IConfigService } from '../../application/interfaces/index.js';
 
 /**
  * Validates TOTP encryption key
@@ -99,3 +99,5 @@ export function validateEnvironment(configService: IConfigService): void {
   validateJwtSecret(configService);
   validateTotpEncryptionKey(configService);
 }
+
+

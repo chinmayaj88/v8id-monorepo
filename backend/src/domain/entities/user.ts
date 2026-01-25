@@ -106,3 +106,4 @@ export class User {
     return available > BigInt(0) ? available : BigInt(0);
   }
 }
+

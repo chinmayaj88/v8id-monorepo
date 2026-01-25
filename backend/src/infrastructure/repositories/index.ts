@@ -1,11 +1,4 @@
-/**
- * Infrastructure Repositories
- *
- * Concrete implementations of repository interfaces defined in the application layer.
- * These handle persistence and external data access.
- */
-
-export { UserRepository } from './user.repository.js';
-export { DeviceSessionRepository } from './device-session.repository.js';
-export { TotpBackupCodeRepository } from './totp-backup-code.repository.js';
-export { AuditLogRepository } from './audit-log.repository.js';
+﻿export * from './auth/index.js';
+export * from './user/index.js';
+export * from './audit/index.js';
+export * from './types.js';

@@ -19,3 +19,4 @@ export type PrismaDeviceSessionCreateInput = Prisma.DeviceSessionCreateInput;
 export type PrismaAuditLog = Prisma.AuditLogGetPayload<{}>;
 export type PrismaAuditLogCreateInput = Prisma.AuditLogCreateInput;
 export type PrismaAuditLogWhereInput = Prisma.AuditLogWhereInput;
+

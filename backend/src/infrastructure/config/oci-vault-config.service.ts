@@ -1,7 +1,7 @@
 import * as common from 'oci-common';
 import * as vault from 'oci-vault';
 import * as secrets from 'oci-secrets';
-import type { IConfigService } from '../../application/interfaces/config-service.interface.js';
+import type { IConfigService } from '../../application/interfaces/index.js';
 
 /**
  * OCI Vault Configuration Service
@@ -195,3 +195,5 @@ export class OciVaultConfigService implements IConfigService {
     }
   }
 }
+
+

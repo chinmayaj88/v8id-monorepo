@@ -93,3 +93,4 @@ export class UploadSession {
     return this.uploadMethod === UploadMethod.BACKEND;
   }
 }
+

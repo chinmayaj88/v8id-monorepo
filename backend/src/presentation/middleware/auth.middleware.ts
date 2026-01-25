@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { IJwtService } from '../../application/interfaces/jwt-service.interface.js';
-import { IUserRepository } from '../../application/interfaces/user-repository.interface.js';
-import { IDeviceSessionRepository } from '../../application/interfaces/device-session-repository.interface.js';
+import {
+  IJwtService,
+  IUserRepository,
+  IDeviceSessionRepository,
+} from '../../application/interfaces/index.js';
 import { ResponseUtil } from '../utils/response.util.js';
 
 export interface AuthenticatedRequest extends Request {
@@ -17,11 +19,7 @@ export function authMiddleware(
   deviceSessionRepository: IDeviceSessionRepository,
   jwtService: IJwtService
 ) {
-  return async (
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -72,11 +70,7 @@ export function authMiddleware(
  * Admin-only middleware
  */
 export function adminMiddleware() {
-  return (
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-  ): void => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user) {
       ResponseUtil.unauthorized(res);
       return;

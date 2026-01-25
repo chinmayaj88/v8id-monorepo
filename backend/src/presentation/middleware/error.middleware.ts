@@ -35,3 +35,4 @@ export function errorMiddleware(
     process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   );
 }
+

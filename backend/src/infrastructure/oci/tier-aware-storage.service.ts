@@ -13,8 +13,8 @@
 
 import * as common from 'oci-common';
 import * as objectstorage from 'oci-objectstorage';
-import { IStorageService } from '../../application/interfaces/storage-service.interface.js';
-import { StorageTier } from '../../domain/entities/file.js';
+import { IStorageService } from '../../application/interfaces/index.js';
+import { StorageTier } from '../../domain/entities/index.js';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -548,3 +548,4 @@ export class TierAwareStorageService implements IStorageService {
     }
   }
 }
+

@@ -87,3 +87,4 @@ function configureTrustProxy(app: Express): void {
     app.set('trust proxy', false);
   }
 }
+

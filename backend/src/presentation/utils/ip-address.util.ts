@@ -37,3 +37,4 @@ export function extractIpAddress(req: Request): string | undefined {
 
   return ip || undefined;
 }
+

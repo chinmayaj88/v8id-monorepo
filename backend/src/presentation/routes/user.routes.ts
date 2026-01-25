@@ -1,25 +1,6 @@
-/**
- * User Routes
- *
- * Defines user-related API routes.
- */
-
 import { Router, type IRouter } from 'express';
 import multer from 'multer';
-import { UserController } from '../controllers/user.controller.js';
-import { CreateUserUseCase } from '../../application/use-cases/create-user.use-case.js';
-import { GetLoginHistoryUseCase } from '../../application/use-cases/get-login-history.use-case.js';
-import { UpdateUserProfileUseCase } from '../../application/use-cases/update-user-profile.use-case.js';
-import { UserRepository } from '../../infrastructure/repositories/user.repository.js';
-import { AuditLogRepository } from '../../infrastructure/repositories/audit-log.repository.js';
-import { TotpBackupCodeRepository } from '../../infrastructure/repositories/totp-backup-code.repository.js';
-import { DeviceSessionRepository } from '../../infrastructure/repositories/device-session.repository.js';
-import { AuditLogService } from '../../infrastructure/services/audit-log.service.js';
-import { EmailServiceFactory } from '../../infrastructure/services/email.service.factory.js';
-import { PasswordService } from '../../infrastructure/services/password.service.js';
-import { TotpService } from '../../infrastructure/services/totp.service.js';
-import { JwtService } from '../../infrastructure/services/jwt.service.js';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
+import { userContainer, sharedContainer } from '../../infrastructure/di/index.js';
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware.js';
 import {
   validateBody,
@@ -32,38 +13,10 @@ import {
 
 const router: IRouter = Router();
 
-const passwordService = new PasswordService(parseInt(process.env.BCRYPT_ROUNDS || '12', 10));
-
-const userRepository = new UserRepository();
-const totpBackupCodeRepository = new TotpBackupCodeRepository(passwordService);
-const deviceSessionRepository = new DeviceSessionRepository();
-const auditLogRepository = new AuditLogRepository();
-const totpService = new TotpService();
-const jwtService = new JwtService();
-const auditLogService = new AuditLogService(auditLogRepository);
-const emailService = EmailServiceFactory.create();
-const storageService = new TierAwareStorageService();
-
-const createUserUseCase = new CreateUserUseCase(
-  userRepository,
-  totpBackupCodeRepository,
-  emailService,
-  passwordService,
-  totpService
-);
-const getLoginHistoryUseCase = new GetLoginHistoryUseCase(auditLogRepository);
-
-const updateUserProfileUseCase = new UpdateUserProfileUseCase(userRepository, storageService);
-
-const userController = new UserController(
-  createUserUseCase,
-  getLoginHistoryUseCase,
-  updateUserProfileUseCase,
-  userRepository,
-  deviceSessionRepository,
-  auditLogService,
-  storageService
-);
+const userController = userContainer.userController;
+const userRepository = sharedContainer.userRepository;
+const deviceSessionRepository = sharedContainer.deviceSessionRepository;
+const jwtService = sharedContainer.jwtService;
 
 router.post(
   '/',
