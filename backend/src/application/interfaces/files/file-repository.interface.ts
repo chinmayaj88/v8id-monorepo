@@ -1,122 +1,52 @@
-import { File, FileStatus, FileType, StorageTier } from '../../../domain/entities/index.js';
+import { File, StorageTier } from '../../../../generated/prisma/index.js';
 
 export interface IFileRepository {
-  findById(id: string): Promise<File | null>;
-  findByOciObjectName(ociObjectName: string): Promise<File | null>;
-  findByHash(hash: string, userId: string): Promise<File | null>;
-
-  create(fileData: {
+  create(data: {
     userId: string;
     folderId?: string | null;
     name: string;
-    originalName: string;
-    mimeType: string;
+    storageKey: string;
+    storageTier: StorageTier;
     size: bigint;
-    type: FileType;
-    status: FileStatus;
-    storageTier?: StorageTier;
-    ociObjectName: string;
-    hash: string;
-    thumbnailObjectName?: string;
-    thumbnailGenerated?: boolean;
-    description?: string;
-    tags?: string[];
-    metadata?: Record<string, unknown>;
+    mimeType: string;
+    extension?: string;
+    thumbnailKey?: string;
+    isOfflineAvailable?: boolean;
   }): Promise<File>;
 
-  update(
-    id: string,
-    data: Partial<{
-      name?: string;
-      folderId?: string | null;
-      description?: string;
-      tags?: string[];
-      metadata?: Record<string, unknown>;
-      status?: FileStatus;
-      deletedAt?: Date | null;
-      expiresAt?: Date | null;
-      thumbnailObjectName?: string | null;
-      thumbnailGenerated?: boolean;
-    }>
-  ): Promise<File>;
+  findById(id: string): Promise<File | null>;
+
+  /**
+   * Find all files in a specific folder (or root if folderId is null).
+   */
+  findByFolderId(folderId: string | null, userId: string): Promise<File[]>;
+
+  update(id: string, data: Partial<File>): Promise<File>;
 
   delete(id: string): Promise<void>;
 
-  hardDelete(id: string): Promise<void>;
+  /**
+   * Soft delete a file
+   */
+  softDelete(id: string): Promise<void>;
 
   /**
-   * Batch hard delete files (optimized for bulk operations)
+   * Find files by user ID with optional filtering
    */
-  batchHardDelete(fileIds: string[]): Promise<number>;
-
-  restore(id: string): Promise<File>;
-
-  findByUserId(
+  findAllByUserId(
     userId: string,
     options?: {
-      folderId?: string | null;
-      status?: FileStatus;
-      type?: FileType;
       search?: string;
-      page?: number;
-      limit?: number;
-      orderBy?: 'name' | 'createdAt' | 'updatedAt' | 'size';
-      orderDirection?: 'asc' | 'desc';
+      tier?: StorageTier;
+      isDeleted?: boolean;
+      folderId?: string | null;
     }
-  ): Promise<{ files: File[]; total: number }>;
-
-  findByFolderId(
-    folderId: string,
-    userId: string,
-    options?: {
-      status?: FileStatus;
-      page?: number;
-      limit?: number;
-    }
-  ): Promise<{ files: File[]; total: number }>;
-
-  findRootFiles(
-    userId: string,
-    options?: {
-      status?: FileStatus;
-      page?: number;
-      limit?: number;
-    }
-  ): Promise<{ files: File[]; total: number }>;
-
-  getStorageUsedByUser(userId: string): Promise<bigint>;
-
-  getStorageAnalytics(userId: string): Promise<Record<FileType, bigint>>;
-
-  findByStatus(
-    status: FileStatus,
-    options?: {
-      page?: number;
-      limit?: number;
-    }
-  ): Promise<{ files: File[]; total: number }>;
-
-  updateStatus(id: string, status: FileStatus): Promise<File>;
-
-  nameExistsInFolder(userId: string, folderId: string | null, name: string): Promise<boolean>;
-
-  findByFolderIdRecursive(folderId: string): Promise<File[]>;
+  ): Promise<File[]>;
 
   /**
-   * Batch update file status (optimized for bulk operations)
+   * Check if file with same name exists in folder
    */
-  batchUpdateStatus(fileIds: string[], status: FileStatus): Promise<number>;
+  existsByName(folderId: string | null, name: string, userId: string): Promise<boolean>;
 
-  /**
-   * Batch update folder ID (optimized for bulk move)
-   */
-  batchUpdateFolder(userId: string, fileIds: string[], folderId: string | null): Promise<number>;
-
-  /**
-   * Find all expired files (expiresAt <= now AND status = ACTIVE)
-   * Optimized for auto-delete scheduled jobs
-   */
-  findExpiredFiles(): Promise<File[]>;
+  findDescendants(folderIds: string[], userId: string): Promise<File[]>;
 }
-
-

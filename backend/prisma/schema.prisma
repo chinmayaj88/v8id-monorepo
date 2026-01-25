@@ -49,6 +49,10 @@ model User {
   deviceSessions  DeviceSession[]
   totpBackupCodes TotpBackupCode[]
   auditLogs       AuditLog[]
+  folders         Folder[]
+  files           File[]
+  fileShares      FileShare[]
+  folderShares    FolderShare[]
 
   @@index([email])
   @@index([isActive])
@@ -125,4 +129,122 @@ model AuditLog {
   @@index([createdAt])
   @@index([success])
   @@map("audit_logs")
+}
+
+// ----------------------------------------------------------------------
+// File & Folder Management System
+// ----------------------------------------------------------------------
+
+enum StorageTier {
+  STANDARD
+  ARCHIVE
+}
+
+enum SharePermission {
+  VIEW
+  EDIT
+}
+
+enum ShareType {
+  INTERNAL // Shared with another registered user
+  PUBLIC_LINK // Shared via public link
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  userId    String
+  parentId  String? // Null for root folders
+  name      String
+  path      String   @db.Text // Materialized path (e.g., /root/documents/work) for efficiency
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent       Folder?       @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Folder[]      @relation("FolderHierarchy")
+  files        File[]
+  folderShares FolderShare[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@index([isDeleted])
+  @@map("folders")
+}
+
+model File {
+  id                 String      @id @default(cuid())
+  userId             String
+  folderId           String? // Null for root files
+  name               String
+  storageKey         String      @db.VarChar(500) // Path in OCI Bucket
+  storageTier        StorageTier @default(STANDARD)
+  size               BigInt // Size in bytes
+  mimeType           String
+  extension          String?
+  thumbnailKey       String? // Key for thumbnail in Standard Bucket (if image)
+  isDeleted          Boolean     @default(false)
+  isOfflineAvailable Boolean     @default(false) // Flag for mobile sync priority
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  // Relations
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder     Folder?     @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  fileShares FileShare[]
+
+  @@index([userId])
+  @@index([folderId])
+  @@index([storageTier])
+  @@index([isDeleted])
+  @@map("files")
+}
+
+// ----------------------------------------------------------------------
+// Sharing System
+// ----------------------------------------------------------------------
+
+model FileShare {
+  id         String          @id @default(cuid())
+  fileId     String
+  ownerId    String // User who shared the file
+  sharedWith String? // Email of user shared with (for INTERNAL)
+  token      String?         @unique // Unique token for public links
+  permission SharePermission @default(VIEW)
+  type       ShareType       @default(INTERNAL)
+  expiresAt  DateTime? // Optional expiration for links
+  createdAt  DateTime        @default(now())
+
+  // Relations
+  file  File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+  @@index([ownerId])
+  @@index([token])
+  @@index([sharedWith])
+  @@map("file_shares")
+}
+
+model FolderShare {
+  id         String          @id @default(cuid())
+  folderId   String
+  ownerId    String // User who shared the folder
+  sharedWith String? // Email of user shared with (for INTERNAL)
+  token      String?         @unique // Unique token for public links
+  permission SharePermission @default(VIEW)
+  type       ShareType       @default(INTERNAL)
+  expiresAt  DateTime? // Optional expiration
+  createdAt  DateTime        @default(now())
+
+  // Relations
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  owner  User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([folderId])
+  @@index([ownerId])
+  @@index([token])
+  @@index([sharedWith])
+  @@map("folder_shares")
 }

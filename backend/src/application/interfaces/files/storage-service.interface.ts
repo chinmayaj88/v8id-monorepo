@@ -1,7 +1,6 @@
-import { StorageTier } from '../../../domain/entities/index.js';
+import { StorageTier } from '../../../../generated/prisma/index.js';
 
 export interface IStorageService {
-
   uploadFile(params: {
     objectName: string;
     file: Buffer | ReadableStream;
@@ -14,26 +13,35 @@ export interface IStorageService {
     size: number;
   }>;
 
-  downloadFile(objectName: string): Promise<{
+  downloadFile(
+    objectName: string,
+    tier?: StorageTier
+  ): Promise<{
     file: Buffer;
     contentType: string;
     contentLength: number;
     metadata?: Record<string, string>;
   }>;
 
-  deleteFile(objectName: string): Promise<void>;
+  deleteFile(objectName: string, tier?: StorageTier): Promise<void>;
 
+  fileExists(objectName: string, tier?: StorageTier): Promise<boolean>;
 
-  fileExists(objectName: string): Promise<boolean>;
-
-  getFileMetadata(objectName: string): Promise<{
+  getFileMetadata(
+    objectName: string,
+    tier?: StorageTier
+  ): Promise<{
     size: number;
     contentType: string;
     lastModified: Date;
     metadata?: Record<string, string>;
   }>;
 
-  generatePresignedUrl(objectName: string, expiresInSeconds?: number): Promise<string>;
+  generatePresignedUrl(
+    objectName: string,
+    expiresInSeconds?: number,
+    tier?: StorageTier
+  ): Promise<string>;
 
   /**
    * Create Pre-Authenticated Request (PAR) for direct upload
@@ -42,6 +50,7 @@ export interface IStorageService {
     objectName: string;
     expiresInHours?: number;
     accessType?: 'ObjectRead' | 'ObjectWrite' | 'ObjectReadWrite';
+    tier?: StorageTier;
   }): Promise<{
     parUrl: string;
     parId: string;
@@ -50,11 +59,18 @@ export interface IStorageService {
   /**
    * Delete Pre-Authenticated Request (PAR)
    */
-  deletePreAuthenticatedRequest(parId: string): Promise<void>;
+  deletePreAuthenticatedRequest(parId: string, tier?: StorageTier): Promise<void>;
 
-  copyFile(sourceObjectName: string, destinationObjectName: string): Promise<void>;
+  copyFile(
+    sourceObjectName: string,
+    destinationObjectName: string,
+    tier?: StorageTier
+  ): Promise<void>;
 
-  getFileSize(objectName: string): Promise<number>;
+  getFileSize(objectName: string, tier?: StorageTier): Promise<number>;
+
+  /**
+   * Generate an optimized thumbnail for an image buffer using Sharp.
+   */
+  generateThumbnail(fileBuffer: Buffer): Promise<Buffer>;
 }
-
-

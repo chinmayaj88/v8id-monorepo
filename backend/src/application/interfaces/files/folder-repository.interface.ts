@@ -1,84 +1,36 @@
-import { Folder } from '../../../domain/entities/index.js';
+import { Folder } from '../../../../generated/prisma/index.js';
 
 export interface IFolderRepository {
-  findById(id: string): Promise<Folder | null>;
-
-  findByName(userId: string, name: string, parentId: string | null): Promise<Folder | null>;
-
-  create(folderData: {
+  create(data: {
     userId: string;
     parentId?: string | null;
     name: string;
-    description?: string;
-    color?: string;
+    path: string;
   }): Promise<Folder>;
 
-  update(
-    id: string,
-    data: Partial<{
-      name?: string;
-      parentId?: string | null;
-      description?: string;
-      color?: string;
-      deletedAt?: Date | null;
-    }>
-  ): Promise<Folder>;
+  findById(id: string): Promise<Folder | null>;
+
+  /**
+   * Find all folders in a specific parent folder (or root if parentId is null).
+   */
+  findByParentId(parentId: string | null, userId: string): Promise<Folder[]>;
+
+  update(id: string, data: Partial<Folder>): Promise<Folder>;
 
   delete(id: string): Promise<void>;
 
-  hardDelete(id: string): Promise<void>;
+  softDelete(id: string): Promise<void>;
 
-  restore(id: string): Promise<Folder>;
+  /**
+   * Check if folder with same name exists in parent folder
+   */
+  existsByName(parentId: string | null, name: string, userId: string): Promise<boolean>;
 
-  findByUserId(
-    userId: string,
-    options?: {
-      parentId?: string | null;
-      includeDeleted?: boolean;
-      search?: string;
-      page?: number;
-      limit?: number;
-    }
-  ): Promise<{ folders: Folder[]; total: number }>;
+  /**
+   * Get all descendants of a folder (for recursive operations like delete/move)
+   * Uses the materialized path for efficiency.
+   */
+  findDescendants(folderId: string, userId: string): Promise<Folder[]>;
 
-  findRootFolders(
-    userId: string,
-    options?: {
-      includeDeleted?: boolean;
-      search?: string;
-      page?: number;
-      limit?: number;
-    }
-  ): Promise<{ folders: Folder[]; total: number }>;
-
-  findChildren(
-    parentId: string,
-    userId: string,
-    options?: {
-      includeDeleted?: boolean;
-      search?: string;
-      page?: number;
-      limit?: number;
-    }
-  ): Promise<{ folders: Folder[]; total: number }>;
-
-  getFolderPath(folderId: string): Promise<Folder[]>;
-
-  nameExistsInParent(userId: string, parentId: string | null, name: string): Promise<boolean>;
-
-  hasChildren(folderId: string): Promise<boolean>;
-
-  hasFiles(folderId: string): Promise<boolean>;
-
-  move(folderId: string, newParentId: string | null): Promise<Folder>;
-
-  wouldCreateCircularReference(folderId: string, newParentId: string | null): Promise<boolean>;
-
-  hardDeleteRecursive(folderId: string): Promise<void>;
-
-  hasActiveChildren(folderId: string): Promise<boolean>;
-
-  hasActiveFiles(folderId: string): Promise<boolean>;
+  findAllByUserId(userId: string): Promise<Folder[]>;
 }
-
-

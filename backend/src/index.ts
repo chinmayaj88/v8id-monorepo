@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import './infrastructure/config/init-env.js';
+import './infrastructure/utils/bigint-serializer.ts';
 import { Server } from './framework/server/server.js';
 import { envConfig } from './infrastructure/config/env.config.js';
 import { ConfigServiceFactory } from './infrastructure/config/config-service.factory.js';

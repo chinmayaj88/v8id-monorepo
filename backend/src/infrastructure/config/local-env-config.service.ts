@@ -16,7 +16,7 @@ export class LocalEnvConfigService implements IConfigService {
     }
 
     // Load .env file
-    const result = config();
+    const result = config({ override: true });
 
     if (result.error) {
       console.warn('⚠️  No .env file found, using process.env only');
@@ -73,5 +73,3 @@ export class LocalEnvConfigService implements IConfigService {
     }
   }
 }
-
-

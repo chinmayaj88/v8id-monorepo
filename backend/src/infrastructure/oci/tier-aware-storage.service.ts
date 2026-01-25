@@ -536,4 +536,19 @@ export class TierAwareStorageService implements IStorageService {
       );
     }
   }
+
+  /**
+   * Generate an optimized thumbnail for an image buffer using Sharp.
+   * Resizes to 200x200 (cover), converts to WEBP for efficiency.
+   */
+  async generateThumbnail(fileBuffer: Buffer): Promise<Buffer> {
+    const sharp = (await import('sharp')).default; // Dynamic import to avoid build issues if sharp is missing in some envs
+    return await sharp(fileBuffer)
+      .resize(200, 200, {
+        fit: 'cover',
+        position: 'center',
+      })
+      .webp({ quality: 80 })
+      .toBuffer();
+  }
 }
