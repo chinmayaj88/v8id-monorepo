@@ -186,25 +186,36 @@ export class VerifyTotpLoginUseCase {
     }
 
     const activeSessions = await this.deviceSessionRepository.findActiveSessionsByUserId(user.id);
-    const mobileCount = await this.deviceSessionRepository.countActiveSessionsByType(
-      user.id,
-      'MOBILE'
-    );
-    const webCount = await this.deviceSessionRepository.countActiveSessionsByType(user.id, 'WEB');
-
     const isNewDevice = !activeSessions.some(s => s.deviceId === dto.deviceId);
 
-    if (dto.deviceType === 'MOBILE' && mobileCount >= 2) {
-      const mobileSessions = activeSessions
-        .filter(s => s.deviceType === 'MOBILE')
-        .sort((a, b) => a.lastActiveAt.getTime() - b.lastActiveAt.getTime());
-      if (mobileSessions.length > 0 && mobileSessions[0]) {
-        await this.deviceSessionRepository.revoke(mobileSessions[0].id);
-      }
-    } else if (dto.deviceType === 'WEB' && webCount >= 1) {
+    // Handle Web Sessions (Limit 1, Auto-revoke)
+    if (dto.deviceType === 'WEB') {
       const webSessions = activeSessions.filter(s => s.deviceType === 'WEB');
       for (const session of webSessions) {
         await this.deviceSessionRepository.revoke(session.id);
+      }
+    }
+
+    // Handle Mobile Sessions (Limit 2, Strict Block)
+    if (dto.deviceType === 'MOBILE') {
+      const mobileSessions = activeSessions.filter(s => s.deviceType === 'MOBILE');
+      const existingSessionForDevice = mobileSessions.find(s => s.deviceId === dto.deviceId);
+
+      if (existingSessionForDevice) {
+        // Re-login from same device: Revoke old session to avoid duplicates
+        await this.deviceSessionRepository.revoke(existingSessionForDevice.id);
+
+        // Remove from list for count check
+        const index = mobileSessions.indexOf(existingSessionForDevice);
+        if (index > -1) {
+          mobileSessions.splice(index, 1);
+        }
+      }
+
+      if (mobileSessions.length >= 2) {
+        throw new Error(
+          'You have reached the maximum limit of 2 active mobile devices. Please log out from one of your existing devices to continue.'
+        );
       }
     }
 
@@ -292,7 +303,3 @@ export class VerifyTotpLoginUseCase {
     };
   }
 }
-
-
-
-

@@ -270,16 +270,24 @@ export class UserController {
    */
   async revokeAllSessions(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      if (!req.user) {
+      const user = req.user;
+      if (!user) {
         ResponseUtil.unauthorized(res);
         return;
       }
 
       // Get all active sessions before revoking
-      const sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(req.user.id);
+      let sessions = await this.deviceSessionRepository.findActiveSessionsByUserId(user.id);
 
-      // Revoke all sessions
-      await this.deviceSessionRepository.revokeAllForUser(req.user.id);
+      // If we have a current session (which we should for an authenticated request),
+      // filter it out from the "to revoke" list and keep it alive.
+      if (user.sessionId) {
+        sessions = sessions.filter(s => s.id !== user.sessionId);
+        await this.deviceSessionRepository.revokeAllExpectCurrent(user.id, user.sessionId);
+      } else {
+        // Fallback for cases where sessionId isn't available (e.g. API tokens if implemented differently)
+        await this.deviceSessionRepository.revokeAllForUser(user.id);
+      }
 
       // Log session revocations
       const ipAddress = extractIpAddress(req);
@@ -288,7 +296,7 @@ export class UserController {
         : req.headers['user-agent'] || undefined;
 
       for (const session of sessions) {
-        await this.auditLogService.logSessionRevoked(req.user.id, session.id, {
+        await this.auditLogService.logSessionRevoked(user.id, session.id, {
           ipAddress,
           userAgent,
         });
@@ -333,4 +341,3 @@ export class UserController {
     }
   }
 }
-

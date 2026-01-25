@@ -19,7 +19,6 @@ export interface DeviceSession {
 }
 
 export interface IDeviceSessionRepository {
-
   create(data: {
     userId: string;
     deviceType: 'MOBILE' | 'WEB';
@@ -34,7 +33,6 @@ export interface IDeviceSessionRepository {
     rememberMe?: boolean;
   }): Promise<DeviceSession>;
 
-
   findByRefreshToken(refreshToken: string): Promise<DeviceSession | null>;
 
   findByAccessToken(accessToken: string): Promise<DeviceSession | null>;
@@ -43,10 +41,7 @@ export interface IDeviceSessionRepository {
 
   findRememberedMobileSession(userId: string): Promise<DeviceSession | null>;
 
-  countActiveSessionsByType(
-    userId: string,
-    deviceType: 'MOBILE' | 'WEB'
-  ): Promise<number>;
+  countActiveSessionsByType(userId: string, deviceType: 'MOBILE' | 'WEB'): Promise<number>;
 
   revoke(sessionId: string): Promise<void>;
 
@@ -63,7 +58,5 @@ export interface IDeviceSessionRepository {
    * Optimized for session revocation - single query instead of fetching all sessions
    */
   findByIdAndUserId(sessionId: string, userId: string): Promise<DeviceSession | null>;
+  revokeAllExpectCurrent(userId: string, currentSessionId: string): Promise<void>;
 }
-
-
-

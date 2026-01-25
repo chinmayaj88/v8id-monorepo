@@ -201,5 +201,22 @@ export class DeviceSessionRepository implements IDeviceSessionRepository {
 
     return this.toDomain(session);
   }
-}
 
+  async revokeAllExpectCurrent(userId: string, currentSessionId: string): Promise<void> {
+    await prisma.deviceSession.updateMany({
+      where: {
+        userId,
+        isActive: true,
+        isRevoked: false,
+        id: {
+          not: currentSessionId,
+        },
+      },
+      data: {
+        isRevoked: true,
+        isActive: false,
+        updatedAt: new Date(),
+      },
+    });
+  }
+}

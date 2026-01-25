@@ -11,6 +11,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     role: string;
+    sessionId: string;
   };
   sessionId?: string;
 }
@@ -58,6 +59,7 @@ export function authMiddleware(
         id: user.id,
         email: user.email,
         role: user.role,
+        sessionId: session.id, // Ensure sessionId is available on req.user
       };
       req.sessionId = session.id;
 

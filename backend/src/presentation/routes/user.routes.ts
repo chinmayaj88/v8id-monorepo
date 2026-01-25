@@ -25,6 +25,7 @@ router.post(
   validateBody(createUserSchema),
   (req, res) => userController.createUser(req, res)
 );
+
 router.get(
   '/',
   authMiddleware(userRepository, deviceSessionRepository, jwtService),
@@ -70,12 +71,14 @@ router.get(
   authMiddleware(userRepository, deviceSessionRepository, jwtService),
   (req, res) => userController.listSessions(req, res)
 );
+
 router.delete(
   '/me/sessions/:sessionId',
   authMiddleware(userRepository, deviceSessionRepository, jwtService),
   validateParams(revokeSessionSchema),
   (req, res) => userController.revokeSession(req, res)
 );
+
 router.post(
   '/me/sessions/revoke-all',
   authMiddleware(userRepository, deviceSessionRepository, jwtService),
