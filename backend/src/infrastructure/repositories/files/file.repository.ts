@@ -141,4 +141,15 @@ export class FileRepository implements IFileRepository {
       },
     });
   }
+
+  async findUpdatedSince(userId: string, since: Date): Promise<File[]> {
+    return prisma.file.findMany({
+      where: {
+        userId,
+        updatedAt: {
+          gt: since,
+        },
+      },
+    });
+  }
 }

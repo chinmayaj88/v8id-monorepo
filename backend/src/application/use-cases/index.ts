@@ -8,3 +8,4 @@
 export * from './auth/index.js';
 export * from './user/index.js';
 export * from './files/index.js';
+export * from './sync/sync.use-case.js';

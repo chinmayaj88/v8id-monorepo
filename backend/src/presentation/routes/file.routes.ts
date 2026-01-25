@@ -4,7 +4,7 @@ import { FileController } from '../controllers/files/file.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { sharedContainer } from '../../infrastructure/di/index.js';
 import { FileRepository, FolderRepository } from '../../infrastructure/repositories/files/index.js';
-import { UploadFileUseCase } from '../../application/use-cases/index.js';
+import { UploadFileUseCase, GenerateFileLinkUseCase } from '../../application/use-cases/index.js';
 import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
 import { UserRepository } from '../../infrastructure/repositories/user/user.repository.js';
 
@@ -36,12 +36,15 @@ const uploadFileUseCase = new UploadFileUseCase(
   userRepository
 );
 
-const fileController = new FileController(uploadFileUseCase);
+const generateFileLinkUseCase = new GenerateFileLinkUseCase(fileRepository, storageService);
+
+const fileController = new FileController(uploadFileUseCase, generateFileLinkUseCase);
 
 const router = Router();
 
 router.use(authenticate);
 
 router.post('/upload', upload.single('file'), (req, res) => fileController.upload(req, res));
+router.post('/:id/link', (req, res) => fileController.generateLink(req, res));
 
 export default router;

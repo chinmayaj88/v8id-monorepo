@@ -10,6 +10,7 @@ import userRoutes from './user.routes.js';
 import folderRoutes from './folder.routes.js';
 import fileRoutes from './file.routes.js';
 import searchRoutes from './search.routes.js';
+import syncRoutes from './sync.routes.js';
 
 const router: IRouter = Router();
 
@@ -19,5 +20,6 @@ router.use('/users', userRoutes);
 router.use('/folders', folderRoutes);
 router.use('/files', fileRoutes);
 router.use('/search', searchRoutes);
+router.use('/sync', syncRoutes);
 
 export default router;

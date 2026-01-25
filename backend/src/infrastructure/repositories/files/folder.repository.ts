@@ -126,4 +126,15 @@ export class FolderRepository implements IFolderRepository {
       skip: options?.offset,
     });
   }
+
+  async findUpdatedSince(userId: string, since: Date): Promise<Folder[]> {
+    return prisma.folder.findMany({
+      where: {
+        userId,
+        updatedAt: {
+          gt: since,
+        },
+      },
+    });
+  }
 }

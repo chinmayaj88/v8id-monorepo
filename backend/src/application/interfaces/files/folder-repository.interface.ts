@@ -42,4 +42,9 @@ export interface IFolderRepository {
       offset?: number;
     }
   ): Promise<Folder[]>;
+
+  /**
+   * Find folders updated since a specific date (for delta sync)
+   */
+  findUpdatedSince(userId: string, since: Date): Promise<Folder[]>;
 }

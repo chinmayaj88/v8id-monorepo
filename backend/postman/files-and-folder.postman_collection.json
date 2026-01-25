@@ -273,6 +273,83 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Sync",
+      "item": [
+        {
+          "name": "Full Sync",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sync"]
+            },
+            "description": "Fetches all files and folders (Initial load)."
+          },
+          "response": []
+        },
+        {
+          "name": "Delta Sync (Timestamp)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sync?since=1715000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sync"],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "1715000000000",
+                  "description": "Timestamp in milliseconds"
+                }
+              ]
+            },
+            "description": "Fetches only changes since the given timestamp."
+          },
+          "response": []
+        },
+        {
+          "name": "Delta Sync (ETag)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              },
+              {
+                "key": "If-None-Match",
+                "value": "\"ETAG_FROM_PREVIOUS_RESPONSE\"",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sync",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "sync"]
+            },
+            "description": "Uses ETag to check for changes. Returns 304 if no changes."
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [

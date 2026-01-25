@@ -51,4 +51,9 @@ export interface IFileRepository {
   existsByName(folderId: string | null, name: string, userId: string): Promise<boolean>;
 
   findDescendants(folderIds: string[], userId: string): Promise<File[]>;
+
+  /**
+   * Find files updated since a specific date (for delta sync)
+   */
+  findUpdatedSince(userId: string, since: Date): Promise<File[]>;
 }
