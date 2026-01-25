@@ -26,7 +26,6 @@ export class ConfigServiceFactory {
     let configService: IConfigService;
 
     if (nodeEnv === 'production') {
-      console.log('🔒 Initializing OCI Vault configuration service...');
       configService = new OciVaultConfigService();
     } else {
       console.log('📁 Initializing local .env configuration service...');
@@ -58,5 +57,3 @@ export class ConfigServiceFactory {
     this.instance = null;
   }
 }
-
-

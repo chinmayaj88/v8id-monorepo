@@ -42,7 +42,9 @@ export class NodemailerEmailService implements IEmailService {
     this.transporter
       .verify()
       .then(() => {
-        console.log('📧 SMTP connection verified successfully');
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('📧 SMTP connection verified successfully');
+        }
       })
       .catch(error => {
         console.error('❌ SMTP connection verification failed:', error);
@@ -481,4 +483,3 @@ export class NodemailerEmailService implements IEmailService {
     `.trim();
   }
 }
-

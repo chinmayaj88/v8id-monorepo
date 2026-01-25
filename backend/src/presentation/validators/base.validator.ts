@@ -3,6 +3,16 @@ import { ZodTypeAny, ZodError } from 'zod';
 import { ResponseUtil } from '../utils/response.util.js';
 
 /**
+ * Robust check for ZodError that works across multiple instances/versions
+ */
+const isZodError = (error: any): error is ZodError => {
+  return (
+    error instanceof ZodError ||
+    (error && typeof error === 'object' && error.name === 'ZodError' && Array.isArray(error.issues))
+  );
+};
+
+/**
  * Middleware to validate request body against a Zod schema
  */
 export const validateBody = (schema: ZodTypeAny) => {
@@ -11,7 +21,7 @@ export const validateBody = (schema: ZodTypeAny) => {
       req.body = await schema.parseAsync(req.body || {});
       next();
     } catch (error) {
-      if (error instanceof ZodError) {
+      if (isZodError(error)) {
         return ResponseUtil.validationError(res, error.issues[0]?.message || 'Validation failed');
       }
       return ResponseUtil.internalError(res, 'Validation failed');
@@ -25,10 +35,18 @@ export const validateBody = (schema: ZodTypeAny) => {
 export const validateQuery = (schema: ZodTypeAny) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.query = (await schema.parseAsync(req.query)) as any;
+      const validated = await schema.parseAsync(req.query);
+
+      Object.defineProperty(req, 'query', {
+        value: validated,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+
       next();
     } catch (error) {
-      if (error instanceof ZodError) {
+      if (isZodError(error)) {
         return ResponseUtil.validationError(
           res,
           error.issues[0]?.message || 'Query validation failed'
@@ -45,10 +63,18 @@ export const validateQuery = (schema: ZodTypeAny) => {
 export const validateParams = (schema: ZodTypeAny) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      req.params = (await schema.parseAsync(req.params)) as any;
+      const validated = await schema.parseAsync(req.params);
+
+      Object.defineProperty(req, 'params', {
+        value: validated,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+
       next();
     } catch (error) {
-      if (error instanceof ZodError) {
+      if (isZodError(error)) {
         return ResponseUtil.validationError(
           res,
           error.issues[0]?.message || 'Params validation failed'

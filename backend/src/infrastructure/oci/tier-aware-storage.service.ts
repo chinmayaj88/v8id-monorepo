@@ -102,7 +102,6 @@ export class TierAwareStorageService implements IStorageService {
           authenticationDetailsProvider: provider,
         });
       } catch (error) {
-        console.error('❌ OCI Simple Auth initialization error:', error);
         throw error;
       }
     } else {
@@ -457,17 +456,7 @@ export class TierAwareStorageService implements IStorageService {
         parId,
       };
     } catch (error: any) {
-      console.error(`❌ OCI PAR Error [${tier}]:`);
-      console.dir(error, { depth: null });
-
-      let errorMessage = 'Unknown error';
-      if (error) {
-        errorMessage = error.message || error.code || JSON.stringify(error);
-        console.log('Error Properties:', Object.getOwnPropertyNames(error));
-        if (error.serviceCode) console.log('Service Code:', error.serviceCode);
-        if (error.statusCode) console.log('Status Code:', error.statusCode);
-      }
-
+      const errorMessage = error?.message || error?.code || 'Unknown OCI error';
       throw new Error(
         `Failed to create Pre-Authenticated Request for ${tier} tier: ${errorMessage}`
       );
@@ -548,4 +537,3 @@ export class TierAwareStorageService implements IStorageService {
     }
   }
 }
-

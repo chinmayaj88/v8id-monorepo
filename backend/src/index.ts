@@ -5,16 +5,20 @@ import { ConfigServiceFactory } from './infrastructure/config/config-service.fac
 import { validateEnvironment } from './infrastructure/config/env-validator.js';
 
 async function main(): Promise<void> {
-  console.log('🚀 v8id-cloud Backend v2 starting...');
-
   // Initialize configuration service
   const configService = await ConfigServiceFactory.create();
-  console.log(`📦 Running in ${configService.getEnvironment()} mode`);
+
+  if (configService.getEnvironment() !== 'production') {
+    console.log('🚀 v8id-cloud Backend v2 starting...');
+    console.log(`📦 Running in ${configService.getEnvironment()} mode`);
+  }
 
   // Validate critical environment variables
   try {
     validateEnvironment(configService);
-    console.log('✅ Environment variables validated successfully');
+    if (configService.getEnvironment() !== 'production') {
+      console.log('✅ Environment variables validated successfully');
+    }
   } catch (error) {
     console.error(
       '❌ Environment validation failed:',

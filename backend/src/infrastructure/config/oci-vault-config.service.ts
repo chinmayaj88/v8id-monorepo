@@ -7,12 +7,6 @@ import type { IConfigService } from '../../application/interfaces/index.js';
  * OCI Vault Configuration Service
  *
  * Dynamically loads configuration from OCI Vault at runtime.
- * Supports:
- * - Instance Principals (Production / OCI Compute)
- * - Simple Auth / API Keys (Development)
- * - Fallback to pre-populated Environment Variables
- *
- * Follows Clean Architecture by abstracting the configuration source.
  */
 export class OciVaultConfigService implements IConfigService {
   private config: Record<string, string> = {};
@@ -30,9 +24,13 @@ export class OciVaultConfigService implements IConfigService {
       return;
     }
 
-    console.log('🔐 Initializing OCI Vault configuration service...');
+    const isProduction = this.getEnvironment() === 'production';
 
-    // 1. Initial load from process.env (for variables injected by shell script or Docker)
+    if (!isProduction) {
+      console.log('🔐 Initializing OCI Vault configuration service...');
+    }
+
+    // 1. Initial load from process.env
     this.config = { ...process.env } as Record<string, string>;
 
     const compartmentId = process.env.OCI_COMPARTMENT_ID;
@@ -41,32 +39,33 @@ export class OciVaultConfigService implements IConfigService {
     // 2. If we have Vault details, try to fetch missing secrets dynamically
     if (compartmentId && vaultId) {
       try {
-        await this.loadSecretsFromVault(compartmentId, vaultId);
+        await this.loadSecretsFromVault(compartmentId, vaultId, isProduction);
       } catch (error) {
-        console.warn(
-          '⚠️  Could not fetch secrets from OCI Vault SDK, proceeding with environment variables:',
-          error instanceof Error ? error.message : String(error)
-        );
+        if (!isProduction) {
+          console.warn(
+            '⚠️  Could not fetch secrets from OCI Vault SDK, proceeding with environment variables:',
+            error instanceof Error ? error.message : String(error)
+          );
+        }
       }
-    } else {
+    } else if (!isProduction) {
       console.log(
         'ℹ️  Vault setup (OCI_VAULT_ID) not found, using pre-populated environment variables.'
       );
     }
 
-    // 3. Final validation
-    const nodeEnv = this.getEnvironment();
-    if (nodeEnv !== 'production') {
-      console.warn(
-        '⚠️  Warning: OciVaultConfigService is being used in non-production environment'
-      );
+    if (!isProduction) {
+      console.log('✅ OCI Vault configuration service initialized');
     }
 
-    console.log('✅ OCI Vault configuration service initialized');
     this.initialized = true;
   }
 
-  private async loadSecretsFromVault(compartmentId: string, vaultId: string): Promise<void> {
+  private async loadSecretsFromVault(
+    compartmentId: string,
+    vaultId: string,
+    isProduction: boolean
+  ): Promise<void> {
     const provider = await this.getAuthenticationProvider();
     const vaultClient = new vault.VaultsClient({ authenticationDetailsProvider: provider });
     const secretsClient = new secrets.SecretsClient({ authenticationDetailsProvider: provider });
@@ -81,7 +80,9 @@ export class OciVaultConfigService implements IConfigService {
     const response = await vaultClient.listSecrets(listSecretsRequest);
     const secretsList = response.items || [];
 
-    console.log(`📦 Found ${secretsList.length} secrets in Vault. Checking for updates...`);
+    if (!isProduction) {
+      console.log(`📦 Found ${secretsList.length} secrets in Vault. Checking for updates...`);
+    }
 
     // Process each secret concurrently
     await Promise.all(
@@ -92,8 +93,6 @@ export class OciVaultConfigService implements IConfigService {
 
         const envVarName = secretItem.secretName.substring(this.SECRET_PREFIX.length);
 
-        // Fetch secret content only if not already set or we want to overwrite
-        // In Prod, we might want to prioritize Vault over local env
         try {
           const bundleRequest: secrets.requests.GetSecretBundleRequest = {
             secretId: secretItem.id,
@@ -105,11 +104,10 @@ export class OciVaultConfigService implements IConfigService {
           if (bundle && bundle.content) {
             const secretValue = Buffer.from(bundle.content, 'base64').toString('utf8');
             this.config[envVarName] = secretValue;
-            // Also update process.env for other services that might still use it
             process.env[envVarName] = secretValue;
           }
         } catch (err) {
-          console.error(`❌ Failed to retrieve secret bundle for ${secretItem.secretName}:`, err);
+          console.error(`❌ Failed to retrieve secret bundle for ${secretItem.secretName}`);
         }
       })
     );
@@ -176,7 +174,6 @@ export class OciVaultConfigService implements IConfigService {
   }
 
   getEnvironment(): string {
-    // If initialized, use internal config, otherwise use process.env as fallback
     const env = this.initialized ? this.config.NODE_ENV : process.env.NODE_ENV;
     return env || 'production';
   }
@@ -195,5 +192,3 @@ export class OciVaultConfigService implements IConfigService {
     }
   }
 }
-
-

@@ -19,18 +19,10 @@ function getPrismaClient(): PrismaClient {
   const databaseUrl = env.DATABASE_URL;
   const isProduction = env.NODE_ENV === 'production';
 
-  console.log('🔄 Initializing Prisma Client...');
-  if (databaseUrl) {
-    console.log('🔗 Using DATABASE_URL connection');
-  } else {
-    console.log('🔗 Using individual connection variables');
-  }
-
   let adapterOptions: any;
   if (databaseUrl) {
     try {
       // Must replace 'mysql://' with 'http://' to satisfy the strictly compliant URL parser if needed
-      // Most environments handle mysql:// fine, but this guarantees compatibility.
       const protocolFixedUrl = databaseUrl.replace(/^mysql:\/\//, 'http://');
       const url = new URL(protocolFixedUrl);
 
@@ -38,21 +30,14 @@ function getPrismaClient(): PrismaClient {
         host: url.hostname || 'localhost',
         port: url.port ? parseInt(url.port, 10) : 3306,
         user: url.username || 'root',
-        // CRITICAL: Decode the password. 'url.password' gives the encoded string (e.g. %24),
-        // but the MariaDB driver expects the raw character (e.g. $).
+        // CRITICAL: Decode the password.
         password: decodeURIComponent(url.password),
         database: url.pathname.replace(/^\//, ''),
       };
-
-      console.log(
-        `🔗 parsed DATABASE_URL: host=${adapterOptions.host} user=${adapterOptions.user}`
-      );
     } catch (err) {
-      console.error(
-        '❌ Failed to parse DATABASE_URL, attempting raw string usage (may fail if driver does not support it)',
-        err
-      );
-      // Fallback to the method that failed before, but at least we tried parsing
+      if (!isProduction) {
+        console.error('❌ Failed to parse DATABASE_URL:', err);
+      }
       adapterOptions = { url: databaseUrl };
     }
   } else {
@@ -91,7 +76,6 @@ function getPrismaClient(): PrismaClient {
 }
 
 // Export the prisma instance via a Proxy or direct export
-// Using a Proxy ensures that 'prisma' always refers to the correctly initialized instance
 export const prisma = new Proxy({} as PrismaClient, {
   get: (_target, prop, receiver) => {
     const instance = getPrismaClient();
