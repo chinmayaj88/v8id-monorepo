@@ -8,6 +8,7 @@
 import { IUserRepository } from '../../interfaces/index.js';
 import { IStorageService } from '../../interfaces/index.js';
 import { StorageTier } from '../../../domain/entities/index.js';
+import { StorageUtils } from '../../utils/storage.utils.js';
 
 export interface UpdateProfileDTO {
   firstName?: string;
@@ -26,6 +27,9 @@ export interface UpdateProfileResponse {
   role: string;
   storageQuota: string;
   storageUsed: string;
+  storagePercentage: number;
+  storageUsedFormatted: string;
+  storageQuotaFormatted: string;
   updatedAt: Date;
 }
 
@@ -94,11 +98,10 @@ export class UpdateUserProfileUseCase {
       role: updatedUser.role,
       storageQuota: updatedUser.storageQuota.toString(),
       storageUsed: updatedUser.storageUsed.toString(),
+      storagePercentage: updatedUser.getStorageUsagePercentage(),
+      storageUsedFormatted: StorageUtils.formatSize(updatedUser.storageUsed),
+      storageQuotaFormatted: StorageUtils.formatSize(updatedUser.storageQuota),
       updatedAt: updatedUser.updatedAt,
     };
   }
 }
-
-
-
-

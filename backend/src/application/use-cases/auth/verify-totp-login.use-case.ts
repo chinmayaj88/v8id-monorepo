@@ -13,6 +13,7 @@ import { ISuspiciousActivityService } from '../../interfaces/index.js';
 import { IAuditLogService } from '../../interfaces/index.js';
 import { IStorageService } from '../../interfaces/index.js';
 import { ConfigServiceFactory } from '../../../infrastructure/config/config-service.factory.js';
+import { StorageUtils } from '../../utils/storage.utils.js';
 
 export interface VerifyTotpLoginResult {
   accessToken: string;
@@ -33,6 +34,9 @@ export interface VerifyTotpLoginResult {
     role: string;
     storageQuota: string;
     storageUsed: string;
+    storagePercentage: number;
+    storageUsedFormatted: string;
+    storageQuotaFormatted: string;
   };
 }
 
@@ -299,6 +303,9 @@ export class VerifyTotpLoginUseCase {
         role: user.role,
         storageQuota: user.storageQuota.toString(),
         storageUsed: user.storageUsed.toString(),
+        storagePercentage: user.getStorageUsagePercentage(),
+        storageUsedFormatted: StorageUtils.formatSize(user.storageUsed),
+        storageQuotaFormatted: StorageUtils.formatSize(user.storageQuota),
       },
     };
   }

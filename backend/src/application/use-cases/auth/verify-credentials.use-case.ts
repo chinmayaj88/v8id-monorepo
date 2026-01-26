@@ -1,6 +1,6 @@
 /**
  * Verify Credentials Use Case
- * 
+ *
  * First step of two-step login: Verifies email and password.
  * Returns a temporary session token that can be used to verify TOTP.
  */
@@ -12,6 +12,7 @@ import { IAuditLogService } from '../../interfaces/index.js';
 import { IAccountLockoutService } from '../../interfaces/index.js';
 import { ISuspiciousActivityService } from '../../interfaces/index.js';
 import { IEmailService } from '../../interfaces/index.js';
+import { StorageUtils } from '../../utils/storage.utils.js';
 
 export interface VerifyCredentialsResult {
   requiresTotp: boolean;
@@ -22,6 +23,11 @@ export interface VerifyCredentialsResult {
     firstName?: string;
     lastName?: string;
     role: string;
+    storageQuota: string;
+    storageUsed: string;
+    storagePercentage: number;
+    storageUsedFormatted: string;
+    storageQuotaFormatted: string;
   };
 }
 
@@ -74,23 +80,20 @@ export class VerifyCredentialsUseCase {
       const minutesRemaining = unlockAt
         ? Math.ceil((unlockAt.getTime() - Date.now()) / (60 * 1000))
         : 15;
-      
+
       await this.auditLogService.logLogin(user.id, false, {
         ipAddress: options?.ipAddress,
         userAgent: options?.userAgent,
         email: options?.email || email,
         errorMessage: `Account locked due to too many failed login attempts. Try again in ${minutesRemaining} minute(s).`,
       });
-      
+
       throw new Error(
         `Account is temporarily locked due to too many failed login attempts. Please try again in ${minutesRemaining} minute(s).`
       );
     }
 
-    const isPasswordValid = await this.passwordService.verifyPassword(
-      password,
-      user.passwordHash
-    );
+    const isPasswordValid = await this.passwordService.verifyPassword(password, user.passwordHash);
     if (!isPasswordValid) {
       await this.auditLogService.logLogin(user.id, false, {
         ipAddress: options?.ipAddress,
@@ -104,7 +107,10 @@ export class VerifyCredentialsUseCase {
         options?.ipAddress
       );
 
-      if (suspiciousActivity.isSuspicious && suspiciousActivity.activityType === 'MULTIPLE_FAILED_LOGINS') {
+      if (
+        suspiciousActivity.isSuspicious &&
+        suspiciousActivity.activityType === 'MULTIPLE_FAILED_LOGINS'
+      ) {
         try {
           await this.emailService.sendSuspiciousActivityAlert(
             user.email,
@@ -140,12 +146,12 @@ export class VerifyCredentialsUseCase {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        storageQuota: user.storageQuota.toString(),
+        storageUsed: user.storageUsed.toString(),
+        storagePercentage: user.getStorageUsagePercentage(),
+        storageUsedFormatted: StorageUtils.formatSize(user.storageUsed),
+        storageQuotaFormatted: StorageUtils.formatSize(user.storageQuota),
       },
     };
   }
 }
-
-
-
-
-
