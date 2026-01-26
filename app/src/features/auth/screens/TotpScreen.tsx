@@ -125,10 +125,19 @@ const TotpCodeInputField = ({ code, onCodeChange, isFocused }: any) => {
   );
 };
 
-const TotpScreen = ({ navigation }: any) => {
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { verifyTotp, clearError } from '../store/authSlice';
+import ErrorBanner from '../../../components/ErrorBanner';
+
+// ... (other imports)
+
+const TotpScreen = ({ navigation, route }: any) => {
+  const { email } = route.params || {};
+  const dispatch = useAppDispatch();
+  const { isLoading, error, tempToken } = useAppSelector(state => state.auth);
+
   const [totpCode, setTotpCode] = useState('');
   const [isFocused, setIsFocused] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -137,13 +146,14 @@ const TotpScreen = ({ navigation }: any) => {
     }
   }, [totpCode]);
 
-  const handleVerify = () => {
-    setIsLoading(true);
-    // Simulate verification
-    setTimeout(() => {
-      setIsLoading(false);
-      // navigation.navigate('Home');
-    }, 1500);
+  const handleVerify = async () => {
+    if (!tempToken) {
+      console.error('No tempToken available for TOTP verification');
+      return;
+    }
+
+    const result = await dispatch(verifyTotp({ tempToken, totpCode }));
+    // success handled in Redux by setting isAuthenticated = true
   };
 
   return (
@@ -153,6 +163,7 @@ const TotpScreen = ({ navigation }: any) => {
         translucent
         backgroundColor="transparent"
       />
+      <ErrorBanner message={error} onDismiss={() => dispatch(clearError())} />
 
       <Image
         source={require('../../../assets/images/bg1.jpg')}

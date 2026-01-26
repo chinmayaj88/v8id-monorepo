@@ -6,11 +6,18 @@ import {
   StyleSheet,
   Text,
 } from 'react-native';
+import { useAppDispatch } from './store/hooks';
+import { initializeAuth } from './features/auth/store/authSlice';
 import RootNavigator from './navigation';
 import { Colors } from './theme/colors';
 
 const AppContainer = () => {
   const isDarkMode = useColorScheme() === 'dark';
+  const dispatch = useAppDispatch();
+
+  React.useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
 
   return (
     <View style={styles.container}>

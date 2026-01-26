@@ -6,3 +6,5 @@ export interface User {
   avatarUrl?: string;
   isTwoFactorEnabled: boolean;
 }
+
+export * from './dtos';

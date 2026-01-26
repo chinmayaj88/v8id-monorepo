@@ -16,6 +16,8 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../../theme/colors';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { forgotPassword, clearError } from '../store/authSlice';
 
 const { width, height } = Dimensions.get('window');
 
@@ -91,17 +93,18 @@ const FloatingOrbs = () => {
 };
 
 const ForgotPasswordScreen = ({ navigation }: any) => {
+  const dispatch = useAppDispatch();
+  const { isLoading, error } = useAppSelector(state => state.auth);
+
   const [email, setEmail] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const handleSubmit = () => {
-    setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+  const handleSubmit = async () => {
+    const result = await dispatch(forgotPassword(email));
+
+    if (forgotPassword.fulfilled.match(result)) {
       setIsSuccess(true);
-    }, 1500);
+    }
   };
 
   return (
@@ -189,13 +192,13 @@ const ForgotPasswordScreen = ({ navigation }: any) => {
                     <TouchableOpacity
                       style={[
                         styles.loginButton,
-                        (!email || isSubmitting) && styles.buttonDisabled,
+                        (!email || isLoading) && styles.buttonDisabled,
                       ]}
                       onPress={handleSubmit}
-                      disabled={!email || isSubmitting}
+                      disabled={!email || isLoading}
                     >
                       <Text style={styles.loginButtonText}>
-                        {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                        {isLoading ? 'Sending...' : 'Send Reset Link'}
                       </Text>
                     </TouchableOpacity>
                   </View>

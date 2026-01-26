@@ -7,7 +7,7 @@ export const store = configureStore({
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
-      serializableCheck: false, // Often needed for React Native apps
+      serializableCheck: false,
     }),
 });
 

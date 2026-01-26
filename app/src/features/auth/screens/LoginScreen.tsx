@@ -16,8 +16,9 @@ import {
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../../theme/colors';
-import { useAppDispatch } from '../../../store/hooks';
-import { setCredentials } from '../store/authSlice';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { login, setCredentials, clearError } from '../store/authSlice';
+import ErrorBanner from '../../../components/ErrorBanner';
 
 const { width, height } = Dimensions.get('window');
 
@@ -94,20 +95,26 @@ const FloatingOrbs = () => {
 
 const LoginScreen = ({ navigation }: any) => {
   const dispatch = useAppDispatch();
+  const { isLoading, error, isAuthenticated, tempToken } = useAppSelector(
+    state => state.auth,
+  );
+
   const [email, setEmail] = useState('jenachinmaya51@gmail.com');
   const [password, setPassword] = useState('Chinmaya@6370');
   const [rememberMe, setRememberMe] = useState(true);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    setIsLoading(true);
-    // Simulate API call check for 2FA
-    setTimeout(() => {
-      setIsLoading(false);
-      // For now, let's navigate to Totp to show your work!
+  useEffect(() => {
+    // If we have a tempToken, it means credentials were valid but 2FA is needed
+    if (tempToken) {
       navigation.navigate('Totp', { email });
-    }, 1000);
+    }
+    // If we are authenticated (e.g. 2FA not enabled or persistent login), RootNavigator handles this
+    // but we can add a safeguard here if needed
+  }, [tempToken, isAuthenticated, navigation, email]);
+
+  const handleLogin = async () => {
+    await dispatch(login({ email, password }));
   };
 
   return (

@@ -19,5 +19,6 @@ export interface AuthResponse {
     email: string;
     firstName?: string;
     lastName?: string;
+    isTwoFactorEnabled: boolean;
   };
 }
