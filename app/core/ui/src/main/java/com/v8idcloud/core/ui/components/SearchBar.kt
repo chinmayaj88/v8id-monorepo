@@ -22,6 +22,10 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
+import androidx.compose.ui.platform.LocalDensity
 import com.v8idcloud.core.common.SearchSuggestion
 import com.v8idcloud.core.common.SuggestionType
 import com.v8idcloud.core.ui.theme.V8idColors
@@ -39,7 +43,7 @@ fun SearchBar(
     onFilterClick: () -> Unit = {},
     onSuggestionClick: (SearchSuggestion) -> Unit = {}
 ) {
-    Column(modifier = modifier) {
+    Box(modifier = modifier) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -112,21 +116,29 @@ fun SearchBar(
             }
         }
 
-        // Suggestions List
-        AnimatedVisibility(
-            visible = searchQuery.isNotEmpty() && searchResults.isNotEmpty(),
-            enter = expandVertically() + fadeIn(),
-            exit = shrinkVertically() + fadeOut()
-        ) {
-            Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = V8idColors.UI.Surface,
-                shadowElevation = 8.dp,
-                modifier = Modifier.padding(top = 8.dp).fillMaxWidth()
+        // Suggestions List - Using Popup to avoid displacing layout
+        if (searchQuery.isNotEmpty() && searchResults.isNotEmpty()) {
+            val density = LocalDensity.current
+            val offsetInPx = with(density) { 56.dp.roundToPx() }
+            
+            Popup(
+                alignment = Alignment.TopCenter,
+                offset = IntOffset(0, offsetInPx),
+                onDismissRequest = { },
+                properties = PopupProperties(focusable = false)
             ) {
-                Column(modifier = Modifier.padding(vertical = 8.dp)) {
-                    searchResults.forEach { suggestion ->
-                        SearchSuggestionItem(suggestion, onClick = { onSuggestionClick(suggestion) })
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = V8idColors.UI.Surface,
+                    shadowElevation = 8.dp,
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
+                        .fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                        searchResults.forEach { suggestion ->
+                            SearchSuggestionItem(suggestion, onClick = { onSuggestionClick(suggestion) })
+                        }
                     }
                 }
             }

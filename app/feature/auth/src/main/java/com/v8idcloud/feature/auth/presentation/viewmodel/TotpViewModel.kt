@@ -77,7 +77,10 @@ class TotpViewModel @Inject constructor(
                             lastName = data.user.lastName,
                             avatarUrl = data.user.avatarUrl,
                             storageQuota = data.user.storageQuota,
-                            storageUsed = data.user.storageUsed
+                            storageUsed = data.user.storageUsed,
+                            storagePercentage = data.user.storagePercentage?.toString(),
+                            storageUsedFormatted = data.user.storageUsedFormatted,
+                            storageQuotaFormatted = data.user.storageQuotaFormatted
                         )
                         
                         // Clear temporary token

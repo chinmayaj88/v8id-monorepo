@@ -201,18 +201,33 @@ class FoldersViewModel @Inject constructor(
             try {
                 // Keep using API for global search for now
                 val response = fileApiService.unifiedSearch(query)
-                _searchResults.value = response.data.results.map { item: SearchResultItemDto ->
-                    SearchSuggestion(
-                        id = item.id,
-                        title = item.name,
-                        subtitle = when (item.type) {
-                            "folder" -> "Folder"
-                            else -> item.mimeType ?: "File"
-                        },
-                        type = if (item.type == "folder") SuggestionType.FOLDER else SuggestionType.FILE,
-                        icon = if (item.type == "folder") Icons.Outlined.Folder else UiUtils.getFileIcon(item.mimeType)
+                val data = response.data
+                val suggestions = mutableListOf<SearchSuggestion>()
+                
+                data.folders.forEach { item ->
+                    suggestions.add(
+                        SearchSuggestion(
+                            id = item.id,
+                            title = item.name,
+                            subtitle = "Folder",
+                            type = SuggestionType.FOLDER,
+                            icon = Icons.Outlined.Folder
+                        )
                     )
                 }
+                
+                data.files.forEach { item ->
+                    suggestions.add(
+                        SearchSuggestion(
+                            id = item.id,
+                            title = item.name,
+                            subtitle = item.mimeType ?: "File",
+                            type = SuggestionType.FILE,
+                            icon = UiUtils.getFileIcon(item.mimeType)
+                        )
+                    )
+                }
+                _searchResults.value = suggestions
             } catch (e: Exception) {
                  // Offline fall-back could go here
                 _searchResults.value = emptyList()

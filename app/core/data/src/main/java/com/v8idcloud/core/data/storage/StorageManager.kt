@@ -45,6 +45,9 @@ class StorageManager @Inject constructor(
         val USER_AVATAR_URL = stringPreferencesKey("user_avatar_url")
         val USER_STORAGE_QUOTA = stringPreferencesKey("user_storage_quota")
         val USER_STORAGE_USED = stringPreferencesKey("user_storage_used")
+        val USER_STORAGE_PERCENTAGE = stringPreferencesKey("user_storage_percentage")
+        val USER_STORAGE_USED_FORMATTED = stringPreferencesKey("user_storage_used_formatted")
+        val USER_STORAGE_QUOTA_FORMATTED = stringPreferencesKey("user_storage_quota_formatted")
         val LAST_SYNC_TIME = longPreferencesKey("last_sync_time")
         val LAST_DASHBOARD_SYNC_TIME = longPreferencesKey("last_dashboard_sync_time")
         val REMEMBER_ME = booleanPreferencesKey("remember_me")
@@ -119,6 +122,8 @@ class StorageManager @Inject constructor(
         preferences[USER_ID]?.let { cryptoManager.decrypt(it) }
     }
 
+    suspend fun getUserIdSync(): String? = getUserId().first()
+
     suspend fun saveUserEmail(email: String) {
         val encrypted = cryptoManager.encrypt(email)
         dataStore.edit { preferences ->
@@ -156,6 +161,18 @@ class StorageManager @Inject constructor(
     
     fun getUserStorageUsed(): Flow<String?> = dataStore.data.map { preferences ->
         preferences[USER_STORAGE_USED]?.let { cryptoManager.decrypt(it) }
+    }
+
+    fun getUserStoragePercentage(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_STORAGE_PERCENTAGE]?.let { cryptoManager.decrypt(it) }
+    }
+
+    fun getUserStorageUsedFormatted(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_STORAGE_USED_FORMATTED]?.let { cryptoManager.decrypt(it) }
+    }
+
+    fun getUserStorageQuotaFormatted(): Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_STORAGE_QUOTA_FORMATTED]?.let { cryptoManager.decrypt(it) }
     }
 
     fun getLastSyncTime(): Flow<Long> = dataStore.data.map { preferences ->
@@ -208,10 +225,19 @@ class StorageManager @Inject constructor(
         }
     }
     
-    suspend fun saveUserStorageInfo(quota: String?, used: String?) {
+    suspend fun saveUserStorageInfo(
+        quota: String?, 
+        used: String?,
+        percentage: String? = null,
+        usedFormatted: String? = null,
+        quotaFormatted: String? = null
+    ) {
         dataStore.edit { preferences ->
             if (quota != null) preferences[USER_STORAGE_QUOTA] = cryptoManager.encrypt(quota)
             if (used != null) preferences[USER_STORAGE_USED] = cryptoManager.encrypt(used)
+            if (percentage != null) preferences[USER_STORAGE_PERCENTAGE] = cryptoManager.encrypt(percentage)
+            if (usedFormatted != null) preferences[USER_STORAGE_USED_FORMATTED] = cryptoManager.encrypt(usedFormatted)
+            if (quotaFormatted != null) preferences[USER_STORAGE_QUOTA_FORMATTED] = cryptoManager.encrypt(quotaFormatted)
         }
     }
 
@@ -222,7 +248,10 @@ class StorageManager @Inject constructor(
         lastName: String?, 
         avatarUrl: String? = null,
         storageQuota: String? = null,
-        storageUsed: String? = null
+        storageUsed: String? = null,
+        storagePercentage: String? = null,
+        storageUsedFormatted: String? = null,
+        storageQuotaFormatted: String? = null
     ) {
         dataStore.edit { preferences ->
             preferences[USER_ID] = cryptoManager.encrypt(userId)
@@ -232,6 +261,9 @@ class StorageManager @Inject constructor(
             avatarUrl?.let { preferences[USER_AVATAR_URL] = cryptoManager.encrypt(it) }
             storageQuota?.let { preferences[USER_STORAGE_QUOTA] = cryptoManager.encrypt(it) }
             storageUsed?.let { preferences[USER_STORAGE_USED] = cryptoManager.encrypt(it) }
+            storagePercentage?.let { preferences[USER_STORAGE_PERCENTAGE] = cryptoManager.encrypt(it) }
+            storageUsedFormatted?.let { preferences[USER_STORAGE_USED_FORMATTED] = cryptoManager.encrypt(it) }
+            storageQuotaFormatted?.let { preferences[USER_STORAGE_QUOTA_FORMATTED] = cryptoManager.encrypt(it) }
             preferences[LAST_SYNC_TIME] = System.currentTimeMillis()
         }
     }

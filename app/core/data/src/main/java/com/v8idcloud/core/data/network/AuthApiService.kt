@@ -70,7 +70,10 @@ data class UserDto(
     val avatarUrl: String?,
     val role: String,
     val storageQuota: String? = null,
-    val storageUsed: String? = null
+    val storageUsed: String? = null,
+    val storagePercentage: Int? = null,
+    val storageUsedFormatted: String? = null,
+    val storageQuotaFormatted: String? = null
 )
 
 data class DeviceSessionDto(
