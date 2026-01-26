@@ -1,11 +1,29 @@
 export const Colors = {
-  primary: '#007AFF',
-  secondary: '#5856D6',
+  primary: '#7C3AED', // Vibrant Purple from old app
+  secondary: '#6366F1', // Indigo from old app
+  background: '#FAFAFA',
   white: '#FFFFFF',
-  black: '#000000',
-  gray: '#8E8E93',
-  lightGray: '#D1D1D6',
-  error: '#FF3B30',
-  success: '#34C759',
-  background: '#F2F2F7',
+  black: '#1A1A1A',
+  gray: '#666666',
+  error: '#BA1A1A',
+  success: '#00FF4C',
+  border: '#DDD6FE',
+
+  purple: {
+    vibrant: '#7C3AED',
+    vibrantAlt: '#8B5CF6',
+    indigo: '#6366F1',
+    deep: '#4C1D95',
+    darkNavy: '#1E1B4B',
+    light: '#A78BFA',
+    veryLight: '#DDD6FE',
+    subtleTint: '#FAF5FF',
+  },
+
+  gradient: {
+    lavender: '#E0C5FC',
+    vibrantPurple: '#A855F7',
+    royalBlue: '#6366F1',
+    deepNavy: '#2D1B69',
+  },
 };

@@ -11,13 +11,11 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
-  Switch,
 } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '../../../theme/colors';
-import { useAppDispatch } from '../../../store/hooks';
-import { setCredentials } from '../store/authSlice';
 
 const { width, height } = Dimensions.get('window');
 
@@ -32,7 +30,7 @@ const FloatingOrbs = () => {
       to: number,
       duration: number,
     ) => {
-      return Animated.loop(
+      Animated.loop(
         Animated.sequence([
           Animated.timing(val, {
             toValue: to,
@@ -45,11 +43,11 @@ const FloatingOrbs = () => {
             useNativeDriver: true,
           }),
         ]),
-      );
+      ).start();
     };
 
-    createAnim(orb1Anim, 0.15, 0.3, 3000).start();
-    createAnim(orb2Anim, 0.1, 0.25, 4000).start();
+    createAnim(orb1Anim, 0.15, 0.3, 3000);
+    createAnim(orb2Anim, 0.1, 0.25, 4000);
   }, []);
 
   return (
@@ -92,22 +90,60 @@ const FloatingOrbs = () => {
   );
 };
 
-const LoginScreen = ({ navigation }: any) => {
-  const dispatch = useAppDispatch();
-  const [email, setEmail] = useState('jenachinmaya51@gmail.com');
-  const [password, setPassword] = useState('Chinmaya@6370');
-  const [rememberMe, setRememberMe] = useState(true);
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+const TotpCodeInputField = ({ code, onCodeChange, isFocused }: any) => {
+  return (
+    <View
+      style={[styles.inputWrapper, isFocused && styles.inputWrapperFocused]}
+    >
+      <View style={styles.codeRow}>
+        {Array(6)
+          .fill(0)
+          .map((_, index) => {
+            const char = code[index] || '';
+            const isFilled = char !== '';
+            const isCurrent = index === code.length && isFocused;
 
-  const handleLogin = () => {
+            return (
+              <View
+                key={index}
+                style={[
+                  styles.codeBox,
+                  isFilled && styles.codeBoxFilled,
+                  isCurrent && styles.codeBoxCurrent,
+                ]}
+              >
+                {isFilled ? (
+                  <Text style={styles.codeChar}>{char}</Text>
+                ) : isCurrent ? (
+                  <View style={styles.cursor} />
+                ) : null}
+              </View>
+            );
+          })}
+      </View>
+    </View>
+  );
+};
+
+const TotpScreen = ({ navigation }: any) => {
+  const [totpCode, setTotpCode] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    if (totpCode.length === 6) {
+      handleVerify();
+    }
+  }, [totpCode]);
+
+  const handleVerify = () => {
     setIsLoading(true);
-    // Simulate API call check for 2FA
+    // Simulate verification
     setTimeout(() => {
       setIsLoading(false);
-      // For now, let's navigate to Totp to show your work!
-      navigation.navigate('Totp', { email });
-    }, 1000);
+      // navigation.navigate('Home');
+    }, 1500);
   };
 
   return (
@@ -118,7 +154,6 @@ const LoginScreen = ({ navigation }: any) => {
         backgroundColor="transparent"
       />
 
-      {/* Background Image */}
       <Image
         source={require('../../../assets/images/bg1.jpg')}
         style={styles.bgImage}
@@ -133,7 +168,6 @@ const LoginScreen = ({ navigation }: any) => {
           style={styles.flex}
         >
           <View style={styles.content}>
-            {/* Logo Section */}
             <View style={styles.logoSection}>
               <View style={styles.logoContainer}>
                 <AntDesign name="cloud" size={42} color={Colors.white} />
@@ -144,84 +178,58 @@ const LoginScreen = ({ navigation }: any) => {
               </Text>
             </View>
 
-            {/* Login Card */}
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Welcome back</Text>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backButton}
+              >
+                <MaterialIcons
+                  name="arrow-back-ios-new"
+                  size={20}
+                  color={Colors.purple.deep}
+                />
+                <Text style={styles.backText}>Back</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.cardTitle}>Two-Factor Authentication</Text>
               <Text style={styles.cardSubtitle}>
-                Sign in to continue to your account
+                Enter the 6-digit code from your authenticator app
               </Text>
 
-              <View style={styles.form}>
-                <Text style={styles.label}>Email Address</Text>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="you@example.com"
-                    placeholderTextColor={Colors.purple.light}
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                  />
-                </View>
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => inputRef.current?.focus()}
+                style={styles.inputArea}
+              >
+                <TotpCodeInputField code={totpCode} isFocused={isFocused} />
+                <TextInput
+                  ref={inputRef}
+                  style={styles.hiddenInput}
+                  value={totpCode}
+                  onChangeText={val => {
+                    if (val.length <= 6 && /^\d*$/.test(val)) {
+                      setTotpCode(val);
+                    }
+                  }}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+              </TouchableOpacity>
 
-                <Text style={styles.label}>Password</Text>
-                <View style={styles.inputContainer}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Password"
-                    placeholderTextColor={Colors.purple.light}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!isPasswordVisible}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                    style={styles.eyeIcon}
-                  >
-                    <Text style={{ color: Colors.purple.vibrantAlt }}>
-                      {isPasswordVisible ? 'Hide' : 'Show'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.row}>
-                  <View style={styles.rememberMe}>
-                    <Switch
-                      value={rememberMe}
-                      onValueChange={setRememberMe}
-                      trackColor={{
-                        false: Colors.purple.veryLight,
-                        true: Colors.purple.vibrantAlt,
-                      }}
-                      thumbColor={Colors.white}
-                    />
-                    <Text style={styles.rememberText}>Remember me</Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('ForgotPassword')}
-                  >
-                    <Text style={styles.forgotText}>Forgot Password?</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity
-                  style={[
-                    styles.loginButton,
-                    (!email || !password || isLoading) && styles.buttonDisabled,
-                  ]}
-                  onPress={handleLogin}
-                  disabled={!email || !password || isLoading}
-                >
-                  <Text style={styles.loginButtonText}>
-                    {isLoading ? 'Signing in...' : 'Log in'}
-                  </Text>
-                </TouchableOpacity>
-
-                <Text style={styles.privacyText}>
-                  By logging in, you agree to our updated terms and service and
-                  privacy policy
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  (totpCode.length < 6 || isLoading) && styles.buttonDisabled,
+                ]}
+                onPress={handleVerify}
+                disabled={totpCode.length < 6 || isLoading}
+              >
+                <Text style={styles.loginButtonText}>
+                  {isLoading ? 'Verifying...' : 'Verify'}
                 </Text>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -256,8 +264,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.purple.light,
     top: 100,
     left: 60,
-    opacity: 0.2,
-    // Note: Blur would require a library or custom native module in RN
   },
   orb2: {
     width: 350,
@@ -265,7 +271,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.purple.indigo,
     bottom: 100,
     right: -40,
-    opacity: 0.15,
   },
   content: {
     flex: 1,
@@ -312,6 +317,18 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 20,
   },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+  },
+  backText: {
+    fontSize: 14,
+    color: Colors.purple.deep,
+    fontWeight: '500',
+    marginLeft: 4,
+  },
   cardTitle: {
     fontSize: 26,
     fontWeight: 'bold',
@@ -321,53 +338,63 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.purple.indigo,
     marginTop: 6,
-    marginBottom: 28,
+    marginBottom: 32,
   },
-  form: {},
-  label: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: Colors.purple.deep,
-    marginBottom: 8,
+  inputArea: {
+    marginBottom: 24,
   },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  inputWrapper: {
+    height: 72,
+    borderRadius: 16,
     backgroundColor: Colors.purple.subtleTint,
-    borderRadius: 14,
     borderWidth: 1,
     borderColor: Colors.purple.veryLight,
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
   },
-  input: {
-    flex: 1,
-    height: 52,
-    fontSize: 16,
-    color: Colors.purple.darkNavy,
+  inputWrapperFocused: {
+    borderColor: Colors.purple.vibrantAlt,
+    borderWidth: 2,
+    transform: [{ scale: 1.02 }],
   },
-  eyeIcon: {
-    padding: 4,
-  },
-  row: {
+  codeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  rememberMe: {
-    flexDirection: 'row',
+  codeBox: {
+    width: 44,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: Colors.purple.veryLight,
+    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.purple.veryLight,
   },
-  rememberText: {
-    fontSize: 12,
-    color: Colors.purple.deep,
-    marginLeft: 8,
+  codeBoxFilled: {
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
   },
-  forgotText: {
-    fontSize: 12,
-    color: Colors.purple.indigo,
-    fontWeight: '500',
+  codeBoxCurrent: {
+    borderColor: Colors.purple.vibrantAlt,
+    borderWidth: 2,
+  },
+  codeChar: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: Colors.purple.darkNavy,
+  },
+  cursor: {
+    width: 2,
+    height: 20,
+    backgroundColor: Colors.purple.vibrantAlt,
+  },
+  hiddenInput: {
+    position: 'absolute',
+    opacity: 0,
+    width: 0,
+    height: 0,
   },
   loginButton: {
     backgroundColor: Colors.purple.vibrant,
@@ -389,13 +416,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  privacyText: {
-    fontSize: 10,
-    color: Colors.purple.indigo,
-    textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 14,
-  },
 });
 
-export default LoginScreen;
+export default TotpScreen;
