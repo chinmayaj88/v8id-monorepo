@@ -19,20 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "V8idCloud"
-
-// App module
+rootProject.name = "v8id-cloud"
 include(":app")
-
-// Core modules
-include(":core:common")
-include(":core:domain")
-include(":core:data")
-include(":core:ui")
-
-// Feature modules
-include(":feature:auth")
-include(":feature:home")
-include(":feature:folders")
-include(":feature:user")
-include(":feature:vault")
+ 
