@@ -1,13 +1,34 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+  Dimensions,
+} from 'react-native';
+import {
+  createBottomTabNavigator,
+  BottomTabBarProps,
+} from '@react-navigation/bottom-tabs';
 import HomeScreen from '../features/home/screens/HomeScreen';
 import ProfileScreen from '../features/user/screens/ProfileScreen';
 import { Colors } from '../theme/colors';
-import { View, Text } from 'react-native';
+// @ts-ignore
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 
 const Placeholder = ({ name }: { name: string }) => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>{name} Screen</Text>
+  <View
+    style={{
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#FAFAFA',
+    }}
+  >
+    <Text style={{ fontSize: 18, color: '#333' }}>{name} Screen</Text>
   </View>
 );
 
@@ -16,25 +37,191 @@ export type TabParamList = {
   Files: undefined;
   Vault: undefined;
   Profile: undefined;
+  Media: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
 
+const TabButton = ({ route, state, descriptors, navigation, icon }: any) => {
+  const { options } = descriptors[route.key];
+  const isFocused = state.routes[state.index].key === route.key;
+
+  const onPress = () => {
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: route.key,
+      canPreventDefault: true,
+    });
+
+    if (!isFocused && !event.defaultPrevented) {
+      navigation.navigate(route.name);
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.tabItem}
+      accessibilityRole="button"
+      accessibilityState={isFocused ? { selected: true } : {}}
+      accessibilityLabel={options.tabBarAccessibilityLabel}
+    >
+      <View style={[styles.iconCircle, isFocused && styles.iconCircleSelected]}>
+        <MaterialIcons
+          name={icon}
+          size={24}
+          color={isFocused ? Colors.black : 'rgba(255,255,255,0.6)'}
+        />
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// Start from scratch for component func to ensure correct icon mapping
+const CustomTabBarV2 = ({
+  state,
+  descriptors,
+  navigation,
+}: BottomTabBarProps) => {
+  // Define the tab order. We want to insert the FAB in the middle.
+  // Routes: Home, Files, Vault (to be renamed Media?), Profile
+  // We visually want: Home, Files, FAB, Vault, Profile
+
+  return (
+    <View style={styles.tabBarWrapper}>
+      <View style={styles.capsule}>
+        {/* Left Side */}
+        <TabButton
+          route={state.routes[0]}
+          state={state}
+          descriptors={descriptors}
+          navigation={navigation}
+          icon="home"
+        />
+        <TabButton
+          route={state.routes[1]}
+          state={state}
+          descriptors={descriptors}
+          navigation={navigation}
+          icon="folder-open"
+        />
+
+        {/* Spacer for FAB */}
+        <View style={{ width: 60 }} />
+
+        {/* Right Side */}
+        <TabButton
+          route={state.routes[2]}
+          state={state}
+          descriptors={descriptors}
+          navigation={navigation}
+          icon="image"
+        />
+        <TabButton
+          route={state.routes[3]}
+          state={state}
+          descriptors={descriptors}
+          navigation={navigation}
+          icon="person-outline"
+        />
+      </View>
+
+      {/* Centered FAB */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          /* Open upload modal logic */
+        }}
+        activeOpacity={0.9}
+      >
+        <MaterialIcons name="add" size={30} color="#FFF" />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 const TabNavigator = () => {
   return (
     <Tab.Navigator
+      tabBar={props => <CustomTabBarV2 {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.gray,
         headerShown: false,
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Files">{() => <Placeholder name="Files" />}</Tab.Screen>
-      <Tab.Screen name="Vault">{() => <Placeholder name="Vault" />}</Tab.Screen>
+      {/* "Files" acts as Folders tab */}
+      <Tab.Screen name="Files">
+        {() => <Placeholder name="Folders" />}
+      </Tab.Screen>
+      {/* "Vault" acts as Media/Photos tab */}
+      <Tab.Screen name="Vault">
+        {() => <Placeholder name="Photos" />}
+      </Tab.Screen>
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  tabBarWrapper: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  capsule: {
+    flexDirection: 'row',
+    backgroundColor: Colors.black,
+    borderRadius: 40,
+    height: 72,
+    width: '100%',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    // Shadow
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  tabItem: {
+    width: 50,
+    height: 72,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  iconCircleSelected: {
+    backgroundColor: Colors.white,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24, // (72 - 56) / 2 + margin? Actually let's center it vertically relative to capsule
+    // but absolute positioning relative to wrapper is easier
+    top: 8, // (72 - 56) / 2
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2D6AFA', // Dropbox Blue
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#2D6AFA',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 10,
+    zIndex: 10,
+  },
+});
 
 export default TabNavigator;
