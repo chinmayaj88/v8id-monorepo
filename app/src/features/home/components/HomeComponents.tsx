@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  ImageBackground,
 } from 'react-native';
 import Svg, {
   Defs,
@@ -164,33 +165,27 @@ interface QuickAccessCardProps {
   onOptionClick: (option: string) => void;
 }
 
+// @ts-ignore
+const bg2 = require('../../../assets/images/bg2.jpg');
+
 export const QuickAccessCard: React.FC<QuickAccessCardProps> = ({
   onOptionClick,
 }) => {
   return (
     <View style={styles.cardContainer}>
       <View style={{ width: '100%', borderRadius: 24, overflow: 'hidden' }}>
-        <View style={styles.quickAccessGradient}>
-          <Svg
-            height="100%"
-            width="100%"
-            style={{ position: 'absolute', top: 0, left: 0 }}
-          >
-            <Defs>
-              <SvgGradient id="cardGrad" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor="#DDD6F0" />
-                <Stop offset="0.5" stopColor="#E8D4F0" />
-                <Stop offset="1" stopColor="#D4C4E8" />
-              </SvgGradient>
-            </Defs>
-            <Rect
-              x="0"
-              y="0"
-              width="100%"
-              height="100%"
-              fill="url(#cardGrad)"
-            />
-          </Svg>
+        <ImageBackground
+          source={bg2}
+          style={styles.quickAccessGradient}
+          resizeMode="cover"
+        >
+          {/* Subtle Overlay */}
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              backgroundColor: 'rgba(255,255,255,0.1)',
+            }}
+          />
 
           <View style={styles.quickAccessRow}>
             <QuickAccessItem
@@ -218,7 +213,7 @@ export const QuickAccessCard: React.FC<QuickAccessCardProps> = ({
               onClick={() => onOptionClick('Folders')}
             />
           </View>
-        </View>
+        </ImageBackground>
       </View>
     </View>
   );

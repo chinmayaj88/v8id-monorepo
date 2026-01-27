@@ -50,4 +50,17 @@ export const authService = {
   logout: async (): Promise<void> => {
     await apiClient.post('/auth/logout');
   },
+
+  updateProfile: async (data: FormData): Promise<{ user: any }> => {
+    const response = await apiClient.post<{ data: { user: any } }>(
+      '/users/profile',
+      data,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      },
+    );
+    return response.data.data;
+  },
 };

@@ -6,7 +6,7 @@ import { FolderRepository } from '../../infrastructure/repositories/files/folder
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { sharedContainer } from '../../infrastructure/di/index.js';
 
-const router = Router();
+const router: Router = Router();
 
 // Setup Auth Middleware
 const authenticate = authMiddleware(

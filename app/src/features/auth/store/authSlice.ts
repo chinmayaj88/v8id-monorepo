@@ -101,6 +101,21 @@ export const forgotPassword = createAsyncThunk(
   },
 );
 
+export const updateUserProfile = createAsyncThunk(
+  'auth/updateProfile',
+  async (data: FormData, { rejectWithValue }) => {
+    try {
+      const response = await authService.updateProfile(data);
+      await AsyncStorage.setItem('user', JSON.stringify(response.user));
+      return response.user;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to update profile.',
+      );
+    }
+  },
+);
+
 export const logoutUser = createAsyncThunk(
   'auth/logout',
   async (_, { rejectWithValue }) => {
@@ -221,6 +236,21 @@ const authSlice = createSlice({
       state.tempToken = null;
       state.isAuthenticated = false;
     });
+
+    // Update Profile
+    builder
+      .addCase(updateUserProfile.pending, state => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateUserProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateUserProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
   },
 });
 

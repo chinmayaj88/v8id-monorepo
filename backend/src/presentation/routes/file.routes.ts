@@ -40,7 +40,7 @@ const generateFileLinkUseCase = new GenerateFileLinkUseCase(fileRepository, stor
 
 const fileController = new FileController(uploadFileUseCase, generateFileLinkUseCase);
 
-const router = Router();
+const router: Router = Router();
 
 router.use(authenticate);
 

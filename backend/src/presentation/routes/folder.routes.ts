@@ -24,7 +24,7 @@ const listFolderContentsUseCase = new ListFolderContentsUseCase(folderRepository
 
 const folderController = new FolderController(createFolderUseCase, listFolderContentsUseCase);
 
-const router = Router();
+const router: Router = Router();
 
 router.use(authenticate);
 

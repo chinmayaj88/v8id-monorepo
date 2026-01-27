@@ -18,7 +18,7 @@ const fileRepository = new FileRepository();
 const searchFilesUseCase = new SearchFilesUseCase(fileRepository, folderRepository);
 const searchController = new SearchController(searchFilesUseCase);
 
-const router = Router();
+const router: Router = Router();
 
 router.use(authenticate);
 

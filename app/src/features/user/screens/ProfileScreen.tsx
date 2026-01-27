@@ -17,10 +17,13 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_URL } from '@env';
 
+import EditProfileSheet from '../components/EditProfileSheet';
+
 const ProfileScreen = () => {
   const navigation: any = useNavigation();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
+  const [showEditSheet, setShowEditSheet] = React.useState(false);
 
   // Mock data if user is incomplete (should fetch from DB/API in real scenario)
   const userName = user
@@ -75,9 +78,7 @@ const ProfileScreen = () => {
           <Text style={styles.headerTitle}>Account</Text>
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={() => {
-              /* Edit */
-            }}
+            onPress={() => setShowEditSheet(true)}
           >
             <MaterialIcons name="edit" size={20} color={Colors.black} />
           </TouchableOpacity>
@@ -98,7 +99,8 @@ const ProfileScreen = () => {
           usedGB={0.0}
           totalGB={10.0}
           onClick={() => {
-            /* Storage Screen */
+            // @ts-ignore
+            navigation.navigate('Storage');
           }}
         />
 
@@ -140,7 +142,10 @@ const ProfileScreen = () => {
             iconColor="#4CAF50"
             title="Storage Details"
             subtitle="0.0 GB of 10 GB used"
-            onClick={() => {}}
+            onClick={() => {
+              // @ts-ignore
+              navigation.navigate('Storage');
+            }}
           />
           <AccountMenuItem
             icon="lock"
@@ -154,6 +159,11 @@ const ProfileScreen = () => {
         {/* Logout */}
         <LogoutButton onClick={handleLogout} />
       </ScrollView>
+
+      <EditProfileSheet
+        visible={showEditSheet}
+        onClose={() => setShowEditSheet(false)}
+      />
     </SafeAreaView>
   );
 };
