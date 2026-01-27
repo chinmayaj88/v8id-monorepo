@@ -5,9 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   Image,
-  Dimensions,
   StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -16,15 +14,10 @@ import { logoutUser } from '../../auth/store/authSlice';
 import { Colors } from '../../../theme/colors';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import Svg, {
-  Defs,
-  LinearGradient as SvgGradient,
-  Stop,
-  Rect,
-} from 'react-native-svg';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const ProfileScreen = () => {
-  const navigation = useNavigation();
+  const navigation: any = useNavigation();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
 

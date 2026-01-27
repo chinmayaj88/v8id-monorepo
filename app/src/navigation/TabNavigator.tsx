@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-  Dimensions,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import {
   createBottomTabNavigator,
   BottomTabBarProps,
@@ -16,8 +9,6 @@ import ProfileScreen from '../features/user/screens/ProfileScreen';
 import { Colors } from '../theme/colors';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 
 const Placeholder = ({ name }: { name: string }) => (
   <View
