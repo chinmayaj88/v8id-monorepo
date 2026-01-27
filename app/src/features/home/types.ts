@@ -2,9 +2,12 @@ export interface FileItem {
   id: string;
   name: string;
   size: string;
+  rawSize?: number;
   timeAgo: string;
   thumbnailUrl?: string; // string URL
   mimeType?: string;
+  folderId?: string;
+  isFolder?: boolean;
   icon?: any; // Icon source or name
 }
 

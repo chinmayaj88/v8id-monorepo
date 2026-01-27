@@ -20,5 +20,7 @@ export interface AuthResponse {
     firstName?: string;
     lastName?: string;
     isTwoFactorEnabled: boolean;
+    storageQuota: string;
+    storageUsed: string;
   };
 }

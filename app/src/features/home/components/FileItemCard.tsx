@@ -55,13 +55,35 @@ export const FileItemCard: React.FC<FileItemCardProps> = ({
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dx) > 20;
+        return Math.abs(gestureState.dx) > 10;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // Direct feedback for swiping
+        if (gestureState.dx < 0 || isRevealed) {
+          const shift = isRevealed
+            ? -MENU_WIDTH + gestureState.dx
+            : gestureState.dx;
+          animatedValue.setValue(
+            Math.max(-MENU_WIDTH - 20, Math.min(0, shift)),
+          );
+        }
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dx < -50) {
+        if (gestureState.dx < -40) {
           onExpand();
-        } else if (gestureState.dx > 50) {
+        } else if (
+          gestureState.dx > 40 ||
+          (isRevealed && gestureState.dx > -20)
+        ) {
           onCollapse();
+        } else {
+          // Snap back
+          Animated.spring(animatedValue, {
+            toValue: isRevealed ? -MENU_WIDTH : 0,
+            useNativeDriver: true,
+            damping: 20,
+            stiffness: 100,
+          }).start();
         }
       },
     }),
@@ -111,7 +133,13 @@ export const FileItemCard: React.FC<FileItemCardProps> = ({
       >
         <TouchableOpacity
           style={styles.cardContent}
-          onPress={onClick}
+          onPress={() => {
+            if (isRevealed) {
+              onCollapse();
+            } else {
+              onClick();
+            }
+          }}
           activeOpacity={0.9}
         >
           {/* Icon */}

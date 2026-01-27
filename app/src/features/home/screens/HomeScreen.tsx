@@ -64,7 +64,7 @@ const HomeScreen = () => {
   const renderHeader = () => (
     <View style={styles.headerContent}>
       <ProfileHeader
-        userName={user.firstName}
+        userName={user.firstName || 'User'}
         storagePercentage={uiState.storageUsedPercentage}
         profileImageUrl={user.avatarUrl}
         onProfileClick={() => {}}
@@ -138,7 +138,7 @@ const HomeScreen = () => {
 
       <ViewedLinksCard onSeeAllClick={() => {}} />
 
-      <Text style={styles.sectionTitle}>Recent Files</Text>
+      <Text style={styles.sectionTitle}>Recent Activity</Text>
     </View>
   );
 
@@ -154,12 +154,20 @@ const HomeScreen = () => {
       onDelete={() => deleteFile(item.id)}
       onShare={() => shareFile(item.id)}
       onClick={() => {
-        // @ts-ignore
-        navigation.navigate('Viewer', {
-          fileId: item.id,
-          fileName: item.name,
-          fileType: item.mimeType || '*/*',
-        });
+        if (item.isFolder) {
+          // @ts-ignore
+          navigation.navigate('Files', {
+            folderId: item.id,
+            folderName: item.name,
+          });
+        } else {
+          // @ts-ignore
+          navigation.navigate('Viewer', {
+            fileId: item.id,
+            fileName: item.name,
+            fileType: item.mimeType || '*/*',
+          });
+        }
       }}
     />
   );

@@ -5,6 +5,9 @@ export interface User {
   lastName?: string;
   avatarUrl?: string;
   isTwoFactorEnabled: boolean;
+  storageQuota?: string;
+  storageUsed?: string;
+  storagePercentage?: number;
 }
 
 export * from './dtos';

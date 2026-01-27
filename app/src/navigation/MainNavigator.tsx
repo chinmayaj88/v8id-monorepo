@@ -5,20 +5,12 @@ import ActiveSessionsScreen from '../features/user/screens/ActiveSessionsScreen'
 import { View, Text } from 'react-native';
 
 import NotificationScreen from '../features/home/screens/NotificationScreen';
+import FileViewerScreen from '../features/home/screens/FileViewerScreen';
+import FolderScreen from '../features/home/screens/FolderScreen';
 
 const Stack = createNativeStackNavigator();
 
 // Placeholders for other screens
-const ViewerScreen = () => (
-  <View>
-    <Text>Viewer</Text>
-  </View>
-);
-const FoldersScreen = () => (
-  <View>
-    <Text>Folders</Text>
-  </View>
-);
 const StorageScreen = () => (
   <View>
     <Text>Storage</Text>
@@ -30,8 +22,8 @@ const MainNavigator = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name="ActiveSessions" component={ActiveSessionsScreen} />
-      <Stack.Screen name="Viewer" component={ViewerScreen} />
-      <Stack.Screen name="Folders" component={FoldersScreen} />
+      <Stack.Screen name="Viewer" component={FileViewerScreen} />
+      <Stack.Screen name="Folders" component={FolderScreen} />
       <Stack.Screen name="Storage" component={StorageScreen} />
       <Stack.Screen name="Notifications" component={NotificationScreen} />
     </Stack.Navigator>

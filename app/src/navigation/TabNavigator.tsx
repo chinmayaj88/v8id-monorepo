@@ -6,6 +6,7 @@ import {
 } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../features/home/screens/HomeScreen';
 import ProfileScreen from '../features/user/screens/ProfileScreen';
+import FolderScreen from '../features/home/screens/FolderScreen';
 import { Colors } from '../theme/colors';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -68,20 +69,14 @@ const TabButton = ({ route, state, descriptors, navigation, icon }: any) => {
   );
 };
 
-// Start from scratch for component func to ensure correct icon mapping
 const CustomTabBarV2 = ({
   state,
   descriptors,
   navigation,
 }: BottomTabBarProps) => {
-  // Define the tab order. We want to insert the FAB in the middle.
-  // Routes: Home, Files, Vault (to be renamed Media?), Profile
-  // We visually want: Home, Files, FAB, Vault, Profile
-
   return (
     <View style={styles.tabBarWrapper}>
       <View style={styles.capsule}>
-        {/* Left Side */}
         <TabButton
           route={state.routes[0]}
           state={state}
@@ -97,10 +92,8 @@ const CustomTabBarV2 = ({
           icon="folder-open"
         />
 
-        {/* Spacer for FAB */}
         <View style={{ width: 60 }} />
 
-        {/* Right Side */}
         <TabButton
           route={state.routes[2]}
           state={state}
@@ -117,12 +110,9 @@ const CustomTabBarV2 = ({
         />
       </View>
 
-      {/* Centered FAB */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => {
-          /* Open upload modal logic */
-        }}
+        onPress={() => {}}
         activeOpacity={0.9}
       >
         <MaterialIcons name="add" size={30} color="#FFF" />
@@ -140,11 +130,7 @@ const TabNavigator = () => {
       }}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      {/* "Files" acts as Folders tab */}
-      <Tab.Screen name="Files">
-        {() => <Placeholder name="Folders" />}
-      </Tab.Screen>
-      {/* "Vault" acts as Media/Photos tab */}
+      <Tab.Screen name="Files" component={FolderScreen} />
       <Tab.Screen name="Vault">
         {() => <Placeholder name="Photos" />}
       </Tab.Screen>
@@ -171,7 +157,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 12,
-    // Shadow
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

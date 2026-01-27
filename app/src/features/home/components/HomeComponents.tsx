@@ -13,6 +13,7 @@ import Svg, {
   Stop,
   Text as SvgText,
   Rect,
+  Circle,
 } from 'react-native-svg';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -44,24 +45,49 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           onPress={onProfileClick}
           style={styles.profileContainer}
         >
-          {/* Ring Mockup */}
-          <View style={[styles.ring, { borderColor: '#4CAF50' }]}>
-            <View style={styles.avatarContainer}>
-              {profileImageUrl ? (
-                <Image
-                  source={{
-                    uri: profileImageUrl.startsWith('http')
-                      ? profileImageUrl
-                      : `${API_URL.replace('/api', '')}${profileImageUrl}`,
-                  }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <Text style={styles.avatarText}>
-                  {userName.charAt(0).toUpperCase()}
-                </Text>
-              )}
-            </View>
+          {/* Real Storage Ring */}
+          <Svg height="64" width="64" style={styles.svgRing}>
+            <Circle
+              cx="32"
+              cy="32"
+              r="30"
+              stroke="#E8F5E9"
+              strokeWidth="4"
+              fill="none"
+            />
+            <Circle
+              cx="32"
+              cy="32"
+              r="30"
+              stroke="#4CAF50"
+              strokeWidth="4"
+              fill="none"
+              strokeDasharray={`${2 * Math.PI * 30}`}
+              strokeDashoffset={`${
+                2 *
+                Math.PI *
+                30 *
+                (1 - Math.min(Math.max(storagePercentage, 0), 1))
+              }`}
+              strokeLinecap="round"
+              transform="rotate(-90 32 32)"
+            />
+          </Svg>
+          <View style={styles.avatarContainer}>
+            {profileImageUrl ? (
+              <Image
+                source={{
+                  uri: profileImageUrl.startsWith('http')
+                    ? profileImageUrl
+                    : `${API_URL.replace('/api', '')}${profileImageUrl}`,
+                }}
+                style={styles.avatar}
+              />
+            ) : (
+              <Text style={styles.avatarText}>
+                {userName.charAt(0).toUpperCase()}
+              </Text>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -271,10 +297,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   profileContainer: {
-    width: 56,
-    height: 56,
+    width: 64,
+    height: 64,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  svgRing: {
+    position: 'absolute',
   },
   ring: {
     width: 56,

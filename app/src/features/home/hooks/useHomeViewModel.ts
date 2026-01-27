@@ -1,10 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { HomeUiState, SearchSuggestion } from '../types';
 import { databaseService } from '../../../services/db/DatabaseService';
 import { useAppSelector } from '../../../store/hooks';
+import { syncService } from '../../../services/api/syncService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_URL } from '@env';
 
 export const useHomeViewModel = () => {
-  const { user } = useAppSelector(state => state.auth);
+  const { user, isAuthenticated } = useAppSelector(state => state.auth);
+  const isInitialSyncDone = useRef(false);
 
   const [uiState, setUiState] = useState<HomeUiState>({
     isLoading: true,
@@ -20,43 +24,93 @@ export const useHomeViewModel = () => {
   const [revealedFileId, setRevealedFileId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Download/Share events
-  const [downloadEvent, setDownloadEvent] = useState<{
-    url: string;
-    fileName: string;
-  } | null>(null);
   const [shareEvent, setShareEvent] = useState<{ url: string } | null>(null);
 
-  const loadDashboardData = useCallback(async () => {
-    setUiState(prev => ({ ...prev, isLoading: true, error: undefined }));
+  // Load data from Local SQLite
+  const loadLocalData = useCallback(() => {
+    const recentFiles = databaseService.getRecentFiles(20);
+    const stats = databaseService.getStats();
+
+    setUiState(prev => ({
+      ...prev,
+      recentFiles: recentFiles.map(f => ({
+        ...f,
+        thumbnailUrl: f.thumbnailUrl
+          ? f.thumbnailUrl.startsWith('http')
+            ? f.thumbnailUrl
+            : `${API_URL.replace('/api', '')}${f.thumbnailUrl}`
+          : undefined,
+      })),
+      totalFiles: stats.totalFiles,
+      totalFolders: stats.totalFolders,
+      storageUsedPercentage: calculateStoragePercentage(),
+      isLoading: false,
+    }));
+  }, [user]);
+
+  const calculateStoragePercentage = () => {
+    // Backend provides storagePercentage (e.g., 12.5 for 12.5%)
+    if (user?.storagePercentage !== undefined) {
+      return user.storagePercentage / 100;
+    }
+    if (!user?.storageQuota || !user?.storageUsed) return 0;
+    const quota = parseInt(user.storageQuota);
+    const used = parseInt(user.storageUsed);
+    if (isNaN(quota) || isNaN(used) || quota === 0) return 0;
+    return used / quota;
+  };
+
+  // Sync logic
+  const performSync = useCallback(async () => {
+    if (!isAuthenticated) return;
 
     try {
-      // Seed data for testing (only inserts if empty)
-      await databaseService.seedTestData();
+      const lastSyncStr = await AsyncStorage.getItem('lastSyncTimestamp');
+      const lastSync = lastSyncStr ? parseInt(lastSyncStr) : undefined;
 
-      // Fetch recent files from DB
-      const recentFiles = databaseService.getRecentFiles(20);
+      // If no lastSync, it's a first run for this user session or fresh install
+      const result = await syncService.sync(lastSync);
 
-      setUiState({
-        isLoading: false,
-        recentFiles: recentFiles,
-        totalFiles: 1240, // TODO: Get count from DB
-        totalFolders: 45, // TODO: Get count from DB
-        storageUsedPercentage: 0.72,
-      });
+      // Batch insert into SQLite
+      if (result.folders && result.folders.length > 0) {
+        databaseService.upsertFolders(result.folders);
+      }
+      if (result.files && result.files.length > 0) {
+        databaseService.upsertFiles(result.files);
+      }
+
+      // Save new timestamp
+      if (result.lastSync) {
+        await AsyncStorage.setItem(
+          'lastSyncTimestamp',
+          new Date(result.lastSync).getTime().toString(),
+        );
+      }
+
+      // Refresh local UI
+      loadLocalData();
     } catch (error) {
-      console.error(error);
+      console.error('Sync failed:', error);
       setUiState(prev => ({
         ...prev,
+        error: 'Sync failed, working offline',
         isLoading: false,
-        error: 'Failed to load data',
       }));
     }
-  }, []);
+  }, [isAuthenticated, loadLocalData]);
+
+  const loadDashboardData = useCallback(async () => {
+    setUiState(prev => ({ ...prev, isLoading: true }));
+    loadLocalData(); // Show cached first
+    await performSync(); // Then sync
+  }, [loadLocalData, performSync]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    if (isAuthenticated && !isInitialSyncDone.current) {
+      isInitialSyncDone.current = true;
+      loadDashboardData();
+    }
+  }, [isAuthenticated, loadDashboardData, isInitialSyncDone]);
 
   const search = (query: string) => {
     setSearchQuery(query);
@@ -64,17 +118,13 @@ export const useHomeViewModel = () => {
       setSearchResults([]);
       return;
     }
-
     const results = databaseService.search(query);
     setSearchResults(results);
   };
 
   const filterFiles = (filter: string) => {
     setSelectedFilter(filter);
-    // Reload with filter from DB
-    // For now, we just reload recent (Implement DB filter later if needed)
-    // ideally: databaseService.getFilesByFilter(filter)
-    const recentFiles = databaseService.getRecentFiles(20);
+    const recentFiles = databaseService.getRecentFiles(100);
 
     if (filter !== 'All') {
       const filtered = recentFiles.filter(f => {
@@ -84,22 +134,19 @@ export const useHomeViewModel = () => {
           return f.mimeType?.includes('pdf') || f.mimeType?.includes('doc');
         return true;
       });
-      setUiState(prev => ({ ...prev, recentFiles: filtered }));
+      setUiState(prev => ({ ...prev, recentFiles: filtered.slice(0, 20) }));
     } else {
-      setUiState(prev => ({ ...prev, recentFiles: recentFiles }));
+      setUiState(prev => ({ ...prev, recentFiles: recentFiles.slice(0, 20) }));
     }
   };
 
   const downloadFile = (id: string) => {
     console.log('Downloading file', id);
-    // Trigger generic download
   };
 
   const deleteFile = (id: string) => {
     console.log('Deleting file', id);
-    // databaseService.deleteFile(id);
-    const recentFiles = databaseService.getRecentFiles(20); // Refresh
-    setUiState(prev => ({ ...prev, recentFiles }));
+    // TODO: Implement soft delete in DB and sync with backend
   };
 
   const shareFile = (id: string) => {

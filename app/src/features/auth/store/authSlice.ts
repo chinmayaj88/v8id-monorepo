@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, LoginRequest, AuthResponse } from '../types';
 import { authService } from '../../../services/api/authService';
+import { databaseService } from '../../../services/db/DatabaseService';
 
 interface AuthState {
   user: User | null;
@@ -112,6 +113,8 @@ export const logoutUser = createAsyncThunk(
       await AsyncStorage.removeItem('accessToken');
       await AsyncStorage.removeItem('refreshToken');
       await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('lastSyncTimestamp');
+      databaseService.deleteSchema();
     }
   },
 );
@@ -144,6 +147,8 @@ const authSlice = createSlice({
       AsyncStorage.removeItem('accessToken').catch(() => {});
       AsyncStorage.removeItem('refreshToken').catch(() => {});
       AsyncStorage.removeItem('user').catch(() => {});
+      AsyncStorage.removeItem('lastSyncTimestamp').catch(() => {});
+      databaseService.deleteSchema();
     },
     clearError: state => {
       state.error = null;

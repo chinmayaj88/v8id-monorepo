@@ -29,7 +29,8 @@ class DatabaseService {
         parentId TEXT,
         updatedAt INTEGER NOT NULL,
         isDeleted INTEGER DEFAULT 0,
-        color TEXT
+        color TEXT,
+        userId TEXT
       );
     `);
 
@@ -43,72 +44,132 @@ class DatabaseService {
         updatedAt INTEGER NOT NULL,
         isDeleted INTEGER DEFAULT 0,
         thumbnailUrl TEXT,
-        FOREIGN KEY(folderId) REFERENCES folders(id)
+        userId TEXT,
+        linkUrl TEXT,
+        linkExpiresAt INTEGER
       );
     `);
+
+    // Index for recent files
+    this.db.execute(
+      `CREATE INDEX IF NOT EXISTS idx_files_updatedAt ON files(updatedAt DESC) WHERE isDeleted = 0;`,
+    );
   }
 
-  // --- Seeding for Test ---
-  public async seedTestData() {
+  public async deleteSchema() {
     if (!this.db) return;
+    this.db.execute('DROP TABLE IF EXISTS files');
+    this.db.execute('DROP TABLE IF EXISTS folders');
+    this.initSchema();
+  }
 
-    // Check if empty
-    const result = this.db.execute('SELECT COUNT(*) as count FROM files');
-    if (result.rows?._array[0].count > 0) return; // Already seeded
+  // --- Upsert Logic for Sync ---
 
-    console.log('Seeding test data...');
-
-    const now = Date.now();
-
-    // Folders
-    this.db.execute(
-      'INSERT INTO folders (id, name, parentId, updatedAt) VALUES (?, ?, ?, ?)',
-      ['f1', 'Design Assets', null, now],
-    );
-    this.db.execute(
-      'INSERT INTO folders (id, name, parentId, updatedAt) VALUES (?, ?, ?, ?)',
-      ['f2', 'Project Alpha', null, now],
-    );
-
-    // Files
-    const files = [
-      [
-        '1',
-        'Design_System_v2.fig',
-        null,
-        '12000000',
-        'image/figma',
-        now - 10000,
-      ],
-      ['2', 'Q4_Report.pdf', 'f2', '2400000', 'application/pdf', now - 50000],
-      ['3', 'Team_Meeting.mp4', null, '450000000', 'video/mp4', now - 100000],
-      ['4', 'Logo.png', 'f1', '500000', 'image/png', now - 2000],
-    ];
-
-    files.forEach(f => {
-      this.db?.execute(
-        'INSERT INTO files (id, name, folderId, size, mimeType, updatedAt, isDeleted) VALUES (?, ?, ?, ?, ?, ?, 0)',
-        f,
-      );
+  public upsertFolders(folders: any[]) {
+    if (!this.db) return;
+    this.db.transaction(tx => {
+      folders.forEach(folder => {
+        tx.execute(
+          `INSERT OR REPLACE INTO folders (id, name, parentId, updatedAt, isDeleted, color, userId) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            folder.id,
+            folder.name,
+            folder.parentId,
+            new Date(folder.updatedAt).getTime(),
+            folder.isDeleted ? 1 : 0,
+            folder.color || null,
+            folder.userId,
+          ],
+        );
+      });
     });
+  }
+
+  public upsertFiles(files: any[]) {
+    if (!this.db) return;
+    this.db.transaction(tx => {
+      files.forEach(file => {
+        tx.execute(
+          `INSERT OR REPLACE INTO files (id, name, folderId, size, mimeType, updatedAt, isDeleted, thumbnailUrl, userId) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            file.id,
+            file.name,
+            file.folderId,
+            file.size,
+            file.mimeType,
+            new Date(file.updatedAt).getTime(),
+            file.isDeleted ? 1 : 0,
+            file.thumbnailKey || file.thumbnailUrl || null,
+            file.userId,
+          ],
+        );
+      });
+    });
+  }
+
+  public getStats() {
+    if (!this.db) return { totalFiles: 0, totalFolders: 0 };
+    const fileRes = this.db.execute(
+      'SELECT COUNT(*) as count FROM files WHERE isDeleted = 0',
+    );
+    const folderRes = this.db.execute(
+      'SELECT COUNT(*) as count FROM folders WHERE isDeleted = 0',
+    );
+
+    return {
+      totalFiles: fileRes.rows?._array[0]?.count || 0,
+      totalFolders: folderRes.rows?._array[0]?.count || 0,
+    };
   }
 
   // --- Queries ---
 
-  public getRecentFiles(limit: number = 20): FileItem[] {
+  public getRecentFiles(limit: number = 20): any[] {
     if (!this.db) return [];
 
     const result = this.db.execute(
       `
-        SELECT * FROM files 
+        SELECT id, name, size, mimeType, updatedAt, thumbnailUrl, folderId, 0 as isFolder FROM files 
         WHERE isDeleted = 0 
+        UNION ALL
+        SELECT id, name, 0 as size, 'folder' as mimeType, updatedAt, NULL as thumbnailUrl, parentId as folderId, 1 as isFolder FROM folders
+        WHERE isDeleted = 0
         ORDER BY updatedAt DESC 
         LIMIT ?
-    `,
+      `,
       [limit],
     );
 
-    return (result.rows?._array || []).map(this.mapRowToFileItem);
+    return (result.rows?._array || []).map(row => {
+      if (row.isFolder) {
+        return {
+          id: row.id,
+          name: row.name,
+          size: 'Folder',
+          timeAgo: this.formatTimeAgo(row.updatedAt),
+          mimeType: 'folder',
+          isFolder: true,
+          icon: 'folder',
+        };
+      }
+      return this.mapRowToFileItem(row);
+    });
+  }
+
+  public updateFileLink(id: string, url: string, expiresAt: number) {
+    if (!this.db) return;
+    this.db.execute(
+      'UPDATE files SET linkUrl = ?, linkExpiresAt = ? WHERE id = ?',
+      [url, expiresAt, id],
+    );
+  }
+
+  public getFileById(id: string): any | null {
+    if (!this.db) return null;
+    const res = this.db.execute('SELECT * FROM files WHERE id = ?', [id]);
+    return res.rows?._array[0] || null;
   }
 
   public search(query: string): SearchSuggestion[] {
@@ -171,6 +232,8 @@ class DatabaseService {
       timeAgo: this.formatTimeAgo(row.updatedAt),
       mimeType: row.mimeType,
       thumbnailUrl: row.thumbnailUrl,
+      folderId: row.folderId,
+      rawSize: row.size,
     };
   };
 
