@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  Platform,
 } from 'react-native';
 import Svg, {
   Defs,
@@ -26,8 +25,8 @@ interface ProfileHeaderProps {
   userName: string;
   storagePercentage: number;
   profileImageUrl?: string;
-  onLogout: () => void;
   onProfileClick: () => void;
+  onNotificationClick: () => void;
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -35,8 +34,8 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   storagePercentage,
   profileImageUrl,
   onProfileClick,
+  onNotificationClick,
 }) => {
-  // Simple ring logic; for full circle, use SVG. reusing simplified View with border for now or SVG
   return (
     <View style={styles.headerContainer}>
       <View style={styles.profileRow}>
@@ -67,6 +66,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             Storage Used: {Math.round(storagePercentage * 100)}%
           </Text>
         </View>
+
+        <TouchableOpacity
+          style={styles.notificationButton}
+          onPress={onNotificationClick}
+        >
+          <MaterialIcons
+            name="notifications-none"
+            size={28}
+            color={Colors.black}
+          />
+          <View style={styles.notificationDot} />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -252,6 +263,7 @@ const styles = StyleSheet.create({
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   profileContainer: {
     width: 56,
@@ -272,7 +284,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E8F5E9', // Light green
+    backgroundColor: '#E8F5E9',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -288,6 +300,7 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     marginLeft: 12,
+    flex: 1,
   },
   greeting: {
     fontSize: 16,
@@ -298,6 +311,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.gray,
     marginTop: 2,
+  },
+  notificationButton: {
+    padding: 8,
+    position: 'relative',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.purple.vibrant,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
   },
   gradientHeadingContainer: {
     marginVertical: 4,

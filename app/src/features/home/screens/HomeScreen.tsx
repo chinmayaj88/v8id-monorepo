@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Platform,
   StatusBar,
   Share,
   ActivityIndicator,
@@ -68,12 +67,10 @@ const HomeScreen = () => {
         userName={user.firstName}
         storagePercentage={uiState.storageUsedPercentage}
         profileImageUrl={user.avatarUrl}
-        onProfileClick={() => {
+        onProfileClick={() => {}}
+        onNotificationClick={() => {
           // @ts-ignore
-          navigation.navigate('User');
-        }}
-        onLogout={() => {
-          /* Handle logout */
+          navigation.navigate('Notifications');
         }}
       />
 
@@ -97,7 +94,7 @@ const HomeScreen = () => {
               navigation.navigate('Viewer', {
                 fileId: suggestion.id,
                 fileName: suggestion.title,
-                fileType: '*/*', // We might need to fetch this or pass it in suggestion
+                fileType: '*/*',
               });
             }
           }}
@@ -208,19 +205,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   listContent: {
-    paddingHorizontal: 24, // Dynamic padding in Kotlin was around 16-32. 24 is safe.
+    paddingHorizontal: 24,
     paddingBottom: 96,
   },
   headerContent: {
     marginBottom: 16,
+    marginTop: 20,
   },
   searchContainer: {
-    zIndex: 100, // Essential for popup overlay
+    zIndex: 100,
     marginVertical: 12,
   },
   filterRow: {
     marginTop: 8,
-    // paddingVertical: 4,
   },
   summaryContainer: {
     alignItems: 'center',

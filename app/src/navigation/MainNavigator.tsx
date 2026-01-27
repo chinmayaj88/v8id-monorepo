@@ -4,6 +4,8 @@ import TabNavigator from './TabNavigator';
 import ActiveSessionsScreen from '../features/user/screens/ActiveSessionsScreen';
 import { View, Text } from 'react-native';
 
+import NotificationScreen from '../features/home/screens/NotificationScreen';
+
 const Stack = createNativeStackNavigator();
 
 // Placeholders for other screens
@@ -31,6 +33,7 @@ const MainNavigator = () => {
       <Stack.Screen name="Viewer" component={ViewerScreen} />
       <Stack.Screen name="Folders" component={FoldersScreen} />
       <Stack.Screen name="Storage" component={StorageScreen} />
+      <Stack.Screen name="Notifications" component={NotificationScreen} />
     </Stack.Navigator>
   );
 };
