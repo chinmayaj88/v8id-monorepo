@@ -2,6 +2,8 @@ import { Response } from 'express';
 import {
   UploadFileUseCase,
   GenerateFileLinkUseCase,
+  DeleteFileUseCase,
+  RestoreFileUseCase,
 } from '../../../application/use-cases/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
@@ -10,7 +12,9 @@ import { StorageTier } from '../../../../generated/prisma/index.js';
 export class FileController {
   constructor(
     private uploadFileUseCase: UploadFileUseCase,
-    private generateFileLinkUseCase: GenerateFileLinkUseCase
+    private generateFileLinkUseCase: GenerateFileLinkUseCase,
+    private deleteFileUseCase: DeleteFileUseCase,
+    private restoreFileUseCase: RestoreFileUseCase
   ) {}
 
   async upload(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -74,6 +78,57 @@ export class FileController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate link';
       ResponseUtil.error(res, 'GENERATE_LINK_ERROR', message);
+    }
+  }
+
+  async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { id } = req.params;
+      if (!id || typeof id !== 'string') {
+        ResponseUtil.validationError(res, 'File ID must be a string');
+        return;
+      }
+      const { permanent } = req.query;
+
+      const isPermanent = permanent === 'true';
+
+      await this.deleteFileUseCase.execute(req.user.id, id, isPermanent); // UseCase signature: execute(userId, fileId, permanent) wait, UseCase says: execute(fileId, userId, permanent)
+
+      ResponseUtil.success(res, {
+        success: true,
+        message: isPermanent ? 'File permanently deleted' : 'File moved to trash',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete file';
+      ResponseUtil.error(res, 'DELETE_FILE_ERROR', message);
+    }
+  }
+
+  async restore(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { id } = req.params;
+
+      if (!id || typeof id !== 'string') {
+        ResponseUtil.validationError(res, 'File ID is required');
+        return;
+      }
+
+      await this.restoreFileUseCase.execute(id, req.user.id);
+
+      ResponseUtil.success(res, { success: true, message: 'File restored' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to restore file';
+      ResponseUtil.error(res, 'RESTORE_FILE_ERROR', message);
     }
   }
 }

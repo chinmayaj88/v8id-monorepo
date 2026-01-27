@@ -82,6 +82,13 @@ export class FileRepository implements IFileRepository {
     });
   }
 
+  async restore(id: string): Promise<void> {
+    await prisma.file.update({
+      where: { id },
+      data: { isDeleted: false },
+    });
+  }
+
   async findAllByUserId(
     userId: string,
     options?: {
@@ -130,15 +137,24 @@ export class FileRepository implements IFileRepository {
     return count > 0;
   }
 
-  async findDescendants(folderIds: string[], userId: string): Promise<File[]> {
+  async findDescendants(
+    folderIds: string[],
+    userId: string,
+    includeDeleted: boolean = false
+  ): Promise<File[]> {
     if (folderIds.length === 0) return [];
 
+    const where: Prisma.FileWhereInput = {
+      userId,
+      folderId: { in: folderIds },
+    };
+
+    if (!includeDeleted) {
+      where.isDeleted = false;
+    }
+
     return prisma.file.findMany({
-      where: {
-        userId,
-        folderId: { in: folderIds },
-        isDeleted: false,
-      },
+      where,
     });
   }
 

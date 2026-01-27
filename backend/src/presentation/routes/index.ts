@@ -12,6 +12,8 @@ import fileRoutes from './file.routes.js';
 import searchRoutes from './search.routes.js';
 import syncRoutes from './sync.routes.js';
 
+import trashRoutes from './trash.routes.js';
+
 const router: IRouter = Router();
 
 // API routes
@@ -19,6 +21,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/folders', folderRoutes);
 router.use('/files', fileRoutes);
+router.use('/trash', trashRoutes);
 router.use('/search', searchRoutes);
 router.use('/sync', syncRoutes);
 

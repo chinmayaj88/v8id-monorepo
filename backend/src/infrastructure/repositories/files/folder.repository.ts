@@ -1,4 +1,4 @@
-import { Folder } from '../../../../generated/prisma/index.js';
+import { Prisma, Folder } from '../../../../generated/prisma/index.js';
 import { prisma } from '../../database/index.js';
 import { IFolderRepository } from '../../../application/interfaces/files/folder-repository.interface.js';
 
@@ -61,6 +61,13 @@ export class FolderRepository implements IFolderRepository {
     });
   }
 
+  async restore(id: string): Promise<void> {
+    await prisma.folder.update({
+      where: { id },
+      data: { isDeleted: false },
+    });
+  }
+
   async existsByName(parentId: string | null, name: string, userId: string): Promise<boolean> {
     const count = await prisma.folder.count({
       where: {
@@ -73,26 +80,30 @@ export class FolderRepository implements IFolderRepository {
     return count > 0;
   }
 
-  async findDescendants(folderId: string, userId: string): Promise<Folder[]> {
-    // We can use the 'path' field for efficient descendant lookup
-    // Assuming path format is like /root/parent/child
-    // Actually, creating a robust path-based query might be tricky without a fixed convention.
-    // For now, let's look up the folder to get its path, then find all starting with that path.
-
+  async findDescendants(
+    folderId: string,
+    userId: string,
+    includeDeleted: boolean = false
+  ): Promise<Folder[]> {
     // NOTE: This implementation assumes 'path' is maintained correctly.
     // Ideally, we would fetch the folder first.
 
     const folder = await this.findById(folderId);
     if (!folder) return [];
 
-    return prisma.folder.findMany({
-      where: {
-        userId,
-        path: {
-          startsWith: folder.path + '/', // Ensure it's a child path
-        },
-        isDeleted: false,
+    const where: Prisma.FolderWhereInput = {
+      userId,
+      path: {
+        startsWith: folder.path + '/', // Ensure it's a child path
       },
+    };
+
+    if (!includeDeleted) {
+      where.isDeleted = false;
+    }
+
+    return prisma.folder.findMany({
+      where,
     });
   }
 

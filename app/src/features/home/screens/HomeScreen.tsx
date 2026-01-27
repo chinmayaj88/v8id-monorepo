@@ -191,7 +191,7 @@ const HomeScreen = () => {
         data={uiState.recentFiles}
         renderItem={renderItem}
         keyExtractor={item => item.id}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={renderHeader()}
         contentContainerStyle={styles.listContent}
         removeClippedSubviews={true}
         initialNumToRender={10}

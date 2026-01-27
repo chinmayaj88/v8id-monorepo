@@ -1,12 +1,8 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { FileController } from '../controllers/files/file.controller.js';
-import { authMiddleware } from '../middleware/auth.middleware.js';
+import { filesContainer } from '../../infrastructure/di/index.js';
 import { sharedContainer } from '../../infrastructure/di/index.js';
-import { FileRepository, FolderRepository } from '../../infrastructure/repositories/files/index.js';
-import { UploadFileUseCase, GenerateFileLinkUseCase } from '../../application/use-cases/index.js';
-import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
-import { UserRepository } from '../../infrastructure/repositories/user/user.repository.js';
+import { authMiddleware } from '../middleware/auth.middleware.js';
 
 // Setup Auth Middleware
 const authenticate = authMiddleware(
@@ -15,7 +11,7 @@ const authenticate = authMiddleware(
   sharedContainer.jwtService
 );
 
-// Multer setup for memory storage (file buffer)
+// Multer setup
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -23,28 +19,16 @@ const upload = multer({
   },
 });
 
-// Manual DI
-const fileRepository = new FileRepository();
-const folderRepository = new FolderRepository();
-const userRepository = new UserRepository();
-const storageService = new TierAwareStorageService();
-
-const uploadFileUseCase = new UploadFileUseCase(
-  fileRepository,
-  folderRepository,
-  storageService,
-  userRepository
-);
-
-const generateFileLinkUseCase = new GenerateFileLinkUseCase(fileRepository, storageService);
-
-const fileController = new FileController(uploadFileUseCase, generateFileLinkUseCase);
-
 const router: Router = Router();
 
 router.use(authenticate);
 
-router.post('/upload', upload.single('file'), (req, res) => fileController.upload(req, res));
-router.post('/:id/link', (req, res) => fileController.generateLink(req, res));
+// Use controller from DI container
+router.post('/upload', upload.single('file'), (req, res) =>
+  filesContainer.fileController.upload(req, res)
+);
+router.post('/:id/link', (req, res) => filesContainer.fileController.generateLink(req, res));
+router.delete('/:id', (req, res) => filesContainer.fileController.delete(req, res));
+router.post('/:id/restore', (req, res) => filesContainer.fileController.restore(req, res));
 
 export default router;

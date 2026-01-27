@@ -3,3 +3,8 @@ export * from './list-folder-contents.use-case.js';
 export * from './upload-file.use-case.js';
 export * from './search-files.use-case.js';
 export * from './generate-file-link.use-case.js';
+export * from './delete-file.use-case.js';
+export * from './restore-file.use-case.js';
+export * from './delete-folder.use-case.js';
+export * from './restore-folder.use-case.js';
+export * from './list-trash.use-case.js';

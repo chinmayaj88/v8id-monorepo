@@ -22,6 +22,11 @@ export interface IFolderRepository {
   softDelete(id: string): Promise<void>;
 
   /**
+   * Restore a soft-deleted folder
+   */
+  restore(id: string): Promise<void>;
+
+  /**
    * Check if folder with same name exists in parent folder
    */
   existsByName(parentId: string | null, name: string, userId: string): Promise<boolean>;
@@ -30,7 +35,7 @@ export interface IFolderRepository {
    * Get all descendants of a folder (for recursive operations like delete/move)
    * Uses the materialized path for efficiency.
    */
-  findDescendants(folderId: string, userId: string): Promise<Folder[]>;
+  findDescendants(folderId: string, userId: string, includeDeleted?: boolean): Promise<Folder[]>;
 
   findAllByUserId(
     userId: string,

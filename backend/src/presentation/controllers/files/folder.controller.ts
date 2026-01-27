@@ -2,6 +2,8 @@ import { Response } from 'express';
 import {
   CreateFolderUseCase,
   ListFolderContentsUseCase,
+  DeleteFolderUseCase,
+  RestoreFolderUseCase,
 } from '../../../application/use-cases/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
@@ -9,7 +11,9 @@ import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 export class FolderController {
   constructor(
     private createFolderUseCase: CreateFolderUseCase,
-    private listFolderContentsUseCase: ListFolderContentsUseCase
+    private listFolderContentsUseCase: ListFolderContentsUseCase,
+    private deleteFolderUseCase: DeleteFolderUseCase,
+    private restoreFolderUseCase: RestoreFolderUseCase
   ) {}
 
   async create(req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -53,6 +57,59 @@ export class FolderController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to list folder contents';
       ResponseUtil.error(res, 'LIST_FOLDER_ERROR', message);
+    }
+  }
+
+  async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { id } = req.params;
+
+      if (!id || typeof id !== 'string') {
+        ResponseUtil.validationError(res, 'Folder ID must be a string');
+        return;
+      }
+
+      const { permanent } = req.query;
+
+      const isPermanent = permanent === 'true';
+
+      await this.deleteFolderUseCase.execute(id, req.user.id, isPermanent);
+
+      ResponseUtil.success(res, {
+        success: true,
+        message: isPermanent ? 'Folder permanently deleted' : 'Folder moved to trash',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete folder';
+      ResponseUtil.error(res, 'DELETE_FOLDER_ERROR', message);
+    }
+  }
+
+  async restore(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { id } = req.params;
+
+      if (!id || typeof id !== 'string') {
+        ResponseUtil.validationError(res, 'Folder ID must be a string');
+        return;
+      }
+
+      await this.restoreFolderUseCase.execute(id, req.user.id);
+
+      ResponseUtil.success(res, { success: true, message: 'Folder restored' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to restore folder';
+      ResponseUtil.error(res, 'RESTORE_FOLDER_ERROR', message);
     }
   }
 }

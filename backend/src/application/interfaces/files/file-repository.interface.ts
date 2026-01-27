@@ -31,6 +31,11 @@ export interface IFileRepository {
   softDelete(id: string): Promise<void>;
 
   /**
+   * Restore a soft-deleted file
+   */
+  restore(id: string): Promise<void>;
+
+  /**
    * Find files by user ID with optional filtering
    */
   findAllByUserId(
@@ -50,7 +55,7 @@ export interface IFileRepository {
    */
   existsByName(folderId: string | null, name: string, userId: string): Promise<boolean>;
 
-  findDescendants(folderIds: string[], userId: string): Promise<File[]>;
+  findDescendants(folderIds: string[], userId: string, includeDeleted?: boolean): Promise<File[]>;
 
   /**
    * Find files updated since a specific date (for delta sync)
