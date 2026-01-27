@@ -105,11 +105,13 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authService.logout();
+    } catch (error: any) {
+      console.warn('Backend logout failed', error);
+      // We still continue to clear local storage
+    } finally {
       await AsyncStorage.removeItem('accessToken');
       await AsyncStorage.removeItem('refreshToken');
       await AsyncStorage.removeItem('user');
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Logout failed');
     }
   },
 );
@@ -201,6 +203,13 @@ const authSlice = createSlice({
 
     // Logout
     builder.addCase(logoutUser.fulfilled, state => {
+      state.user = null;
+      state.token = null;
+      state.refreshToken = null;
+      state.tempToken = null;
+      state.isAuthenticated = false;
+    });
+    builder.addCase(logoutUser.rejected, state => {
       state.user = null;
       state.token = null;
       state.refreshToken = null;

@@ -131,7 +131,7 @@ const ProfileScreen = () => {
             subtitle="Manage your logged-in devices"
             onClick={() => {
               // @ts-ignore
-              navigation.navigate('ActiveSessions'); // Need to register this screen
+              navigation.navigate('ActiveSessions');
             }}
           />
           <AccountMenuItem
@@ -426,6 +426,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 16,
     gap: 12,
+    marginBottom: 64,
   },
   logoutText: {
     fontSize: 15,

@@ -199,11 +199,11 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     bottom: 24,
-    top: 8, // (72 - 56) / 2
+    top: 8,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2D6AFA', // Dropbox Blue
+    backgroundColor: '#2D6AFA',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#2D6AFA',

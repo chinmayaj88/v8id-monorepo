@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_URL } from '@env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const apiClient = axios.create({
   baseURL: API_URL || 'http://localhost:3000/api',
@@ -12,8 +13,14 @@ const apiClient = axios.create({
 // Request interceptor for API tokens
 apiClient.interceptors.request.use(
   async config => {
-    // We will import store here dynamically to avoid circular dependencies if needed,
-    // or use a better pattern like a token manager.
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (e) {
+      console.error('Error fetching token from storage', e);
+    }
     return config;
   },
   error => Promise.reject(error),
