@@ -130,6 +130,70 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Delete Folder (Soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Folder (Permanent)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}?permanent=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}"],
+              "query": [
+                {
+                  "key": "permanent",
+                  "value": "true",
+                  "description": "If true, permanently deletes the folder and its contents."
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Restore Folder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}/restore",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}", "restore"]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -206,6 +270,114 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "files", "upload"]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Generate File Link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/{{fileId}}/link",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "{{fileId}}", "link"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete File (Soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/{{fileId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "{{fileId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete File (Permanent)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/{{fileId}}?permanent=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "{{fileId}}"],
+              "query": [
+                {
+                  "key": "permanent",
+                  "value": "true",
+                  "description": "If true, permanently deletes the file from storage."
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Restore File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/{{fileId}}/restore",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "{{fileId}}", "restore"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Trash",
+      "item": [
+        {
+          "name": "List Trash",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/trash",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "trash"]
+            },
+            "description": "Lists all soft-deleted files and folders."
           },
           "response": []
         }
@@ -360,6 +532,11 @@
     },
     {
       "key": "folderId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fileId",
       "value": "",
       "type": "string"
     }
