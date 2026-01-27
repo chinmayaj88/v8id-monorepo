@@ -33,7 +33,11 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
 
     // Handle 401 and avoid infinite loops
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry
+    ) {
       originalRequest._retry = true;
 
       try {
@@ -42,8 +46,8 @@ apiClient.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
-        // Attempt to refresh
-        console.log('Refreshing token...');
+        console.log('📡 [Auth] Refreshing access token...');
+        // Use standard axios to avoid interceptor loop for the refresh call itself
         const refreshResponse = await axios.post(
           `${apiClient.defaults.baseURL}/auth/refresh`,
           {
@@ -55,27 +59,31 @@ apiClient.interceptors.response.use(
           const { accessToken, refreshToken: newRefreshToken } =
             refreshResponse.data.data;
 
-          // Store new tokens
+          console.log('✅ [Auth] Token refreshed successfully');
           await AsyncStorage.setItem('accessToken', accessToken);
           await AsyncStorage.setItem('refreshToken', newRefreshToken);
 
-          // Update header and retry
+          // Update instance defaults and the failed request headers
           apiClient.defaults.headers.Authorization = `Bearer ${accessToken}`;
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          return apiClient(originalRequest);
+
+          return apiClient.request(originalRequest);
         }
       } catch (refreshError) {
-        console.error('Refresh token failed:', refreshError);
-        // Clear tokens and redirect could happen here via a store action or event
+        console.error(
+          '❌ [Auth] Refresh failed, session expired:',
+          refreshError,
+        );
         await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
+        // Here you could broadcast a logout event
       }
     }
 
+    // Default error handling
     const message =
-      error.response?.data?.message ||
-      error.message ||
-      'An unexpected error occurred';
-    console.error('[API Error]', message);
+      error.response?.data?.message || error.message || 'Network Error';
+    console.error(`[API Error ${error.response?.status || 'ERR'}]:`, message);
+
     return Promise.reject(error);
   },
 );

@@ -172,6 +172,35 @@ class DatabaseService {
     return res.rows?._array[0] || null;
   }
 
+  public getFoldersByParentId(parentId: string | null): any[] {
+    if (!this.db) return [];
+    const query = parentId
+      ? 'SELECT * FROM folders WHERE parentId = ? AND isDeleted = 0 ORDER BY name ASC'
+      : 'SELECT * FROM folders WHERE parentId IS NULL AND isDeleted = 0 ORDER BY name ASC';
+    const params = parentId ? [parentId] : [];
+
+    const result = this.db.execute(query, params);
+    return (result.rows?._array || []).map(row => ({
+      id: row.id,
+      name: row.name,
+      timeAgo: this.formatTimeAgo(row.updatedAt),
+      color: row.color,
+      isFolder: true,
+      icon: 'folder',
+    }));
+  }
+
+  public getFilesByFolderId(folderId: string | null): FileItem[] {
+    if (!this.db) return [];
+    const query = folderId
+      ? 'SELECT * FROM files WHERE folderId = ? AND isDeleted = 0 ORDER BY name ASC'
+      : 'SELECT * FROM files WHERE folderId IS NULL AND isDeleted = 0 ORDER BY name ASC';
+    const params = folderId ? [folderId] : [];
+
+    const result = this.db.execute(query, params);
+    return (result.rows?._array || []).map(this.mapRowToFileItem);
+  }
+
   public search(query: string): SearchSuggestion[] {
     if (!this.db || !query) return [];
 

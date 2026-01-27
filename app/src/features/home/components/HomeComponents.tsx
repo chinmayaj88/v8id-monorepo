@@ -31,91 +31,93 @@ interface ProfileHeaderProps {
   onNotificationClick: () => void;
 }
 
-export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
-  userName,
-  storagePercentage,
-  profileImageUrl,
-  onProfileClick,
-  onNotificationClick,
-}) => {
-  return (
-    <View style={styles.headerContainer}>
-      <View style={styles.profileRow}>
-        <TouchableOpacity
-          onPress={onProfileClick}
-          style={styles.profileContainer}
-        >
-          {/* Real Storage Ring */}
-          <Svg height="64" width="64" style={styles.svgRing}>
-            <Circle
-              cx="32"
-              cy="32"
-              r="30"
-              stroke="#E8F5E9"
-              strokeWidth="4"
-              fill="none"
-            />
-            <Circle
-              cx="32"
-              cy="32"
-              r="30"
-              stroke="#4CAF50"
-              strokeWidth="4"
-              fill="none"
-              strokeDasharray={`${2 * Math.PI * 30}`}
-              strokeDashoffset={`${
-                2 *
-                Math.PI *
-                30 *
-                (1 - Math.min(Math.max(storagePercentage, 0), 1))
-              }`}
-              strokeLinecap="round"
-              transform="rotate(-90 32 32)"
-            />
-          </Svg>
-          <View style={styles.avatarContainer}>
-            {profileImageUrl ? (
-              <Image
-                source={{
-                  uri: profileImageUrl.startsWith('http')
-                    ? profileImageUrl
-                    : `${API_URL.replace('/api', '')}${profileImageUrl}`,
-                }}
-                style={styles.avatar}
+export const ProfileHeader = React.memo<ProfileHeaderProps>(
+  ({
+    userName,
+    storagePercentage,
+    profileImageUrl,
+    onProfileClick,
+    onNotificationClick,
+  }) => {
+    return (
+      <View style={styles.headerContainer}>
+        <View style={styles.profileRow}>
+          <TouchableOpacity
+            onPress={onProfileClick}
+            style={styles.profileContainer}
+          >
+            {/* Real Storage Ring */}
+            <Svg height="64" width="64" style={styles.svgRing}>
+              <Circle
+                cx="32"
+                cy="32"
+                r="30"
+                stroke="#E8F5E9"
+                strokeWidth="4"
+                fill="none"
               />
-            ) : (
-              <Text style={styles.avatarText}>
-                {userName.charAt(0).toUpperCase()}
-              </Text>
-            )}
+              <Circle
+                cx="32"
+                cy="32"
+                r="30"
+                stroke="#4CAF50"
+                strokeWidth="4"
+                fill="none"
+                strokeDasharray={`${2 * Math.PI * 30}`}
+                strokeDashoffset={`${
+                  2 *
+                  Math.PI *
+                  30 *
+                  (1 - Math.min(Math.max(storagePercentage, 0), 1))
+                }`}
+                strokeLinecap="round"
+                transform="rotate(-90 32 32)"
+              />
+            </Svg>
+            <View style={styles.avatarContainer}>
+              {profileImageUrl ? (
+                <Image
+                  source={{
+                    uri: profileImageUrl.startsWith('http')
+                      ? profileImageUrl
+                      : `${API_URL.replace('/api', '')}${profileImageUrl}`,
+                  }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <Text style={styles.avatarText}>
+                  {userName.charAt(0).toUpperCase()}
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
+
+          <View style={styles.userInfo}>
+            <Text style={styles.greeting}>HI, {userName}</Text>
+            <Text style={styles.storageText}>
+              Storage Used: {Math.round(storagePercentage * 100)}%
+            </Text>
           </View>
-        </TouchableOpacity>
 
-        <View style={styles.userInfo}>
-          <Text style={styles.greeting}>HI, {userName}</Text>
-          <Text style={styles.storageText}>
-            Storage Used: {Math.round(storagePercentage * 100)}%
-          </Text>
+          <TouchableOpacity
+            style={styles.notificationButton}
+            onPress={onNotificationClick}
+          >
+            <MaterialIcons
+              name="notifications-none"
+              size={28}
+              color={Colors.black}
+            />
+            <View style={styles.notificationDot} />
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.notificationButton}
-          onPress={onNotificationClick}
-        >
-          <MaterialIcons
-            name="notifications-none"
-            size={28}
-            color={Colors.black}
-          />
-          <View style={styles.notificationDot} />
-        </TouchableOpacity>
       </View>
-    </View>
-  );
-};
+    );
+  },
+);
 
 // --- Gradient Heading ---
-export const GradientHeading: React.FC = () => {
+export const GradientHeading = React.memo(() => {
   const text = 'Save With V8id Cloud';
   const fontSize = width * 0.08;
   const clampedFontSize = Math.min(Math.max(fontSize, 20), 32);
@@ -155,7 +157,7 @@ export const GradientHeading: React.FC = () => {
       </Svg>
     </View>
   );
-};
+});
 
 // --- Quick Access Card ---
 interface QuickAccessCardProps {

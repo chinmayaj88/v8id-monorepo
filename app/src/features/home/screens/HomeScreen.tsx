@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -81,6 +81,7 @@ const HomeScreen = () => {
           searchQuery={searchQuery}
           onQueryChange={search}
           searchResults={searchResults}
+          placeholder="Search files"
           onFilterClick={() => setShowFilters(!showFilters)}
           onSuggestionClick={suggestion => {
             if (suggestion.type === 'FOLDER') {
@@ -142,34 +143,37 @@ const HomeScreen = () => {
     </View>
   );
 
-  const renderItem = ({ item }: { item: FileItem }) => (
-    <FileItemCard
-      file={item}
-      isRevealed={revealedFileId === item.id}
-      onExpand={() => setRevealedFileId(item.id)}
-      onCollapse={() => {
-        if (revealedFileId === item.id) setRevealedFileId(null);
-      }}
-      onDownload={() => downloadFile(item.id)}
-      onDelete={() => deleteFile(item.id)}
-      onShare={() => shareFile(item.id)}
-      onClick={() => {
-        if (item.isFolder) {
-          // @ts-ignore
-          navigation.navigate('Files', {
-            folderId: item.id,
-            folderName: item.name,
-          });
-        } else {
-          // @ts-ignore
-          navigation.navigate('Viewer', {
-            fileId: item.id,
-            fileName: item.name,
-            fileType: item.mimeType || '*/*',
-          });
-        }
-      }}
-    />
+  const renderItem = useCallback(
+    ({ item }: { item: FileItem }) => (
+      <FileItemCard
+        file={item}
+        isRevealed={revealedFileId === item.id}
+        onExpand={() => setRevealedFileId(item.id)}
+        onCollapse={() => {
+          if (revealedFileId === item.id) setRevealedFileId(null);
+        }}
+        onDownload={() => downloadFile(item.id)}
+        onDelete={() => deleteFile(item.id)}
+        onShare={() => shareFile(item.id)}
+        onClick={() => {
+          if (item.isFolder) {
+            // @ts-ignore
+            navigation.navigate('Files', {
+              folderId: item.id,
+              folderName: item.name,
+            });
+          } else {
+            // @ts-ignore
+            navigation.navigate('Viewer', {
+              fileId: item.id,
+              fileName: item.name,
+              fileType: item.mimeType || '*/*',
+            });
+          }
+        }}
+      />
+    ),
+    [revealedFileId, navigation, downloadFile, deleteFile, shareFile],
   );
 
   if (uiState.isLoading && uiState.recentFiles.length === 0) {
@@ -189,6 +193,10 @@ const HomeScreen = () => {
         keyExtractor={item => item.id}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContent}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
         refreshControl={
           <RefreshControl
             refreshing={uiState.isLoading}

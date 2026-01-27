@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  ViewStyle,
 } from 'react-native';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -16,33 +17,37 @@ import { SearchSuggestion } from '../types';
 interface SearchBarProps {
   searchQuery: string;
   onQueryChange: (query: string) => void;
-  searchResults: SearchSuggestion[];
-  onFilterClick: () => void;
-  onSuggestionClick: (suggestion: SearchSuggestion) => void;
+  searchResults?: SearchSuggestion[];
+  onFilterClick?: () => void;
+  onSuggestionClick?: (suggestion: SearchSuggestion) => void;
+  placeholder?: string;
+  style?: ViewStyle;
 }
 
 export const SearchBar: React.FC<SearchBarProps> = ({
   searchQuery,
   onQueryChange,
-  searchResults,
+  searchResults = [],
   onFilterClick,
   onSuggestionClick,
+  placeholder = 'Search',
+  style,
 }) => {
   const hasSuggestions = searchQuery.length > 0 && searchResults.length > 0;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <View style={styles.inputContainer}>
         <MaterialIcons
           name="search"
           size={20}
-          color={Colors.gray}
+          color="#5C5C5C" // Darker gray for icon
           style={styles.icon}
         />
         <TextInput
           style={styles.input}
-          placeholder="Search files"
-          placeholderTextColor={Colors.gray}
+          placeholder={placeholder}
+          placeholderTextColor="#757575"
           value={searchQuery}
           onChangeText={onQueryChange}
         />
@@ -50,19 +55,21 @@ export const SearchBar: React.FC<SearchBarProps> = ({
           <TouchableOpacity onPress={() => onQueryChange('')}>
             <MaterialIcons
               name="close"
-              size={20}
-              color={Colors.gray}
+              size={18}
+              color="#757575"
               style={styles.icon}
             />
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={onFilterClick} style={styles.filterButton}>
-          <MaterialIcons name="tune" size={20} color={Colors.gray} />
-        </TouchableOpacity>
+        {onFilterClick && (
+          <TouchableOpacity onPress={onFilterClick} style={styles.filterButton}>
+            <MaterialIcons name="tune" size={20} color="#1E293B" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Suggestions Popup */}
-      {hasSuggestions && (
+      {hasSuggestions && onSuggestionClick && (
         <View style={styles.suggestionsContainer}>
           {searchResults.map(suggestion => (
             <TouchableOpacity
@@ -73,7 +80,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
               <View style={styles.suggestionIconContainer}>
                 <MaterialIcons
                   name={suggestion.icon || 'description'}
-                  size={18}
+                  size={20}
                   color={Colors.purple.vibrant}
                 />
               </View>
@@ -93,61 +100,53 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    zIndex: 100, // Ensure popup is above other elements
-    marginBottom: 8,
+    zIndex: 100,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 24,
+    backgroundColor: '#F8FAFC', // Light background instead of white
+    borderRadius: 12, // More squared corners as per modern design, or 24 for full pills
     height: 48,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB', // TextTertiary alpha 0.3
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderColor: '#E2E8F0', // Slate 200
   },
   icon: {
-    marginRight: 8,
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    fontSize: 15,
-    color: Colors.black,
+    fontSize: 16,
+    color: '#1E293B',
     paddingVertical: 8,
+    fontWeight: '400',
   },
   filterButton: {
     marginLeft: 12,
+    padding: 4,
   },
   suggestionsContainer: {
     position: 'absolute',
-    top: 56, // 48 height + 8 margin
+    top: 54,
     left: 0,
     right: 0,
     backgroundColor: Colors.white,
     borderRadius: 16,
-    paddingVertical: 8, // Fixed padding logic
+    paddingVertical: 8,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
       },
       android: {
-        elevation: 8,
+        elevation: 6,
       },
     }),
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
   },
   suggestionItem: {
     flexDirection: 'row',
@@ -158,22 +157,23 @@ const styles = StyleSheet.create({
   suggestionIconContainer: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.purple.subtleTint,
+    borderRadius: 10,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   suggestionTextContainer: {
     flex: 1,
   },
   suggestionTitle: {
     fontSize: 15,
-    fontWeight: '500',
-    color: Colors.black,
+    fontWeight: '600',
+    color: '#1E293B',
   },
   suggestionSubtitle: {
-    fontSize: 13,
-    color: Colors.gray,
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
   },
 });

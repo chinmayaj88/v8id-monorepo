@@ -8,9 +8,25 @@ export interface SyncResult {
 
 export const syncService = {
   sync: async (since?: number): Promise<SyncResult> => {
-    const response = await apiClient.get<{ data: SyncResult }>(
-      since ? `/sync?since=${since}` : '/sync',
-    );
-    return response.data.data;
+    try {
+      const response = await apiClient.get<any>(
+        since ? `/sync?since=${since}` : '/sync',
+      );
+
+      // Handle standard successful response
+      if (response.data?.success) {
+        return response.data.data;
+      }
+
+      // Handle case where server might return 304 or empty success
+      return {
+        files: [],
+        folders: [],
+        lastSync: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error('[Sync Service Error]:', error);
+      throw error;
+    }
   },
 };
