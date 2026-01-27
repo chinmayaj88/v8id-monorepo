@@ -15,6 +15,7 @@ import { Colors } from '../../../theme/colors';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { API_URL } from '@env';
 
 const ProfileScreen = () => {
   const navigation: any = useNavigation();
@@ -170,7 +171,14 @@ const ProfileCard = ({ userName, userEmail, initials, avatarUrl }: any) => (
       >
         <View style={styles.avatarInner}>
           {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+            <Image
+              source={{
+                uri: avatarUrl.startsWith('http')
+                  ? avatarUrl
+                  : `${API_URL.replace('/api', '')}${avatarUrl}`,
+              }}
+              style={styles.avatarImage}
+            />
           ) : (
             <Text style={styles.avatarText}>{initials}</Text>
           )}

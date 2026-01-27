@@ -17,6 +17,7 @@ import Svg, {
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../../../theme/colors';
+import { API_URL } from '@env';
 
 const { width } = Dimensions.get('window');
 
@@ -48,7 +49,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <View style={styles.avatarContainer}>
               {profileImageUrl ? (
                 <Image
-                  source={{ uri: profileImageUrl }}
+                  source={{
+                    uri: profileImageUrl.startsWith('http')
+                      ? profileImageUrl
+                      : `${API_URL.replace('/api', '')}${profileImageUrl}`,
+                  }}
                   style={styles.avatar}
                 />
               ) : (

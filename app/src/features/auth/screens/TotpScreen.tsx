@@ -361,12 +361,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.purple.veryLight,
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   inputWrapperFocused: {
     borderColor: Colors.purple.vibrantAlt,
     borderWidth: 2,
-    transform: [{ scale: 1.02 }],
   },
   codeRow: {
     flexDirection: 'row',
@@ -374,8 +373,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   codeBox: {
-    width: 44,
+    flex: 1,
     height: 48,
+    maxWidth: 44,
+    marginHorizontal: 3,
     borderRadius: 12,
     backgroundColor: Colors.purple.veryLight,
     justifyContent: 'center',

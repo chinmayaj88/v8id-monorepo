@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { HomeUiState, FileItem, SearchSuggestion } from '../types';
+import { HomeUiState, SearchSuggestion } from '../types';
 import { databaseService } from '../../../services/db/DatabaseService';
+import { useAppSelector } from '../../../store/hooks';
 
 export const useHomeViewModel = () => {
+  const { user } = useAppSelector(state => state.auth);
+
   const [uiState, setUiState] = useState<HomeUiState>({
     isLoading: true,
     recentFiles: [],
@@ -10,14 +13,6 @@ export const useHomeViewModel = () => {
     totalFolders: 0,
     storageUsedPercentage: 0,
   });
-
-  // User info mock (still mock until Auth is connected to DB/Pref)
-  const user = {
-    firstName: 'Chinmay',
-    lastName: '',
-    email: 'chinmay@v8id.com',
-    avatarUrl: undefined,
-  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchSuggestion[]>([]);
@@ -115,7 +110,7 @@ export const useHomeViewModel = () => {
 
   return {
     uiState,
-    user,
+    user: user || { firstName: 'Guest', avatarUrl: undefined },
     searchQuery,
     searchResults,
     search,
