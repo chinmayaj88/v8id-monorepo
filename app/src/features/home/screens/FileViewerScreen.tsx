@@ -15,11 +15,10 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Video from 'react-native-video';
 import { WebView } from 'react-native-webview';
 import { Colors } from '../../../theme/colors';
-import { API_URL } from '@env';
 import apiClient from '../../../services/api/apiClient';
 import { databaseService } from '../../../services/db/DatabaseService';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const FileViewerScreen = ({ route, navigation }: any) => {
   const { fileId, fileName, fileType } = route.params;
@@ -36,7 +35,6 @@ const FileViewerScreen = ({ route, navigation }: any) => {
       setIsLoading(true);
       setError(null);
 
-      // 1. Check SQLite Cache
       const localFile = databaseService.getFileById(fileId);
       const now = Date.now();
 
@@ -51,20 +49,18 @@ const FileViewerScreen = ({ route, navigation }: any) => {
         return;
       }
 
-      // 2. Fetch from Backend
       console.log('📡 [API Fetch] Fresh link for', fileName);
       const response = await apiClient.post(`/files/${fileId}/link`);
 
       if (response.data?.success) {
         const { linkUrl, expiresAt } = response.data.data;
-        console.log('🔗 [Link Received]', linkUrl.substring(0, 50) + '...');
+        console.log('🔗 [Link Received] PAR URL Generated');
         setDownloadUrl(linkUrl);
 
-        // 3. Update Cache
         const expiryTimestamp = new Date(expiresAt).getTime();
         databaseService.updateFileLink(fileId, linkUrl, expiryTimestamp);
       } else {
-        throw new Error('Server returned unsuccessful response');
+        throw new Error('Server successfully returned error status');
       }
     } catch (err: any) {
       console.error('❌ [Viewer Error]', err);
@@ -76,18 +72,20 @@ const FileViewerScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const isImage = fileType?.startsWith('image/');
-  const isVideo = fileType?.startsWith('video/');
-  const isAudio = fileType?.startsWith('audio/');
-  const isPdf = fileType === 'application/pdf';
+  const isImage = fileType?.toLowerCase().startsWith('image/');
+  const isVideo = fileType?.toLowerCase().startsWith('video/');
+  const isAudio = fileType?.toLowerCase().startsWith('audio/');
+  const isPdf = fileType?.toLowerCase() === 'application/pdf';
   const isWebViewable =
-    isPdf || fileType?.includes('text/') || fileType?.includes('html');
+    isPdf ||
+    fileType?.toLowerCase().includes('text/') ||
+    fileType?.toLowerCase().includes('html');
 
   const handleShare = async () => {
     if (!downloadUrl) return;
     try {
       await Share.share({
-        message: `Check out this file: ${fileName}\n${downloadUrl}`,
+        message: `Check out this cloud file: ${fileName}\n\nLink: ${downloadUrl}`,
       });
     } catch (err) {
       console.error(err);
@@ -121,7 +119,10 @@ const FileViewerScreen = ({ route, navigation }: any) => {
 
       <View style={styles.content}>
         {isLoading ? (
-          <ActivityIndicator size="large" color={Colors.purple.vibrant} />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.purple.vibrant} />
+            <Text style={styles.loadingText}>Securing cloud link...</Text>
+          </View>
         ) : error ? (
           <View style={styles.errorContainer}>
             <MaterialIcons
@@ -130,12 +131,18 @@ const FileViewerScreen = ({ route, navigation }: any) => {
               color={Colors.error}
             />
             <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={checkLocalCacheAndFetch}
+            >
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
           </View>
         ) : (
-          <>
+          <View style={styles.mediaContainer}>
             {isImage ? (
               <Image
-                source={{ uri: downloadUrl || undefined }}
+                source={{ uri: downloadUrl! }}
                 style={styles.mainImage}
                 resizeMode="contain"
               />
@@ -144,12 +151,18 @@ const FileViewerScreen = ({ route, navigation }: any) => {
                 source={{ uri: downloadUrl! }}
                 style={styles.mainVideo}
                 controls={true}
+                paused={false}
+                // @ts-ignore
+                resizeMode="contain"
+                onError={e => console.error('Video Error:', e)}
               />
             ) : isWebViewable ? (
               <WebView
                 source={{ uri: downloadUrl! }}
                 style={styles.webview}
                 startInLoadingState={true}
+                originWhitelist={['*']}
+                allowsFullscreenVideo={true}
               />
             ) : (
               <View style={styles.placeholderContainer}>
@@ -158,30 +171,51 @@ const FileViewerScreen = ({ route, navigation }: any) => {
                   size={120}
                   color={Colors.purple.indigo}
                 />
-                <Text style={styles.fileTypeText}>{fileType || 'File'}</Text>
+                <Text style={styles.fileTypeText}>
+                  {fileType || 'Unrecognized File'}
+                </Text>
                 <TouchableOpacity
                   style={styles.openButton}
                   onPress={handleOpenExternally}
                 >
-                  <Text style={styles.openButtonText}>Open in Device</Text>
+                  <Text style={styles.openButtonText}>
+                    Open with System App
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
-          </>
+          </View>
         )}
       </View>
 
       <View style={styles.footer}>
         <View style={styles.footerInfo}>
-          <Text style={styles.footerLabel}>File Type</Text>
-          <Text style={styles.footerValue}>{fileType || 'Unknown'}</Text>
+          <Text style={styles.footerLabel}>File Meta</Text>
+          <Text style={styles.footerValue}>
+            {fileType?.split('/')[1]?.toUpperCase() || 'FILE'}
+          </Text>
         </View>
-        <TouchableOpacity
-          style={styles.downloadFab}
-          onPress={handleOpenExternally}
-        >
-          <MaterialIcons name="file-download" size={28} color={Colors.white} />
-        </TouchableOpacity>
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={styles.actionFab}
+            onPress={handleOpenExternally}
+          >
+            <MaterialIcons name="open-in-new" size={24} color={Colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.actionFab,
+              { backgroundColor: Colors.purple.indigo, marginLeft: 12 },
+            ]}
+            onPress={handleOpenExternally}
+          >
+            <MaterialIcons
+              name="file-download"
+              size={24}
+              color={Colors.white}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -190,120 +224,148 @@ const FileViewerScreen = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    height: 56,
+    height: 60,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  backButton: {
-    padding: 8,
-  },
-  actionButton: {
-    padding: 8,
-  },
-  titleContainer: {
-    flex: 1,
-    marginHorizontal: 16,
-  },
+  backButton: { padding: 8 },
+  actionButton: { padding: 8 },
+  titleContainer: { flex: 1, marginHorizontal: 16 },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: Colors.black,
     textAlign: 'center',
   },
   content: {
     flex: 1,
+    backgroundColor: '#000',
+  },
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000', // Dark background for media
+  },
+  loadingText: {
+    marginTop: 12,
+    color: '#AAA',
+    fontSize: 14,
+  },
+  mediaContainer: {
+    flex: 1,
+    width: width,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   mainImage: {
-    width: width,
-    height: height * 0.7,
+    width: '100%',
+    height: '100%',
   },
   mainVideo: {
-    width: width,
-    height: height * 0.7,
+    width: '100%',
+    height: '100%',
   },
   webview: {
     width: width,
-    height: height * 0.7,
-    backgroundColor: '#fff',
+    height: '100%',
+    backgroundColor: '#FFF',
   },
   placeholderContainer: {
     alignItems: 'center',
     padding: 40,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 20,
+    backgroundColor: Colors.white,
+    borderRadius: 24,
+    margin: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   fileTypeText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.gray,
-    fontWeight: '500',
+    fontWeight: '600',
+    textAlign: 'center',
   },
   openButton: {
     marginTop: 32,
-    backgroundColor: Colors.white,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: Colors.purple.vibrant,
+    backgroundColor: Colors.purple.vibrant,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 32,
   },
   openButtonText: {
-    color: Colors.purple.vibrant,
-    fontWeight: 'bold',
+    color: Colors.white,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  retryButton: {
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    backgroundColor: Colors.black,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontWeight: '600',
   },
   errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   errorText: {
     marginTop: 16,
-    fontSize: 16,
-    color: Colors.error,
+    fontSize: 15,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    lineHeight: 22,
   },
   footer: {
-    padding: 24,
+    padding: 20,
     backgroundColor: Colors.white,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
   },
-  footerInfo: {
-    flex: 1,
-  },
+  footerInfo: { flex: 1 },
   footerLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.gray,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 4,
+    letterSpacing: 1.2,
+    marginBottom: 2,
   },
   footerValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '800',
     color: Colors.black,
   },
-  downloadFab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.purple.vibrant,
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionFab: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.black,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
+    elevation: 3,
   },
 });
 
