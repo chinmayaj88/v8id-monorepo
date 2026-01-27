@@ -185,20 +185,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
+    overflow: 'hidden',
   },
   iconCircleSelected: {
     backgroundColor: Colors.white,
   },
   fab: {
     position: 'absolute',
-    bottom: 24, // (72 - 56) / 2 + margin? Actually let's center it vertically relative to capsule
-    // but absolute positioning relative to wrapper is easier
+    bottom: 24,
     top: 8, // (72 - 56) / 2
     width: 56,
     height: 56,
