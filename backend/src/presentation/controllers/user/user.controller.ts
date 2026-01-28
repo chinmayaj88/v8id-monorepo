@@ -206,6 +206,7 @@ export class UserController {
           lastActiveAt: session.lastActiveAt,
           createdAt: session.createdAt,
           expiresAt: session.expiresAt,
+          isCurrent: session.id === req.sessionId,
         })),
       });
     } catch (error) {

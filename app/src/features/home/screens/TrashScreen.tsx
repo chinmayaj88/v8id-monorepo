@@ -4,7 +4,6 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
-  Alert,
   Text,
   RefreshControl,
 } from 'react-native';
@@ -17,11 +16,41 @@ import fileService, {
 import { FileItem } from '../types';
 import FileItemCard from '../components/FileItemCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AppModal from '../../../components/AppModal';
 
 export const TrashScreen = () => {
   const [items, setItems] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [revealedItemId, setRevealedItemId] = useState<string | null>(null);
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    visible: boolean;
+    title: string;
+    description?: string;
+    variant?: 'default' | 'danger' | 'success';
+    icon?: string;
+    actions: { text: string; onPress: () => void; variant?: any }[];
+  }>({
+    visible: false,
+    title: '',
+    actions: [],
+  });
+
+  const showModal = (config: Partial<typeof modalConfig>) => {
+    setModalConfig({
+      visible: true,
+      title: config.title || '',
+      description: config.description,
+      variant: config.variant || 'default',
+      icon: config.icon,
+      actions: config.actions || [{ text: 'OK', onPress: () => closeModal() }],
+    });
+  };
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, visible: false }));
+  };
 
   const fetchTrash = async () => {
     try {
@@ -50,7 +79,12 @@ export const TrashScreen = () => {
       setItems([...folders, ...files]);
     } catch (error) {
       console.error('Failed to load trash', error);
-      Alert.alert('Error', 'Failed to load trash contents');
+      showModal({
+        title: 'Error',
+        description: 'Failed to load trash contents',
+        variant: 'danger',
+        icon: 'error',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -68,32 +102,65 @@ export const TrashScreen = () => {
         await fileService.restoreFile(item.id);
       }
       setItems(prev => prev.filter(i => i.id !== item.id));
-      Alert.alert('Success', 'Item restored');
+      showModal({
+        title: 'Success',
+        description: 'Item restored successfully',
+        variant: 'success',
+        icon: 'check-circle',
+      });
     } catch (error) {
-      Alert.alert('Error', 'Failed to restore item');
+      showModal({
+        title: 'Error',
+        description: 'Failed to restore item',
+        variant: 'danger',
+        icon: 'error',
+      });
     }
   };
 
   const handleDeletePermanent = async (item: FileItem) => {
-    Alert.alert('Permanent Delete', 'Are you sure? This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            if (item.isFolder) {
-              await fileService.deleteFolder(item.id, true);
-            } else {
-              await fileService.deleteFile(item.id, true);
-            }
-            setItems(prev => prev.filter(i => i.id !== item.id));
-          } catch (error) {
-            Alert.alert('Error', 'Failed to delete item permanently');
-          }
+    showModal({
+      title: 'Permanent Delete',
+      description:
+        'Are you sure? This action cannot be undone and the item will be lost forever.',
+      variant: 'danger',
+      icon: 'delete',
+      actions: [
+        {
+          text: 'Cancel',
+          onPress: closeModal,
+          variant: 'secondary',
         },
-      },
-    ]);
+        {
+          text: 'Delete',
+          variant: 'danger',
+          onPress: async () => {
+            closeModal();
+            try {
+              if (item.isFolder) {
+                await fileService.deleteFolder(item.id, true);
+              } else {
+                await fileService.deleteFile(item.id, true);
+              }
+              setItems(prev => prev.filter(i => i.id !== item.id));
+            } catch (error) {
+              // We need a slight delay or separate state to show error modal after closing confirmation
+              // But for simplicity, we call showModal again.
+              // Note: calling setModalConfig immediately might race if not careful with state batching,
+              // but widely robust in React 18+.
+              setTimeout(() => {
+                showModal({
+                  title: 'Error',
+                  description: 'Failed to delete item permanently',
+                  variant: 'danger',
+                  icon: 'error',
+                });
+              }, 300);
+            }
+          },
+        },
+      ],
+    });
   };
 
   const renderItem = useCallback(
@@ -103,9 +170,9 @@ export const TrashScreen = () => {
         isRevealed={revealedItemId === item.id}
         onExpand={() => setRevealedItemId(item.id)}
         onCollapse={() => setRevealedItemId(null)}
-        onClick={() => {}} // No action on click in trash? or show details?
-        onDownload={() => {}} // Disabled in trash
-        onShare={() => {}} // Disabled in trash
+        onClick={() => {}}
+        onDownload={() => {}}
+        onShare={() => {}}
         onDelete={() => handleDeletePermanent(item)}
         isTrashMode={true}
         onRestore={() => handleRestore(item)}
@@ -139,6 +206,16 @@ export const TrashScreen = () => {
           }
         />
       )}
+
+      <AppModal
+        visible={modalConfig.visible}
+        onClose={closeModal}
+        title={modalConfig.title}
+        description={modalConfig.description}
+        variant={modalConfig.variant}
+        icon={modalConfig.icon}
+        actions={modalConfig.actions}
+      />
     </SafeAreaView>
   );
 };

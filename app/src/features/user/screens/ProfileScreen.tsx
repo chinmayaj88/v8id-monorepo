@@ -43,20 +43,10 @@ const ProfileScreen = () => {
     dispatch(logoutUser())
       .unwrap()
       .then(() => {
-        // Navigation handled by auth listener usually, but explicit here:
-        // @ts-ignore
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Auth' }],
-        });
+        // Navigation handled automatically by RootNavigator based on auth state
       })
       .catch(() => {
-        // Force navigate if error
-        // @ts-ignore
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Auth' }],
-        });
+        // Handle error if needed
       });
   };
 

@@ -19,6 +19,19 @@ export interface FolderDTO {
   isDeleted?: boolean;
 }
 
+export interface StorageAnalyticsDTO {
+  totalUsage: string;
+  totalQuota: string;
+  usagePercentage: number;
+  breakdown: {
+    images: string;
+    videos: string;
+    documents: string;
+    audio: string;
+    others: string;
+  };
+}
+
 export interface ListResponse {
   folders: FolderDTO[];
   files: FileDTO[];
@@ -100,6 +113,11 @@ const fileService = {
 
   listTrash: async () => {
     const response = await apiClient.get('/trash');
+    return response.data?.data;
+  },
+
+  getStorageAnalytics: async (): Promise<StorageAnalyticsDTO> => {
+    const response = await apiClient.get('/files/analytics');
     return response.data?.data;
   },
 };

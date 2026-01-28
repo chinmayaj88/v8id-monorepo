@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
@@ -18,6 +17,7 @@ import fileService from '../../../services/api/fileService';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FileItemCard } from '../components/FileItemCard';
 import { SearchBar } from '../components/SearchBar';
+import AppModal from '../../../components/AppModal';
 
 type SubTab = 'FOLDERS' | 'FILES';
 
@@ -32,6 +32,35 @@ const FolderScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [revealedFileId, setRevealedFileId] = useState<string | null>(null);
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    visible: boolean;
+    title: string;
+    description?: string;
+    variant?: 'default' | 'danger' | 'success';
+    icon?: string;
+    actions: { text: string; onPress: () => void; variant?: any }[];
+  }>({
+    visible: false,
+    title: '',
+    actions: [],
+  });
+
+  const showModal = (config: Partial<typeof modalConfig>) => {
+    setModalConfig({
+      visible: true,
+      title: config.title || '',
+      description: config.description,
+      variant: config.variant || 'default',
+      icon: config.icon,
+      actions: config.actions || [{ text: 'OK', onPress: () => closeModal() }],
+    });
+  };
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, visible: false }));
+  };
 
   const isRoot = parentId === null;
 
@@ -86,7 +115,12 @@ const FolderScreen = () => {
       setItems(combinedItems);
     } catch (error) {
       console.error('Failed to load folder contents:', error);
-      Alert.alert('Error', 'Failed to load contents');
+      showModal({
+        title: 'Error',
+        description: 'Failed to load contents',
+        variant: 'danger',
+        icon: 'error',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -97,15 +131,22 @@ const FolderScreen = () => {
   }, [loadContents]);
 
   const handleDelete = async (item: any) => {
-    Alert.alert(
-      'Delete Item',
-      `Are you sure you want to delete "${item.name}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
+    showModal({
+      title: 'Delete Item',
+      description: `Are you sure you want to delete "${item.name}"?`,
+      variant: 'danger',
+      icon: 'delete',
+      actions: [
+        {
+          text: 'Cancel',
+          onPress: closeModal,
+          variant: 'secondary',
+        },
         {
           text: 'Delete',
-          style: 'destructive',
+          variant: 'danger',
           onPress: async () => {
+            closeModal();
             try {
               if (item.isFolder) {
                 await fileService.deleteFolder(item.id);
@@ -116,12 +157,19 @@ const FolderScreen = () => {
               setItems(prev => prev.filter(i => i.id !== item.id));
             } catch (error) {
               console.error(error);
-              Alert.alert('Error', 'Failed to delete item');
+              setTimeout(() => {
+                showModal({
+                  title: 'Error',
+                  description: 'Failed to delete item',
+                  variant: 'danger',
+                  icon: 'error',
+                });
+              }, 300);
             }
           },
         },
       ],
-    );
+    });
   };
 
   const renderItem = ({ item }: { item: any }) => {
@@ -341,6 +389,15 @@ const FolderScreen = () => {
           />
         )}
       </View>
+      <AppModal
+        visible={modalConfig.visible}
+        onClose={closeModal}
+        title={modalConfig.title}
+        description={modalConfig.description}
+        variant={modalConfig.variant}
+        icon={modalConfig.icon}
+        actions={modalConfig.actions}
+      />
     </SafeAreaView>
   );
 };
