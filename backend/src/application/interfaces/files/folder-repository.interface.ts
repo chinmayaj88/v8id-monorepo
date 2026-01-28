@@ -52,4 +52,16 @@ export interface IFolderRepository {
    * Find folders updated since a specific date (for delta sync)
    */
   findUpdatedSince(userId: string, since: Date): Promise<Folder[]>;
+
+  /**
+   * Find contents by parent ID without user scope (for shared folders)
+   */
+  findContentsByParentId(
+    parentId: string,
+    options?: {
+      isDeleted?: boolean;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<Folder[]>;
 }

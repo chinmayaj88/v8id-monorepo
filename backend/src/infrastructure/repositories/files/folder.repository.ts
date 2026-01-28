@@ -148,4 +148,23 @@ export class FolderRepository implements IFolderRepository {
       },
     });
   }
+
+  async findContentsByParentId(
+    parentId: string,
+    options?: {
+      isDeleted?: boolean;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<Folder[]> {
+    return prisma.folder.findMany({
+      where: {
+        parentId,
+        isDeleted: options?.isDeleted ?? false,
+      },
+      orderBy: { name: 'asc' },
+      take: options?.limit,
+      skip: options?.offset,
+    });
+  }
 }

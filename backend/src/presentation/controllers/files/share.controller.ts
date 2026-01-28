@@ -135,42 +135,22 @@ export class ShareController {
         return;
       }
 
-      const shares = await this.listSharedWithMeUseCase.execute(req.user.id);
+      const result = await this.listSharedWithMeUseCase.execute(req.user.id);
 
-      // We might want to enrich this with presigned URLs for thumbnails
-      // But for list, maybe not all of them to save calls? Or batch?
-      // For now, let's just return metadata. FileController usually handles URL generation.
-
-      // For consistency with other list endpoints, map to DTO
-      const mappedShares = await Promise.all(
-        shares.map(async (share: any) => {
-          let thumbnailUrl: string | undefined;
-          if (share.file.thumbnailKey) {
-            try {
-              thumbnailUrl = await this.storageService.generatePresignedUrl(
-                share.file.thumbnailKey,
-                3600
-              );
-            } catch (e) {}
-          }
-
-          return {
-            id: share.id,
-            file: {
-              id: share.file.id,
-              name: share.file.name,
-              size: share.file.size.toString(),
-              mimeType: share.file.mimeType,
-              thumbnailUrl: thumbnailUrl,
-            },
-            sharedBy: share.owner.firstName + ' ' + share.owner.lastName,
-            permission: share.permission,
-            sharedAt: share.createdAt,
-          };
+      // Optionally enrich with thumbnails (keeping it simple for now)
+      // We can map over files and folders to add thumbnails if desired
+      const enrichedFiles = await Promise.all(
+        result.files.map(async (item: any) => {
+          // If we had the thumbnailKey here we could generate it.
+          // For now, use the DTO as is.
+          return item;
         })
       );
 
-      ResponseUtil.success(res, mappedShares);
+      ResponseUtil.success(res, {
+        files: enrichedFiles,
+        folders: result.folders,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'List shared failed';
       ResponseUtil.error(res, 'LIST_SHARED_ERROR', message);

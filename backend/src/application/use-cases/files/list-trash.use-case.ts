@@ -1,10 +1,14 @@
 import { IFileRepository } from '../../interfaces/files/file-repository.interface.js';
 import { IFolderRepository } from '../../interfaces/files/folder-repository.interface.js';
+import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
+import { FileItemDTO, FolderItemDTO } from '../../dtos/files/file-item.dto.js';
+import { File, Folder } from '../../../../generated/prisma/index.js';
 
 export class ListTrashUseCase {
   constructor(
     private readonly fileRepository: IFileRepository,
-    private readonly folderRepository: IFolderRepository
+    private readonly folderRepository: IFolderRepository,
+    private readonly userRepository: IUserRepository
   ) {}
 
   async execute(
@@ -14,30 +18,44 @@ export class ListTrashUseCase {
       offset?: number;
     }
   ) {
-    // For now, we will just fetch both and concat, or fetch separately.
-    // Since pagination across two tables is hard without a view or union,
-    // we will just fetch deleted items.
-    // If we want a true paginated mixed list, we'd need to fetch limit/2 from each or something complex.
-    // Let's just fetch all deleted for now (or ample limit) and sort in memory if needed,
-    // OR just return them as separate lists { files: [], folders: [] } which is common for "Trash" views.
+    const currentUser = await this.userRepository.findById(userId);
+    if (!currentUser) throw new Error('User not found');
+    const currentUserName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
 
-    // As per user request "see the files and folders in the trash". Separate lists is easiest and valid.
-
-    const folders = await this.folderRepository.findAllByUserId(userId, {
+    const foldersRaw = await this.folderRepository.findAllByUserId(userId, {
       isDeleted: true,
-      // limit: options.limit, // Applying limit to both independently
-      // offset: options.offset
     });
 
-    const files = await this.fileRepository.findAllByUserId(userId, {
+    const filesRaw = await this.fileRepository.findAllByUserId(userId, {
       isDeleted: true,
-      // limit: options.limit,
-      // offset: options.offset
+    });
+
+    // Map to DTOs
+    const mapFolder = (f: Folder): FolderItemDTO => ({
+      id: f.id,
+      name: f.name,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      isOwner: f.userId === userId,
+      ownerName: currentUserName,
+    });
+
+    const mapFile = (f: File): FileItemDTO => ({
+      id: f.id,
+      name: f.name,
+      size: f.size.toString(),
+      mimeType: f.mimeType,
+      extension: f.extension,
+      thumbnailUrl: null,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      isOwner: f.userId === userId,
+      ownerName: currentUserName,
     });
 
     return {
-      folders,
-      files,
+      folders: foldersRaw.map(mapFolder),
+      files: filesRaw.map(mapFile),
     };
   }
 }

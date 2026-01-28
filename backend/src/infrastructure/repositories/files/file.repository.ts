@@ -187,4 +187,29 @@ export class FileRepository implements IFileRepository {
       totalSize: item._sum.size || BigInt(0),
     }));
   }
+  async findContentsByFolderId(
+    folderId: string,
+    options?: {
+      isDeleted?: boolean;
+      tier?: StorageTier;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<File[]> {
+    const where: Prisma.FileWhereInput = {
+      folderId,
+      isDeleted: options?.isDeleted ?? false,
+    };
+
+    if (options?.tier) {
+      where.storageTier = options.tier;
+    }
+
+    return prisma.file.findMany({
+      where,
+      orderBy: { name: 'asc' },
+      take: options?.limit,
+      skip: options?.offset,
+    });
+  }
 }

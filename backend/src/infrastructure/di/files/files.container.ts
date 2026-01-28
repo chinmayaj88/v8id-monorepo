@@ -83,7 +83,9 @@ export class FilesContainer {
 
     this.listFolderContentsUseCase = new ListFolderContentsUseCase(
       this.folderRepository,
-      this.fileRepository
+      this.fileRepository,
+      this.shareRepository,
+      sharedContainer.userRepository
     );
 
     this.deleteFolderUseCase = new DeleteFolderUseCase(
@@ -98,9 +100,17 @@ export class FilesContainer {
       this.fileRepository
     );
 
-    this.searchFilesUseCase = new SearchFilesUseCase(this.fileRepository, this.folderRepository);
+    this.searchFilesUseCase = new SearchFilesUseCase(
+      this.fileRepository,
+      this.folderRepository,
+      sharedContainer.userRepository
+    );
 
-    this.listTrashUseCase = new ListTrashUseCase(this.fileRepository, this.folderRepository);
+    this.listTrashUseCase = new ListTrashUseCase(
+      this.fileRepository,
+      this.folderRepository,
+      sharedContainer.userRepository
+    );
 
     this.getStorageAnalyticsUseCase = new GetStorageAnalyticsUseCase(
       this.fileRepository,

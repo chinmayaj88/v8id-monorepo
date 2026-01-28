@@ -63,4 +63,17 @@ export interface IFileRepository {
    * Find files updated since a specific date (for delta sync)
    */
   findUpdatedSince(userId: string, since: Date): Promise<File[]>;
+
+  /**
+   * Find contents by folder ID without user scope (for shared folders)
+   */
+  findContentsByFolderId(
+    folderId: string,
+    options?: {
+      isDeleted?: boolean;
+      tier?: StorageTier;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<File[]>;
 }

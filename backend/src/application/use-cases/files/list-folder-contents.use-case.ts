@@ -1,5 +1,12 @@
 import { File, Folder, StorageTier } from '../../../../generated/prisma/index.js';
 import { IFileRepository, IFolderRepository } from '../../interfaces/index.js';
+import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
+import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
+import {
+  FileItemDTO,
+  FolderItemDTO,
+  FolderWithBreadcrumbsDTO,
+} from '../../dtos/files/file-item.dto.js';
 
 export interface ListFolderContentsDTO {
   parentId?: string | null; // Null for root
@@ -9,75 +16,126 @@ export interface ListFolderContentsDTO {
 }
 
 export interface ListFolderContentsResult {
-  folders: Folder[];
-  files: File[];
-  currentFolder?: Folder | null;
-  breadcrumbs: Folder[];
+  folders: FolderItemDTO[];
+  files: FileItemDTO[];
+  currentFolder?: FolderItemDTO | null;
+  breadcrumbs: FolderItemDTO[];
 }
 
 export class ListFolderContentsUseCase {
   constructor(
     private folderRepository: IFolderRepository,
-    private fileRepository: IFileRepository
+    private fileRepository: IFileRepository,
+    private shareRepository: IShareRepository,
+    private userRepository: IUserRepository
   ) {}
 
   async execute(userId: string, dto: ListFolderContentsDTO): Promise<ListFolderContentsResult> {
     const parentId = dto.parentId ?? null;
     const { limit, offset, tier } = dto;
 
-    // 1. Get current folder details... (No change)
-    let currentFolder: Folder | null = null;
-    let breadcrumbs: Folder[] = [];
+    const currentUser = await this.userRepository.findById(userId);
+    if (!currentUser) throw new Error('User not found');
+    const currentUserName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
+
+    // 1. Get current folder details and check access
+    let currentFolderRaw: Folder | null = null;
+    let breadcrumbsRaw: Folder[] = [];
+    let isSharedFolder = false;
+    let folderOwnerName = currentUserName;
 
     if (parentId) {
-      currentFolder = await this.folderRepository.findById(parentId);
-      if (!currentFolder) {
+      currentFolderRaw = await this.folderRepository.findById(parentId);
+      if (!currentFolderRaw) {
         throw new Error('Folder not found');
       }
-      if (currentFolder.userId !== userId) {
-        throw new Error('Access denied to folder');
+
+      // Check ownership
+      if (currentFolderRaw.userId !== userId) {
+        const share = await this.shareRepository.checkFolderAccess(parentId, currentUser.email);
+        if (!share) {
+          throw new Error('Access denied to folder');
+        }
+        isSharedFolder = true;
+
+        const owner = await this.userRepository.findById(currentFolderRaw.userId);
+        folderOwnerName = owner ? `${owner.firstName} ${owner.lastName}`.trim() : 'Unknown';
       }
 
-      let tempParams = currentFolder;
+      let tempParams = currentFolderRaw;
       while (tempParams.parentId) {
         const parent = await this.folderRepository.findById(tempParams.parentId);
         if (parent) {
-          breadcrumbs.unshift(parent);
+          breadcrumbsRaw.unshift(parent);
           tempParams = parent;
         } else {
           break;
         }
       }
-      breadcrumbs.push(currentFolder);
+      breadcrumbsRaw.push(currentFolderRaw);
     }
 
-    // 2. Fetch Folders
-    // Folders generally don't have a specific tier, so we usually listing them all.
-    // If user filters by ARCHIVE, should we hide folders? Usually no, as folders might contain hybrid content.
-    // However, if the requirement implies strict filtering, we might need to adjust.
-    // Given the prompt "filters of the file and folders the user can filter from archive and standard",
-    // it implies filtering FILES primarily. Folders are structural.
-    const folders = await this.folderRepository.findAllByUserId(userId, {
-      parentId,
-      isDeleted: false,
-      limit,
-      offset,
+    // 2. Fetch Folders & Files
+    let foldersRaw: Folder[] = [];
+    let filesRaw: File[] = [];
+
+    if (isSharedFolder && parentId) {
+      foldersRaw = await this.folderRepository.findContentsByParentId(parentId, {
+        isDeleted: false,
+        limit,
+        offset,
+      });
+      filesRaw = await this.fileRepository.findContentsByFolderId(parentId, {
+        isDeleted: false,
+        tier,
+        limit,
+        offset,
+      });
+    } else {
+      foldersRaw = await this.folderRepository.findAllByUserId(userId, {
+        parentId,
+        isDeleted: false,
+        limit,
+        offset,
+      });
+
+      filesRaw = await this.fileRepository.findAllByUserId(userId, {
+        folderId: parentId,
+        isDeleted: false,
+        limit,
+        offset,
+        tier,
+      });
+    }
+
+    // 3. Map to DTOs
+    const mapFolder = (f: Folder): FolderItemDTO => ({
+      id: f.id,
+      name: f.name,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      isOwner: f.userId === userId,
+      ownerName: f.userId === userId ? currentUserName : folderOwnerName,
     });
 
-    // 3. Fetch Files (Filtered by Tier if provided)
-    const files = await this.fileRepository.findAllByUserId(userId, {
-      folderId: parentId,
-      isDeleted: false,
-      limit,
-      offset,
-      tier,
+    const mapFile = (f: File): FileItemDTO => ({
+      id: f.id,
+      name: f.name,
+      size: f.size.toString(),
+      mimeType: f.mimeType,
+      extension: f.extension,
+      thumbnailUrl: null, // Controller will fill this if needed or presigned URL logic
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      isOwner: f.userId === userId,
+      ownerName: f.userId === userId ? currentUserName : folderOwnerName,
     });
 
     return {
-      folders,
-      files,
-      currentFolder,
-      breadcrumbs,
+      folders: foldersRaw.map(mapFolder),
+      files: filesRaw.map(mapFile),
+      currentFolder: currentFolderRaw ? mapFolder(currentFolderRaw) : null,
+      breadcrumbs: breadcrumbsRaw.map(mapFolder),
     };
   }
 }

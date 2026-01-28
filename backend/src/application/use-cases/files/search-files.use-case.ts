@@ -1,5 +1,7 @@
 import { File, Folder } from '../../../../generated/prisma/index.js';
 import { IFileRepository, IFolderRepository } from '../../interfaces/index.js';
+import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
+import { FileItemDTO, FolderItemDTO } from '../../dtos/files/file-item.dto.js';
 
 export interface SearchFilesDTO {
   query: string;
@@ -9,15 +11,16 @@ export interface SearchFilesDTO {
 }
 
 export interface SearchResults {
-  folders: Folder[];
-  files: File[];
+  folders: FolderItemDTO[];
+  files: FileItemDTO[];
   totalCount: number;
 }
 
 export class SearchFilesUseCase {
   constructor(
     private fileRepository: IFileRepository,
-    private folderRepository: IFolderRepository
+    private folderRepository: IFolderRepository,
+    private userRepository: IUserRepository
   ) {}
 
   async execute(userId: string, dto: SearchFilesDTO): Promise<SearchResults> {
@@ -27,6 +30,10 @@ export class SearchFilesUseCase {
     if (!search) {
       return { folders: [], files: [], totalCount: 0 };
     }
+
+    const currentUser = await this.userRepository.findById(userId);
+    if (!currentUser) throw new Error('User not found');
+    const currentUserName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
 
     // Parallel execution for performance
     const promises: [Promise<Folder[]>, Promise<File[]>] = [
@@ -42,12 +49,35 @@ export class SearchFilesUseCase {
       promises[1] = this.fileRepository.findAllByUserId(userId, { search });
     }
 
-    const [folders, files] = await Promise.all(promises);
+    const [foldersRaw, filesRaw] = await Promise.all(promises);
+
+    // Map to DTOs
+    const mapFolder = (f: Folder): FolderItemDTO => ({
+      id: f.id,
+      name: f.name,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      isOwner: f.userId === userId,
+      ownerName: currentUserName, // Search currently only returns user's own files
+    });
+
+    const mapFile = (f: File): FileItemDTO => ({
+      id: f.id,
+      name: f.name,
+      size: f.size.toString(),
+      mimeType: f.mimeType,
+      extension: f.extension,
+      thumbnailUrl: null,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      isOwner: f.userId === userId,
+      ownerName: currentUserName,
+    });
 
     return {
-      folders,
-      files,
-      totalCount: folders.length + files.length,
+      folders: foldersRaw.map(mapFolder),
+      files: filesRaw.map(mapFile),
+      totalCount: foldersRaw.length + filesRaw.length,
     };
   }
 }

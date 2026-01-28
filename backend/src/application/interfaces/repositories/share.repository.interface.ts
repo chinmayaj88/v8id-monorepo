@@ -22,5 +22,21 @@ export interface IShareRepository {
   findFileSharesByEmail(email: string): Promise<FileShare[]>; // Shared with me
   deleteFileShare(id: string): Promise<void>;
 
-  // Could add folder share methods later, keeping focus on files first as per request
+  // Folder Share Support
+  createFolderShare(data: CreateFolderShareDTO): Promise<FolderShare>;
+  findFolderShareByToken(token: string): Promise<FolderShare | null>;
+  findFolderShareByFolderId(folderId: string): Promise<FolderShare[]>;
+  findFolderSharesByEmail(email: string): Promise<FolderShare[]>;
+  deleteFolderShare(id: string): Promise<void>;
+  checkFolderAccess(folderId: string, email: string): Promise<FolderShare | null>;
+}
+
+export interface CreateFolderShareDTO {
+  folderId: string;
+  ownerId: string;
+  type: ShareType;
+  permission: SharePermission;
+  sharedWith?: string; // Email for internal
+  token?: string; // For public link
+  expiresAt?: Date;
 }
