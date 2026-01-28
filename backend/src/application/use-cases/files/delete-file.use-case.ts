@@ -1,10 +1,12 @@
 import { IFileRepository } from '../../interfaces/files/file-repository.interface.js';
 import { IStorageService } from '../../interfaces/files/storage-service.interface.js';
+import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 
 export class DeleteFileUseCase {
   constructor(
     private readonly fileRepository: IFileRepository,
-    private readonly storageService: IStorageService
+    private readonly storageService: IStorageService,
+    private readonly userRepository: IUserRepository
   ) {}
 
   async execute(fileId: string, userId: string, permanent: boolean = false): Promise<void> {
@@ -31,13 +33,13 @@ export class DeleteFileUseCase {
         }
       } catch (error) {
         console.error(`Failed to delete file from storage: ${file.storageKey}`, error);
-        // Continue to delete from DB? or fail? Usually fail to avoid orphaned DB records is better,
-        // but if storage delete fails, DB delete ensures user doesn't see it.
-        // If we fail here, user can retry.
         throw error;
       }
 
       await this.fileRepository.delete(fileId);
+
+      // Update Quota
+      await this.userRepository.decrementStorageUsed(userId, file.size);
     } else {
       // Soft delete
       await this.fileRepository.softDelete(fileId);

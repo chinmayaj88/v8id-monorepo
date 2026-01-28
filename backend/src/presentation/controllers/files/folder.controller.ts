@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { StorageTier } from '../../../../generated/prisma/index.js';
 import {
   CreateFolderUseCase,
   ListFolderContentsUseCase,
@@ -47,10 +48,18 @@ export class FolderController {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
 
+      let tier: StorageTier | undefined;
+      if (req.query.tier) {
+        const tierStr = (req.query.tier as string).toUpperCase();
+        if (tierStr === 'ARCHIVE') tier = StorageTier.ARCHIVE;
+        else if (tierStr === 'STANDARD') tier = StorageTier.STANDARD;
+      }
+
       const contents = await this.listFolderContentsUseCase.execute(req.user.id, {
         parentId,
         limit,
         offset,
+        tier,
       });
 
       ResponseUtil.success(res, contents);
@@ -75,8 +84,7 @@ export class FolderController {
       }
 
       const { permanent } = req.query;
-
-      const isPermanent = permanent === 'true';
+      const isPermanent = String(permanent).toLowerCase() === 'true';
 
       await this.deleteFolderUseCase.execute(id, req.user.id, isPermanent);
 

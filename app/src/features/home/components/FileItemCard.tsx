@@ -23,6 +23,8 @@ interface FileItemCardProps {
   onDelete: () => void;
   onShare: () => void;
   onClick: () => void;
+  isTrashMode?: boolean;
+  onRestore?: () => void;
 }
 
 const MENU_WIDTH = 180;
@@ -38,6 +40,8 @@ export const FileItemCard = React.memo<FileItemCardProps>(
     onDelete,
     onShare,
     onClick,
+    isTrashMode,
+    onRestore,
   }) => {
     const animatedValue = useRef(new Animated.Value(0)).current;
     const lastOffset = useRef(0);
@@ -122,40 +126,76 @@ export const FileItemCard = React.memo<FileItemCardProps>(
       <View style={styles.container}>
         {/* Background Actions */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => {
-              onCollapse();
-              onDownload();
-            }}
-          >
-            <MaterialIcons
-              name="file-download"
-              size={24}
-              color={Colors.white}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              { backgroundColor: Colors.purple.indigo },
-            ]}
-            onPress={() => {
-              onCollapse();
-              onShare();
-            }}
-          >
-            <MaterialIcons name="share" size={22} color={Colors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: '#FF4444' }]}
-            onPress={() => {
-              onCollapse();
-              onDelete();
-            }}
-          >
-            <MaterialIcons name="delete-sweep" size={24} color={Colors.white} />
-          </TouchableOpacity>
+          {isTrashMode ? (
+            <>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: Colors.success },
+                ]}
+                onPress={() => {
+                  onCollapse();
+                  onRestore && onRestore();
+                }}
+              >
+                <MaterialIcons name="restore" size={24} color={Colors.white} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: '#FF4444' }]}
+                onPress={() => {
+                  onCollapse();
+                  onDelete();
+                }}
+              >
+                <MaterialIcons
+                  name="delete-forever"
+                  size={24}
+                  color={Colors.white}
+                />
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {
+                  onCollapse();
+                  onDownload();
+                }}
+              >
+                <MaterialIcons
+                  name="file-download"
+                  size={24}
+                  color={Colors.white}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.actionButton,
+                  { backgroundColor: Colors.purple.indigo },
+                ]}
+                onPress={() => {
+                  onCollapse();
+                  onShare();
+                }}
+              >
+                <MaterialIcons name="share" size={22} color={Colors.white} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: '#FF4444' }]}
+                onPress={() => {
+                  onCollapse();
+                  onDelete();
+                }}
+              >
+                <MaterialIcons
+                  name="delete-sweep"
+                  size={24}
+                  color={Colors.white}
+                />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         {/* Foreground Card */}

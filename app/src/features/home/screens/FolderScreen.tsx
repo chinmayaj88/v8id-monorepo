@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../../../theme/colors';
 import { databaseService } from '../../../services/db/DatabaseService';
+import fileService from '../../../services/api/fileService';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FileItemCard } from '../components/FileItemCard';
 import { SearchBar } from '../components/SearchBar';
@@ -33,36 +35,94 @@ const FolderScreen = () => {
 
   const isRoot = parentId === null;
 
-  const loadContents = useCallback(() => {
+  const loadContents = useCallback(async () => {
     setIsLoading(true);
 
-    let combinedItems: any[] = [];
+    try {
+      const parentIdArg = isRoot ? undefined : parentId;
+      const data = await fileService.listFolderContents(parentIdArg);
 
-    if (!isRoot) {
-      const subfolders = databaseService.getFoldersByParentId(parentId);
-      const subfiles = databaseService.getFilesByFolderId(parentId);
-      combinedItems = [...subfolders, ...subfiles];
-    } else {
-      if (activeTab === 'FOLDERS') {
-        combinedItems = databaseService.getFoldersByParentId(null);
+      // Map API response to UI items
+      const folderItems = (data.folders || []).map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        size: '', // Folders don't usually have size in list
+        timeAgo: new Date(f.updatedAt).toLocaleDateString(),
+        isFolder: true,
+        color: f.color,
+      }));
+
+      const fileItems = (data.files || []).map((f: any) => ({
+        id: f.id,
+        name: f.name,
+        size: f.size,
+        timeAgo: new Date(f.updatedAt).toLocaleDateString(),
+        mimeType: f.mimeType,
+        thumbnailUrl: f.thumbnailUrl,
+        folderId: f.folderId,
+        isFolder: false,
+      }));
+
+      let combinedItems = [];
+
+      if (isRoot) {
+        if (activeTab === 'FOLDERS') {
+          combinedItems = folderItems;
+        } else {
+          combinedItems = fileItems;
+        }
       } else {
-        combinedItems = databaseService.getFilesByFolderId(null);
+        combinedItems = [...folderItems, ...fileItems];
       }
-    }
 
-    if (searchQuery) {
-      combinedItems = combinedItems.filter(item =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()),
-      );
-    }
+      if (searchQuery) {
+        combinedItems = [...folderItems, ...fileItems].filter(item =>
+          item.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        );
+      }
 
-    setItems(combinedItems);
-    setIsLoading(false);
-  }, [parentId, activeTab, isRoot, searchQuery]);
+      // Sort by folder first, then file? or just combined.
+      // The previous local DB logic had explicit sorting. API logic might be separate.
+      setItems(combinedItems);
+    } catch (error) {
+      console.error('Failed to load folder contents:', error);
+      Alert.alert('Error', 'Failed to load contents');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [parentId, isRoot, searchQuery]);
 
   useEffect(() => {
     loadContents();
   }, [loadContents]);
+
+  const handleDelete = async (item: any) => {
+    Alert.alert(
+      'Delete Item',
+      `Are you sure you want to delete "${item.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (item.isFolder) {
+                await fileService.deleteFolder(item.id);
+              } else {
+                await fileService.deleteFile(item.id);
+              }
+              // Optimistically update UI
+              setItems(prev => prev.filter(i => i.id !== item.id));
+            } catch (error) {
+              console.error(error);
+              Alert.alert('Error', 'Failed to delete item');
+            }
+          },
+        },
+      ],
+    );
+  };
 
   const renderItem = ({ item }: { item: any }) => {
     if (item.isFolder) {
@@ -96,7 +156,10 @@ const FolderScreen = () => {
             </Text>
             <Text style={styles.folderDate}>{item.size || item.timeAgo}</Text>
           </View>
-          <TouchableOpacity style={styles.moreButton}>
+          <TouchableOpacity
+            style={styles.moreButton}
+            onPress={() => handleDelete(item)}
+          >
             <MaterialIcons name="more-horiz" size={24} color="#64748B" />
           </TouchableOpacity>
         </TouchableOpacity>
@@ -110,7 +173,7 @@ const FolderScreen = () => {
         onExpand={() => setRevealedFileId(item.id)}
         onCollapse={() => revealedFileId === item.id && setRevealedFileId(null)}
         onDownload={() => {}}
-        onDelete={() => {}}
+        onDelete={() => handleDelete(item)}
         onShare={() => {}}
         onClick={() => {
           // @ts-ignore
@@ -129,7 +192,6 @@ const FolderScreen = () => {
       {/* Top Header Section */}
       <View style={styles.topSection}>
         <View style={styles.header}>
-          {/* Back button only if not root, or consistent back if pushed */}
           <View style={styles.headerTitleRow}>
             {!isRoot && (
               <TouchableOpacity
@@ -267,7 +329,7 @@ const FolderScreen = () => {
           <FlatList
             data={items}
             renderItem={renderItem}
-            keyExtractor={item => item.id}
+            keyExtractor={(item: any) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
@@ -419,6 +481,7 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     marginTop: 60,
+    marginBottom: 40,
   },
   emptyTitle: {
     fontSize: 18,

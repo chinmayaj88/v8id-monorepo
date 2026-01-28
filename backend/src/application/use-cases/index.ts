@@ -8,4 +8,6 @@
 export * from './auth/index.js';
 export * from './user/index.js';
 export * from './files/index.js';
+export * from './files/list-trash.use-case.js';
+export * from './files/get-storage-analytics.use-case.js'; // Analytics
 export * from './sync/sync.use-case.js';

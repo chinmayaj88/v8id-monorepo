@@ -10,6 +10,7 @@ import {
   RestoreFolderUseCase,
   SearchFilesUseCase,
   ListTrashUseCase,
+  GetStorageAnalyticsUseCase,
 } from '../../../application/use-cases/index.js';
 import { FileController } from '../../../presentation/controllers/files/file.controller.js';
 import { FolderController } from '../../../presentation/controllers/files/folder.controller.js';
@@ -35,6 +36,7 @@ export class FilesContainer {
   public readonly restoreFolderUseCase: RestoreFolderUseCase;
   public readonly searchFilesUseCase: SearchFilesUseCase;
   public readonly listTrashUseCase: ListTrashUseCase;
+  public readonly getStorageAnalyticsUseCase: GetStorageAnalyticsUseCase;
 
   // Controllers
   public readonly fileController: FileController;
@@ -60,7 +62,8 @@ export class FilesContainer {
 
     this.deleteFileUseCase = new DeleteFileUseCase(
       this.fileRepository,
-      sharedContainer.storageService
+      sharedContainer.storageService,
+      sharedContainer.userRepository
     );
 
     this.restoreFileUseCase = new RestoreFileUseCase(this.fileRepository);
@@ -75,7 +78,8 @@ export class FilesContainer {
     this.deleteFolderUseCase = new DeleteFolderUseCase(
       this.folderRepository,
       this.fileRepository,
-      sharedContainer.storageService
+      sharedContainer.storageService,
+      sharedContainer.userRepository
     );
 
     this.restoreFolderUseCase = new RestoreFolderUseCase(
@@ -87,12 +91,18 @@ export class FilesContainer {
 
     this.listTrashUseCase = new ListTrashUseCase(this.fileRepository, this.folderRepository);
 
+    this.getStorageAnalyticsUseCase = new GetStorageAnalyticsUseCase(
+      this.fileRepository,
+      sharedContainer.userRepository
+    );
+
     // Controllers implementation
     this.fileController = new FileController(
       this.uploadFileUseCase,
       this.generateFileLinkUseCase,
       this.deleteFileUseCase,
-      this.restoreFileUseCase
+      this.restoreFileUseCase,
+      this.getStorageAnalyticsUseCase
     );
 
     this.folderController = new FolderController(

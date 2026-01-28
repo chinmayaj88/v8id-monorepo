@@ -47,6 +47,7 @@ export interface IUserRepository {
   }): Promise<{ users: User[]; total: number }>;
 
   searchByEmail(query: string, limit?: number): Promise<User[]>;
+
+  incrementStorageUsed(userId: string, bytes: bigint): Promise<void>;
+  decrementStorageUsed(userId: string, bytes: bigint): Promise<void>;
 }
-
-

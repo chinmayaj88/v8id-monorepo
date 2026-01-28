@@ -1,12 +1,14 @@
 import { IFolderRepository } from '../../interfaces/files/folder-repository.interface.js';
 import { IFileRepository } from '../../interfaces/files/file-repository.interface.js';
 import { IStorageService } from '../../interfaces/files/storage-service.interface.js';
+import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 
 export class DeleteFolderUseCase {
   constructor(
     private readonly folderRepository: IFolderRepository,
     private readonly fileRepository: IFileRepository,
-    private readonly storageService: IStorageService
+    private readonly storageService: IStorageService,
+    private readonly userRepository: IUserRepository
   ) {}
 
   async execute(folderId: string, userId: string, permanent: boolean = false): Promise<void> {
@@ -23,61 +25,34 @@ export class DeleteFolderUseCase {
     if (permanent) {
       // Recursive Permanent Delete
       // 1. Get all descendant FOLDERS (including self or just children).
-      // Note: Repository findDescendants expects array of folderIds?
-      // Let's check the interface. findDescendants(folderIds: string[], userId) in IFileRepository?
-      // No, IFileRepository has findDescendants(folderIds: string[], userId). Correct.
-      // Wait, current IFileRepository only finds *direct* children if we pass [folderId]?
-      // No, we need *recursive* descendants.
-      // IFolderRepository has findDescendants which returns folders.
-      // IFileRepository needs a way to find files in a list of folders.
-
-      // Better approach for Permanent Delete:
-      // 1. Get all descendant FOLDERS (including self or just children).
       const subfolders = await this.folderRepository.findDescendants(folderId, userId);
       const allFolderIds = [folderId, ...subfolders.map(f => f.id)];
 
       // 2. Get all files in these folders
-      // We can use findDescendants on FileRepository if it accepts folder list.
       const filesToDelete = await this.fileRepository.findDescendants(allFolderIds, userId);
 
       // 3. Delete from Storage
       // Parallelize for performance, but careful with rate limits.
       const deletePromises = filesToDelete.map(async file => {
-        try {
-          await this.storageService.deleteFile(file.storageKey, file.storageTier);
-          if (file.thumbnailKey) {
-            await this.storageService.deleteFile(file.thumbnailKey);
-          }
-        } catch (err) {
-          console.error(`Failed to delete storage object for file ${file.id}`, err);
-          // Swallow error to proceed with DB delete?
-          // "Best effort" cleanup.
+        await this.storageService.deleteFile(file.storageKey, file.storageTier);
+        if (file.thumbnailKey) {
+          await this.storageService.deleteFile(file.thumbnailKey);
         }
       });
       await Promise.all(deletePromises);
 
       // 4. Delete Files from DB (Bulk delete?)
-      // Repositories usually have single delete. Bulk delete is better.
-      // If not available, loop.
       for (const file of filesToDelete) {
         await this.fileRepository.delete(file.id);
       }
 
-      // 5. Delete Folders from DB
-      // Must delete children first? Or Cascade?
-      // Prisma handles Cascade delete if schema allows.
-      // Schema: Folder -> children Folder[] @relation("FolderHierarchy") ... onDelete: Cascade?
-      // Let's check Schema.
-      // parent Folder? @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-      // YES! Prisma handles cascade.
-      // So deleting the parent folder should cascade delete all children folders and files!
-      // Files: folder Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
-      // YES!
+      // Update Quota - sum up sizes
+      const totalSize = filesToDelete.reduce((acc, file) => acc + file.size, BigInt(0));
+      if (totalSize > BigInt(0)) {
+        await this.userRepository.decrementStorageUsed(userId, totalSize);
+      }
 
-      // So for DB, we only need to delete the target folder.
-      // BUT for Storage, we MUST manually find and delete files BEFORE deleting the folder from DB
-      // (because once DB record is gone, we lose the storageKey).
-
+      // 5. Delete Folders from DB (Prisma Cascade handles children)
       await this.folderRepository.delete(folderId);
     } else {
       // Soft Delete

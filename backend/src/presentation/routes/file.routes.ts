@@ -24,6 +24,8 @@ const router: Router = Router();
 router.use(authenticate);
 
 // Use controller from DI container
+router.get('/analytics', (req, res) => filesContainer.fileController.getAnalytics(req, res));
+
 router.post('/upload', upload.single('file'), (req, res) =>
   filesContainer.fileController.upload(req, res)
 );

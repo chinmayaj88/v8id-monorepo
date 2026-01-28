@@ -204,5 +204,30 @@ export class UserRepository implements IUserRepository {
 
     return users.map(user => this.toDomain(user));
   }
-}
+  async incrementStorageUsed(userId: string, bytes: bigint): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        storageUsed: {
+          increment: bytes,
+        },
+      },
+    });
+  }
 
+  async decrementStorageUsed(userId: string, bytes: bigint): Promise<void> {
+    // Prevent negative storage
+    // Since Prisma doesn't support 'decrement but floor at 0' in one atomic op natively without raw SQL or check constraint,
+    // we will just decrement. The application logic should ensure we don't delete more than we have.
+    // However, robust systems might drift.
+    // For now, simple decrement is consistent with the requirement.
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        storageUsed: {
+          decrement: bytes,
+        },
+      },
+    });
+  }
+}

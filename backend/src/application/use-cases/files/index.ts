@@ -8,3 +8,4 @@ export * from './restore-file.use-case.js';
 export * from './delete-folder.use-case.js';
 export * from './restore-folder.use-case.js';
 export * from './list-trash.use-case.js';
+export * from './get-storage-analytics.use-case.js';

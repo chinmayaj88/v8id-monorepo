@@ -121,11 +121,14 @@ const ProfileScreen = () => {
             onClick={() => {}}
           />
           <AccountMenuItem
-            icon="restore"
+            icon="delete-outline"
             iconColor="#9C27B0"
-            title="Recover deleted files"
-            subtitle="Restore files from trash"
-            onClick={() => {}}
+            title="Trash"
+            subtitle="Restore deleted files"
+            onClick={() => {
+              // @ts-ignore
+              navigation.navigate('Trash');
+            }}
           />
           <AccountMenuItem
             icon="security"

@@ -103,13 +103,7 @@ export class UploadFileUseCase {
     });
 
     // 8. Update User Storage Usage
-    // Note: Should use atomic increment or separate service.
-    // For MVP, doing it directly via repo or simple update.
-    // Assuming userRepository has update method.
-    // Actually, prisma update with increment is best.
-    // But userRepository.update takes object.
-    // We'll skip complex quota update for this specific step/file or assume it's settled.
-    // Ideally: this.userRepository.incrementStorageUsed(userId, dto.size);
+    await this.userRepository.incrementStorageUsed(userId, dto.size);
 
     return file;
   }

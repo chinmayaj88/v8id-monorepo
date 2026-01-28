@@ -168,4 +168,23 @@ export class FileRepository implements IFileRepository {
       },
     });
   }
+  async getStorageUsageByMimeType(
+    userId: string
+  ): Promise<{ mimeType: string; totalSize: bigint }[]> {
+    const result = await prisma.file.groupBy({
+      by: ['mimeType'],
+      where: {
+        userId,
+        isDeleted: false,
+      },
+      _sum: {
+        size: true,
+      },
+    });
+
+    return result.map(item => ({
+      mimeType: item.mimeType,
+      totalSize: item._sum.size || BigInt(0),
+    }));
+  }
 }

@@ -90,6 +90,12 @@
                   "key": "offset",
                   "value": "0",
                   "description": "Number of items to skip"
+                },
+                {
+                  "key": "tier",
+                  "value": "STANDARD",
+                  "description": "Optional: STANDARD or ARCHIVE",
+                  "disabled": true
                 }
               ]
             }
@@ -125,6 +131,12 @@
                   "key": "offset",
                   "value": "0",
                   "description": "Number of items to skip"
+                },
+                {
+                  "key": "tier",
+                  "value": "STANDARD",
+                  "description": "Optional: STANDARD or ARCHIVE",
+                  "disabled": true
                 }
               ]
             }
@@ -200,6 +212,25 @@
     {
       "name": "Files",
       "item": [
+        {
+          "name": "Get Storage Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/analytics",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "analytics"]
+            }
+          },
+          "response": []
+        },
         {
           "name": "Upload File (Root)",
           "request": {

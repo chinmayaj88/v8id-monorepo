@@ -294,9 +294,14 @@ export class TierAwareStorageService implements IStorageService {
 
       const client = await this.getClient();
       await client.deleteObject(deleteObjectRequest);
-    } catch (error) {
+    } catch (error: any) {
       // If file doesn't exist, that's okay for delete operations (idempotent)
-      if (error instanceof Error && !error.message.includes('Not Found')) {
+      // Check for both message and status code (standard OCI error format)
+      if (
+        error instanceof Error &&
+        !error.message.includes('Not Found') &&
+        (error as any).statusCode !== 404
+      ) {
         throw new Error(`Failed to delete file from ${tier} tier: ${error.message}`);
       }
     }

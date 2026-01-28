@@ -4,6 +4,7 @@ import {
   GenerateFileLinkUseCase,
   DeleteFileUseCase,
   RestoreFileUseCase,
+  GetStorageAnalyticsUseCase,
 } from '../../../application/use-cases/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
@@ -14,8 +15,24 @@ export class FileController {
     private uploadFileUseCase: UploadFileUseCase,
     private generateFileLinkUseCase: GenerateFileLinkUseCase,
     private deleteFileUseCase: DeleteFileUseCase,
-    private restoreFileUseCase: RestoreFileUseCase
+    private restoreFileUseCase: RestoreFileUseCase,
+    private getStorageAnalyticsUseCase: GetStorageAnalyticsUseCase
   ) {}
+
+  async getAnalytics(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const analytics = await this.getStorageAnalyticsUseCase.execute(req.user.id);
+      ResponseUtil.success(res, analytics);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get storage analytics';
+      ResponseUtil.error(res, 'GET_ANALYTICS_ERROR', message);
+    }
+  }
 
   async upload(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -94,10 +111,9 @@ export class FileController {
         return;
       }
       const { permanent } = req.query;
+      const isPermanent = String(permanent).toLowerCase() === 'true';
 
-      const isPermanent = permanent === 'true';
-
-      await this.deleteFileUseCase.execute(req.user.id, id, isPermanent); // UseCase signature: execute(userId, fileId, permanent) wait, UseCase says: execute(fileId, userId, permanent)
+      await this.deleteFileUseCase.execute(id, req.user.id, isPermanent);
 
       ResponseUtil.success(res, {
         success: true,

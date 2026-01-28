@@ -16,6 +16,8 @@ export interface IFileRepository {
 
   findById(id: string): Promise<File | null>;
 
+  getStorageUsageByMimeType(userId: string): Promise<{ mimeType: string; totalSize: bigint }[]>;
+
   /**
    * Find all files in a specific folder (or root if folderId is null).
    */

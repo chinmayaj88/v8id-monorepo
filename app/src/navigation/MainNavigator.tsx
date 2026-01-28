@@ -7,6 +7,7 @@ import { View, Text } from 'react-native';
 import NotificationScreen from '../features/home/screens/NotificationScreen';
 import FileViewerScreen from '../features/home/screens/FileViewerScreen';
 import FolderScreen from '../features/home/screens/FolderScreen';
+import { TrashScreen } from '../features/home/screens/TrashScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,7 @@ const MainNavigator = () => {
       <Stack.Screen name="Folders" component={FolderScreen} />
       <Stack.Screen name="Storage" component={StorageScreen} />
       <Stack.Screen name="Notifications" component={NotificationScreen} />
+      <Stack.Screen name="Trash" component={TrashScreen} />
     </Stack.Navigator>
   );
 };
