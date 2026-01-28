@@ -553,6 +553,99 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Share",
+      "item": [
+        {
+          "name": "Create Share Link (Public)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"PUBLIC_LINK\",\n    \"permission\": \"VIEW\",\n    \"expiresInSeconds\": 3600\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/{{fileId}}/share",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "{{fileId}}", "share"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Share File (Internal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"INTERNAL\",\n    \"permission\": \"EDIT\",\n    \"email\": \"user@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/{{fileId}}/share",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "{{fileId}}", "share"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Shared File (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/share/{{shareToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "share", "{{shareToken}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Shared With Me",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/shared",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "shared"]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ],
   "variable": [
@@ -568,6 +661,11 @@
     },
     {
       "key": "fileId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "shareToken",
       "value": "",
       "type": "string"
     }
