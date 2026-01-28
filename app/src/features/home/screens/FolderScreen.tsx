@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Share,
 } from 'react-native';
+import { API_URL } from '@env';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -18,6 +20,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { FileItemCard } from '../components/FileItemCard';
 import { SearchBar } from '../components/SearchBar';
 import AppModal from '../../../components/AppModal';
+import ShareModal from '../components/ShareModal';
 
 type SubTab = 'FOLDERS' | 'FILES';
 
@@ -32,6 +35,10 @@ const FolderScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [revealedFileId, setRevealedFileId] = useState<string | null>(null);
+
+  // Sharing State
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [itemToShare, setItemToShare] = useState<any>(null);
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -110,8 +117,6 @@ const FolderScreen = () => {
         );
       }
 
-      // Sort by folder first, then file? or just combined.
-      // The previous local DB logic had explicit sorting. API logic might be separate.
       setItems(combinedItems);
     } catch (error) {
       console.error('Failed to load folder contents:', error);
@@ -124,11 +129,16 @@ const FolderScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [parentId, isRoot, searchQuery]);
+  }, [parentId, isRoot, searchQuery, activeTab]);
 
   useEffect(() => {
     loadContents();
   }, [loadContents]);
+
+  const handleShare = (item: any) => {
+    setItemToShare(item);
+    setShareModalVisible(true);
+  };
 
   const handleDelete = async (item: any) => {
     showModal({
@@ -185,7 +195,6 @@ const FolderScreen = () => {
           }}
           activeOpacity={0.7}
         >
-          {/* Circular Icon Background matching design */}
           <View
             style={[
               styles.folderIconBg,
@@ -206,7 +215,29 @@ const FolderScreen = () => {
           </View>
           <TouchableOpacity
             style={styles.moreButton}
-            onPress={() => handleDelete(item)}
+            onPress={() => {
+              showModal({
+                title: item.name,
+                actions: [
+                  {
+                    text: 'Share',
+                    onPress: () => {
+                      closeModal();
+                      handleShare(item);
+                    },
+                  },
+                  {
+                    text: 'Delete',
+                    onPress: () => {
+                      closeModal();
+                      handleDelete(item);
+                    },
+                    variant: 'danger',
+                  },
+                  { text: 'Cancel', onPress: closeModal, variant: 'secondary' },
+                ],
+              });
+            }}
           >
             <MaterialIcons name="more-horiz" size={24} color="#64748B" />
           </TouchableOpacity>
@@ -222,7 +253,7 @@ const FolderScreen = () => {
         onCollapse={() => revealedFileId === item.id && setRevealedFileId(null)}
         onDownload={() => {}}
         onDelete={() => handleDelete(item)}
-        onShare={() => {}}
+        onShare={() => handleShare(item)}
         onClick={() => {
           // @ts-ignore
           navigation.navigate('Viewer', {
@@ -237,7 +268,6 @@ const FolderScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Top Header Section */}
       <View style={styles.topSection}>
         <View style={styles.header}>
           <View style={styles.headerTitleRow}>
@@ -265,7 +295,6 @@ const FolderScreen = () => {
           </View>
         </View>
 
-        {/* Search Bar */}
         <View style={styles.searchWrapper}>
           <SearchBar
             searchQuery={searchQuery}
@@ -277,7 +306,6 @@ const FolderScreen = () => {
           />
         </View>
 
-        {/* Action Buttons Row */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -311,9 +339,7 @@ const FolderScreen = () => {
         </ScrollView>
       </View>
 
-      {/* Main Content Area - Rounded Top */}
       <View style={styles.contentArea}>
-        {/* Sort Header */}
         <View style={styles.sortHeader}>
           <TouchableOpacity style={styles.sortButton}>
             <Text style={styles.sortText}>Name</Text>
@@ -325,7 +351,6 @@ const FolderScreen = () => {
             />
           </TouchableOpacity>
 
-          {/* Tab Switcher if Root */}
           {isRoot && (
             <View style={styles.tabSwitcher}>
               <TouchableOpacity
@@ -368,7 +393,6 @@ const FolderScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* List */}
         {isLoading ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color={Colors.purple.vibrant} />
@@ -397,6 +421,11 @@ const FolderScreen = () => {
         variant={modalConfig.variant}
         icon={modalConfig.icon}
         actions={modalConfig.actions}
+      />
+      <ShareModal
+        visible={shareModalVisible}
+        onClose={() => setShareModalVisible(false)}
+        item={itemToShare}
       />
     </SafeAreaView>
   );
@@ -468,7 +497,7 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    backgroundColor: '#E6F4EA', // Light green tint from image
+    backgroundColor: '#E6F4EA',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingTop: 24,

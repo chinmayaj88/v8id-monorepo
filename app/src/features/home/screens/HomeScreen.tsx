@@ -26,6 +26,7 @@ import {
 import { SearchBar } from '../components/SearchBar';
 import { FileItemCard } from '../components/FileItemCard';
 import { FileItem } from '../types';
+import ShareModal from '../components/ShareModal';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -50,6 +51,10 @@ const HomeScreen = () => {
     shareEvent,
     clearShareEvent,
   } = viewModel;
+
+  // Sharing State
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [itemToShare, setItemToShare] = useState<any>(null);
 
   // Handle Share Event
   useEffect(() => {
@@ -154,7 +159,10 @@ const HomeScreen = () => {
         }}
         onDownload={() => downloadFile(item.id)}
         onDelete={() => deleteFile(item.id)}
-        onShare={() => shareFile(item.id)}
+        onShare={() => {
+          setItemToShare(item);
+          setShareModalVisible(true);
+        }}
         onClick={() => {
           if (item.isFolder) {
             // @ts-ignore
@@ -204,6 +212,11 @@ const HomeScreen = () => {
             colors={[Colors.purple.vibrant]}
           />
         }
+      />
+      <ShareModal
+        visible={shareModalVisible}
+        onClose={() => setShareModalVisible(false)}
+        item={itemToShare}
       />
     </SafeAreaView>
   );

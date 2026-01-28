@@ -3,6 +3,7 @@ import { HomeUiState, SearchSuggestion } from '../types';
 import { databaseService } from '../../../services/db/DatabaseService';
 import { useAppSelector } from '../../../store/hooks';
 import { syncService } from '../../../services/api/syncService';
+import fileService from '../../../services/api/fileService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@env';
 
@@ -149,8 +150,23 @@ export const useHomeViewModel = () => {
     // TODO: Implement soft delete in DB and sync with backend
   };
 
-  const shareFile = (id: string) => {
-    setShareEvent({ url: `https://v8id.cloud/file/${id}` });
+  const shareFile = async (id: string) => {
+    try {
+      // By default generate a public link
+      const result = await fileService.shareFile(id);
+      if (result && result.link) {
+        // Construct full URL
+        const fullUrl = `${API_URL.replace('/api', '')}${result.link}`;
+        setShareEvent({ url: fullUrl });
+      } else {
+        // Fallback if no link returned
+        setShareEvent({ url: `https://v8id.cloud/file/${id}` });
+      }
+    } catch (error) {
+      console.error('Share failed:', error);
+      // Fallback
+      setShareEvent({ url: `https://v8id.cloud/file/${id}` });
+    }
   };
 
   const clearShareEvent = () => setShareEvent(null);

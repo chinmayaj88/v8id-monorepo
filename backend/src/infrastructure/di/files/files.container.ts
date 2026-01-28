@@ -14,6 +14,8 @@ import {
   CreateFileShareUseCase,
   GetSharedFileUseCase,
   ListSharedWithMeUseCase,
+  CreateFolderShareUseCase,
+  GetSharedFolderUseCase,
 } from '../../../application/use-cases/index.js';
 import { FileController } from '../../../presentation/controllers/files/file.controller.js';
 import { FolderController } from '../../../presentation/controllers/files/folder.controller.js';
@@ -44,7 +46,9 @@ export class FilesContainer {
   public readonly listTrashUseCase: ListTrashUseCase;
   public readonly getStorageAnalyticsUseCase: GetStorageAnalyticsUseCase;
   public readonly createFileShareUseCase: CreateFileShareUseCase;
+  public readonly createFolderShareUseCase: CreateFolderShareUseCase;
   public readonly getSharedFileUseCase: GetSharedFileUseCase;
+  public readonly getSharedFolderUseCase: GetSharedFolderUseCase;
   public readonly listSharedWithMeUseCase: ListSharedWithMeUseCase;
 
   // Controllers
@@ -124,7 +128,13 @@ export class FilesContainer {
       this.fileRepository
     );
 
+    this.createFolderShareUseCase = new CreateFolderShareUseCase(
+      this.shareRepository,
+      this.folderRepository
+    );
+
     this.getSharedFileUseCase = new GetSharedFileUseCase(this.shareRepository);
+    this.getSharedFolderUseCase = new GetSharedFolderUseCase(this.shareRepository);
 
     this.listSharedWithMeUseCase = new ListSharedWithMeUseCase(
       this.shareRepository,
@@ -151,7 +161,9 @@ export class FilesContainer {
 
     this.shareController = new ShareController(
       this.createFileShareUseCase,
+      this.createFolderShareUseCase,
       this.getSharedFileUseCase,
+      this.getSharedFolderUseCase,
       this.listSharedWithMeUseCase,
       sharedContainer.storageService
     );

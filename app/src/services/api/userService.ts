@@ -29,4 +29,11 @@ export const userService = {
   revokeAllSessions: async (): Promise<void> => {
     await apiClient.post('/users/me/sessions/revoke-all');
   },
+
+  searchUsers: async (query: string): Promise<any[]> => {
+    const response = await apiClient.get<{
+      data: { users: any[] };
+    }>('/users/search', { params: { query } });
+    return response.data.data.users;
+  },
 };

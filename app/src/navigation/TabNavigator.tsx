@@ -7,6 +7,7 @@ import {
 import HomeScreen from '../features/home/screens/HomeScreen';
 import ProfileScreen from '../features/user/screens/ProfileScreen';
 import FolderScreen from '../features/home/screens/FolderScreen';
+import SharedScreen from '../features/home/screens/SharedScreen';
 import { Colors } from '../theme/colors';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -27,7 +28,7 @@ const Placeholder = ({ name }: { name: string }) => (
 export type TabParamList = {
   Home: undefined;
   Files: undefined;
-  Vault: undefined;
+  Shared: undefined;
   Profile: undefined;
   Media: undefined;
 };
@@ -99,7 +100,7 @@ const CustomTabBarV2 = ({
           state={state}
           descriptors={descriptors}
           navigation={navigation}
-          icon="image"
+          icon="share"
         />
         <TabButton
           route={state.routes[3]}
@@ -131,9 +132,7 @@ const TabNavigator = () => {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Files" component={FolderScreen} />
-      <Tab.Screen name="Vault">
-        {() => <Placeholder name="Photos" />}
-      </Tab.Screen>
+      <Tab.Screen name="Shared" component={SharedScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

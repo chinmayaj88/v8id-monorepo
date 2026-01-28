@@ -120,6 +120,43 @@ const fileService = {
     const response = await apiClient.get('/files/analytics');
     return response.data?.data;
   },
+
+  shareFile: async (
+    fileId: string,
+    email?: string,
+    permission: 'VIEW' | 'EDIT' = 'VIEW',
+    expiresInSeconds?: number,
+  ) => {
+    const type = email ? 'INTERNAL' : 'PUBLIC_LINK';
+    const response = await apiClient.post(`/files/${fileId}/share`, {
+      type,
+      email,
+      permission,
+      expiresInSeconds,
+    });
+    return response.data?.data;
+  },
+
+  shareFolder: async (
+    folderId: string,
+    email?: string,
+    permission: 'VIEW' | 'EDIT' = 'VIEW',
+    expiresInSeconds?: number,
+  ) => {
+    const type = email ? 'INTERNAL' : 'PUBLIC_LINK';
+    const response = await apiClient.post(`/folders/${folderId}/share`, {
+      type,
+      email,
+      permission,
+      expiresInSeconds,
+    });
+    return response.data?.data;
+  },
+
+  listSharedWithMe: async () => {
+    const response = await apiClient.get('/files/shared');
+    return response.data?.data;
+  },
 };
 
 export default fileService;

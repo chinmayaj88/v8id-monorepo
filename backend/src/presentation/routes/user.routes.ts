@@ -34,6 +34,12 @@ router.get(
   (req, res) => userController.listUsers(req, res)
 );
 
+router.get(
+  '/search',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  (req, res) => userController.searchUsers(req as any, res)
+);
+
 // User routes
 router.get(
   '/me/profile',

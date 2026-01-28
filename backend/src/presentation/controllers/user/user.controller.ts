@@ -132,6 +132,40 @@ export class UserController {
   }
 
   /**
+   * GET /api/users/search
+   * Search users by email for sharing (Authenticated only)
+   */
+  async searchUsers(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const query = req.query.query as string;
+      if (!query || query.length < 2) {
+        ResponseUtil.success(res, { users: [] });
+        return;
+      }
+
+      const users = await this.userRepository.searchByEmail(query, 10);
+
+      ResponseUtil.success(res, {
+        users: users.map(user => ({
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          avatarUrl: user.avatarPath, // Simplified for search suggestions
+        })),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to search users';
+      ResponseUtil.internalError(res, message);
+    }
+  }
+
+  /**
    * GET /api/users (Admin only)
    */
   async listUsers(req: AuthenticatedRequest, res: Response): Promise<void> {

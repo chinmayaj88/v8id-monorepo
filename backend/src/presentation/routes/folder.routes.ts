@@ -19,5 +19,6 @@ router.post('/', (req, res) => filesContainer.folderController.create(req, res))
 router.get('/', (req, res) => filesContainer.folderController.list(req, res));
 router.delete('/:id', (req, res) => filesContainer.folderController.delete(req, res));
 router.post('/:id/restore', (req, res) => filesContainer.folderController.restore(req, res));
+router.post('/:id/share', (req, res) => filesContainer.shareController.createFolderShare(req, res));
 
 export default router;

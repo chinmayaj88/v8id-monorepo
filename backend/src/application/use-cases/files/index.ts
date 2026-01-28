@@ -12,3 +12,5 @@ export * from './get-storage-analytics.use-case.js';
 export * from './create-file-share.use-case.js';
 export * from './get-shared-file.use-case.js';
 export * from './list-shared-with-me.use-case.js';
+export * from './create-folder-share.use-case.js';
+export * from './get-shared-folder.use-case.js';
