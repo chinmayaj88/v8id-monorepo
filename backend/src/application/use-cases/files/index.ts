@@ -9,3 +9,6 @@ export * from './delete-folder.use-case.js';
 export * from './restore-folder.use-case.js';
 export * from './list-trash.use-case.js';
 export * from './get-storage-analytics.use-case.js';
+export * from './create-file-share.use-case.js';
+export * from './get-shared-file.use-case.js';
+export * from './list-shared-with-me.use-case.js';

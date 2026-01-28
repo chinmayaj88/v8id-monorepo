@@ -11,12 +11,17 @@ import {
   SearchFilesUseCase,
   ListTrashUseCase,
   GetStorageAnalyticsUseCase,
+  CreateFileShareUseCase,
+  GetSharedFileUseCase,
+  ListSharedWithMeUseCase,
 } from '../../../application/use-cases/index.js';
 import { FileController } from '../../../presentation/controllers/files/file.controller.js';
 import { FolderController } from '../../../presentation/controllers/files/folder.controller.js';
 import { TrashController } from '../../../presentation/controllers/files/trash.controller.js';
+import { ShareController } from '../../../presentation/controllers/files/share.controller.js';
 import { FileRepository } from '../../repositories/files/file.repository.js';
 import { FolderRepository } from '../../repositories/files/folder.repository.js';
+import { ShareRepository } from '../../repositories/files/share.repository.js';
 
 export class FilesContainer {
   private static instance: FilesContainer;
@@ -24,6 +29,7 @@ export class FilesContainer {
   // Repositories
   public readonly fileRepository: FileRepository;
   public readonly folderRepository: FolderRepository;
+  public readonly shareRepository: ShareRepository;
 
   // Use Cases
   public readonly uploadFileUseCase: UploadFileUseCase;
@@ -37,15 +43,20 @@ export class FilesContainer {
   public readonly searchFilesUseCase: SearchFilesUseCase;
   public readonly listTrashUseCase: ListTrashUseCase;
   public readonly getStorageAnalyticsUseCase: GetStorageAnalyticsUseCase;
+  public readonly createFileShareUseCase: CreateFileShareUseCase;
+  public readonly getSharedFileUseCase: GetSharedFileUseCase;
+  public readonly listSharedWithMeUseCase: ListSharedWithMeUseCase;
 
   // Controllers
   public readonly fileController: FileController;
   public readonly folderController: FolderController;
   public readonly trashController: TrashController;
+  public readonly shareController: ShareController;
 
   private constructor() {
     this.fileRepository = new FileRepository();
     this.folderRepository = new FolderRepository();
+    this.shareRepository = new ShareRepository();
 
     // Use Cases implementation
     this.uploadFileUseCase = new UploadFileUseCase(
@@ -96,6 +107,20 @@ export class FilesContainer {
       sharedContainer.userRepository
     );
 
+    // Share Use Cases
+    this.createFileShareUseCase = new CreateFileShareUseCase(
+      this.shareRepository,
+      sharedContainer.userRepository,
+      this.fileRepository
+    );
+
+    this.getSharedFileUseCase = new GetSharedFileUseCase(this.shareRepository);
+
+    this.listSharedWithMeUseCase = new ListSharedWithMeUseCase(
+      this.shareRepository,
+      sharedContainer.userRepository
+    );
+
     // Controllers implementation
     this.fileController = new FileController(
       this.uploadFileUseCase,
@@ -113,6 +138,13 @@ export class FilesContainer {
     );
 
     this.trashController = new TrashController(this.listTrashUseCase);
+
+    this.shareController = new ShareController(
+      this.createFileShareUseCase,
+      this.getSharedFileUseCase,
+      this.listSharedWithMeUseCase,
+      sharedContainer.storageService
+    );
   }
 
   public static getInstance(): FilesContainer {

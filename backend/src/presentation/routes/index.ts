@@ -13,6 +13,7 @@ import searchRoutes from './search.routes.js';
 import syncRoutes from './sync.routes.js';
 
 import trashRoutes from './trash.routes.js';
+import shareRoutes from './share.routes.js';
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use('/files', fileRoutes);
 router.use('/trash', trashRoutes);
 router.use('/search', searchRoutes);
 router.use('/sync', syncRoutes);
+router.use('/share', shareRoutes); // Public share access
 
 export default router;

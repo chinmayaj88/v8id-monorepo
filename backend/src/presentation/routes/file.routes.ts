@@ -24,11 +24,18 @@ const router: Router = Router();
 router.use(authenticate);
 
 // Use controller from DI container
+// Shared files
+router.get('/shared', (req, res) => filesContainer.shareController.listSharedWithMe(req, res));
+
+// Analytics
 router.get('/analytics', (req, res) => filesContainer.fileController.getAnalytics(req, res));
 
 router.post('/upload', upload.single('file'), (req, res) =>
   filesContainer.fileController.upload(req, res)
 );
+
+// File operations
+router.post('/:id/share', (req, res) => filesContainer.shareController.createShare(req, res));
 router.post('/:id/link', (req, res) => filesContainer.fileController.generateLink(req, res));
 router.delete('/:id', (req, res) => filesContainer.fileController.delete(req, res));
 router.post('/:id/restore', (req, res) => filesContainer.fileController.restore(req, res));
