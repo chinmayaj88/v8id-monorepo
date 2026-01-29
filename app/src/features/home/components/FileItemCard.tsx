@@ -1,17 +1,10 @@
-import React, { useRef, useMemo, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  PanResponder,
-  Animated,
-  Image,
-} from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors, Typography } from '../../../theme';
 import { FileItem } from '../types';
+import { SwipeableRow, SwipeAction } from '../../../components/SwipeableRow';
 
 interface FileItemCardProps {
   file: FileItem;
@@ -27,8 +20,6 @@ interface FileItemCardProps {
   onRestore?: () => void;
 }
 
-const MENU_WIDTH = 180;
-
 export const FileItemCard = React.memo<FileItemCardProps>(
   ({
     file,
@@ -43,177 +34,83 @@ export const FileItemCard = React.memo<FileItemCardProps>(
     isTrashMode,
     onRestore,
   }) => {
-    const animatedValue = useRef(new Animated.Value(0)).current;
-    const lastOffset = useRef(0);
-
-    // Sync animation with revealed state from parent
-    React.useEffect(() => {
-      const toValue = isRevealed ? -MENU_WIDTH : 0;
-      lastOffset.current = toValue;
-      Animated.spring(animatedValue, {
-        toValue,
-        useNativeDriver: true,
-        tension: 65,
-        friction: 11,
-        restSpeedThreshold: 0.1,
-        restDisplacementThreshold: 0.1,
-      }).start();
-    }, [isRevealed, animatedValue]);
-
-    const panResponder = useMemo(
-      () =>
-        PanResponder.create({
-          onStartShouldSetPanResponder: () => false,
-          onMoveShouldSetPanResponder: (_, gestureState) => {
-            // High threshold for horizontal swipe to avoid interference with vertical list scroll
-            return (
-              Math.abs(gestureState.dx) > 20 &&
-              Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2
-            );
-          },
-          onPanResponderGrant: () => {
-            // Pause flatlist or animations if needed
-            animatedValue.setOffset(lastOffset.current);
-            animatedValue.setValue(0);
-          },
-          onPanResponderMove: (evt, gestureState) => {
-            // Explicitly limit the range here
-            let val = gestureState.dx;
-            const total = lastOffset.current + val;
-
-            // Elastic resistance at the edges
-            if (total < -MENU_WIDTH) {
-              val =
-                -MENU_WIDTH - lastOffset.current + (total + MENU_WIDTH) * 0.4;
-            } else if (total > 0) {
-              val = -lastOffset.current + total * 0.4;
-            }
-
-            animatedValue.setValue(val);
-          },
-          onPanResponderRelease: (_, gestureState) => {
-            animatedValue.flattenOffset();
-            const currentPos = lastOffset.current + gestureState.dx;
-
-            const velocityX = gestureState.vx;
-            // Stronger velocity bias for "flick" to open/close
-            const shouldExpand =
-              currentPos < -MENU_WIDTH / 2 || velocityX < -0.8;
-            const shouldCollapse =
-              currentPos > -MENU_WIDTH / 2 || velocityX > 0.8;
-
-            if (
-              shouldExpand &&
-              (velocityX < 0 || currentPos < -MENU_WIDTH / 3)
-            ) {
-              onExpand();
-            } else {
+    // Define actions based on mode
+    const actions: SwipeAction[] = useMemo(() => {
+      if (isTrashMode) {
+        return [
+          {
+            icon: 'restore',
+            color: Colors.white,
+            backgroundColor: Colors.success,
+            onPress: () => {
               onCollapse();
-            }
+              onRestore && onRestore();
+            },
           },
-          onPanResponderTerminate: () => {
-            animatedValue.flattenOffset();
+          {
+            icon: 'delete-forever',
+            color: Colors.white,
+            backgroundColor: '#EF4444',
+            onPress: () => {
+              onCollapse();
+              onDelete();
+            },
+          },
+        ];
+      }
+
+      return [
+        {
+          icon: 'link', // or 'share'
+          color: '#1F2937', // Dark gray/black icon on yellow
+          backgroundColor: '#FDE047', // Yellow
+          onPress: () => {
             onCollapse();
+            onShare();
           },
-        }),
-      [onExpand, onCollapse, animatedValue],
-    );
+        },
+        {
+          icon: 'file-download',
+          color: Colors.white,
+          backgroundColor: '#3B82F6', // Blue
+          onPress: () => {
+            onCollapse();
+            onDownload();
+          },
+        },
+        {
+          icon: 'delete',
+          color: Colors.white,
+          backgroundColor: '#EF4444', // Red
+          onPress: () => {
+            onCollapse();
+            onDelete();
+          },
+        },
+      ];
+    }, [isTrashMode, onCollapse, onRestore, onDelete, onShare, onDownload]);
+
+    const handleToggle = (revealed: boolean) => {
+      if (revealed) onExpand();
+      else onCollapse();
+    };
 
     const fileIcon =
       file.icon || (file.isFolder ? 'folder' : 'insert-drive-file');
 
     return (
-      <View style={styles.container}>
-        {/* Background Actions */}
-        <View style={styles.actionsContainer}>
-          {isTrashMode ? (
-            <>
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: Colors.success },
-                ]}
-                onPress={() => {
-                  onCollapse();
-                  onRestore && onRestore();
-                }}
-              >
-                <MaterialIcons name="restore" size={24} color={Colors.white} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#FF4444' }]}
-                onPress={() => {
-                  onCollapse();
-                  onDelete();
-                }}
-              >
-                <MaterialIcons
-                  name="delete-forever"
-                  size={24}
-                  color={Colors.white}
-                />
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={() => {
-                  onCollapse();
-                  onDownload();
-                }}
-              >
-                <MaterialIcons
-                  name="file-download"
-                  size={24}
-                  color={Colors.white}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: Colors.purple.indigo },
-                ]}
-                onPress={() => {
-                  onCollapse();
-                  onShare();
-                }}
-              >
-                <MaterialIcons name="share" size={22} color={Colors.white} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: '#FF4444' }]}
-                onPress={() => {
-                  onCollapse();
-                  onDelete();
-                }}
-              >
-                <MaterialIcons
-                  name="delete-sweep"
-                  size={24}
-                  color={Colors.white}
-                />
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-
-        {/* Foreground Card */}
-        <Animated.View
-          renderToHardwareTextureAndroid={true}
-          style={[
-            styles.card,
-            {
-              transform: [{ translateX: animatedValue }],
-            },
-          ]}
-          {...panResponder.panHandlers}
+      <SwipeableRow
+        isRevealed={isRevealed}
+        onToggle={handleToggle}
+        actions={actions}
+        height={74}
+      >
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => (isRevealed ? onCollapse() : onClick())}
+          activeOpacity={0.9}
         >
-          <TouchableOpacity
-            style={styles.cardContent}
-            onPress={() => (isRevealed ? onCollapse() : onClick())}
-            activeOpacity={0.8}
-          >
+          <View style={styles.cardContent}>
             <View
               style={[
                 styles.iconContainer,
@@ -243,49 +140,37 @@ export const FileItemCard = React.memo<FileItemCardProps>(
               </Text>
             </View>
 
-            <View style={styles.chevron}>
-              <MaterialIcons name="chevron-right" size={20} color="#E5E7EB" />
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
+            <TouchableOpacity
+              style={styles.chevron}
+              onPress={() => {
+                if (isRevealed) onCollapse();
+                else onExpand();
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <MaterialIcons name="more-horiz" size={24} color="#9CA3AF" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </SwipeableRow>
     );
   },
 );
 
 const styles = StyleSheet.create({
-  container: {
-    height: 74,
-    marginVertical: 6,
-    justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  actionsContainer: {
-    position: 'absolute',
-    right: 0,
-    width: MENU_WIDTH,
-    height: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionButton: {
-    flex: 1,
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.purple.vibrant,
-  },
   card: {
     backgroundColor: Colors.white,
     height: '100%',
     width: '100%',
     justifyContent: 'center',
-    borderRadius: 12,
-    // Minimize expensive styles
+    borderRadius: 20, // Increased corner radius for premium look
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#F1F5F9',
   },
   cardContent: {
     flexDirection: 'row',
@@ -294,8 +179,8 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   iconContainer: {
-    borderRadius: 10,
-    backgroundColor: '#F9FAFB',
+    borderRadius: 14, // Squircle-ish
+    backgroundColor: '#EEF2FF', // Subtle tint matching the folder icon usually
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -307,21 +192,22 @@ const styles = StyleSheet.create({
   },
   fileInfo: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 16,
+    justifyContent: 'center',
   },
   fileName: {
     fontSize: 15,
     fontFamily: Typography.fontFamily.bold,
-    color: '#374151',
+    color: '#1F2937',
+    marginBottom: 4,
   },
   fileDetails: {
-    fontSize: 12,
-    fontFamily: Typography.fontFamily.regular,
+    fontSize: 13,
+    fontFamily: Typography.fontFamily.medium,
     color: '#9CA3AF',
-    marginTop: 2,
   },
   chevron: {
-    padding: 2,
+    padding: 4,
   },
 });
 
