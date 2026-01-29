@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import { FileItem } from '../types';
 
 interface FileItemCardProps {
@@ -311,11 +311,12 @@ const styles = StyleSheet.create({
   },
   fileName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: '#374151',
   },
   fileDetails: {
     fontSize: 12,
+    fontFamily: Typography.fontFamily.regular,
     color: '#9CA3AF',
     marginTop: 2,
   },

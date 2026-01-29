@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import { useHomeViewModel } from '../hooks/useHomeViewModel';
 import { useAppDispatch } from '../../../store/hooks';
 import { setCurrentFolderId } from '../../../store/uiSlice';
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
     marginTop: 16,
     marginBottom: 8,

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import { SearchSuggestion } from '../types';
 
 interface SearchBarProps {
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1E293B',
     paddingVertical: 8,
-    fontWeight: '400',
+    fontFamily: Typography.fontFamily.regular,
   },
   filterButton: {
     marginLeft: 12,
@@ -168,11 +168,12 @@ const styles = StyleSheet.create({
   },
   suggestionTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: '#1E293B',
   },
   suggestionSubtitle: {
     fontSize: 12,
+    fontFamily: Typography.fontFamily.regular,
     color: '#64748B',
     marginTop: 2,
   },

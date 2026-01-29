@@ -350,7 +350,9 @@ const FolderScreen = () => {
             <Text style={styles.mainTitle}>{initialFolderName}</Text>
           </View>
           <View style={styles.headerActions}>
-            <TransferStatusIcon onPress={() => {}} />
+            <TransferStatusIcon
+              onPress={() => navigation.navigate('Activities')}
+            />
             <TouchableOpacity
               style={styles.iconButton}
               onPress={() => navigation.navigate('Notifications')}

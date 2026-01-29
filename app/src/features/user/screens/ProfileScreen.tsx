@@ -13,7 +13,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logoutUser } from '../../auth/store/authSlice';
 import { setCurrentFolderId } from '../../../store/uiSlice';
 import { useCallback } from 'react';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
   },
   iconButton: {
@@ -325,12 +325,12 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.purple.vibrant,
   },
   userName: {
     fontSize: 22,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
     marginBottom: 4,
   },
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   },
   planName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
     marginRight: 8,
   },
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: Typography.fontFamily.medium,
     color: Colors.black,
   },
   menuSubtitle: {
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: '#E91E63',
   },
 });

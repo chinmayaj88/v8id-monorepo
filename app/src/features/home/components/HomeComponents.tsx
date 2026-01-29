@@ -18,7 +18,8 @@ import Svg, {
 } from 'react-native-svg';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { Colors } from '../../../theme/colors';
+import { useNavigation } from '@react-navigation/native';
+import { Colors, Typography } from '../../../theme';
 import { API_URL } from '@env';
 import { TransferStatusIcon } from './TransferStatusIcon';
 
@@ -31,6 +32,7 @@ interface ProfileHeaderProps {
   profileImageUrl?: string;
   onProfileClick: () => void;
   onNotificationClick: () => void;
+  navigation?: any;
 }
 
 export const ProfileHeader = React.memo<ProfileHeaderProps>(
@@ -41,6 +43,7 @@ export const ProfileHeader = React.memo<ProfileHeaderProps>(
     onProfileClick,
     onNotificationClick,
   }) => {
+    const navigation: any = useNavigation();
     return (
       <View style={styles.headerContainer}>
         <View style={styles.profileRow}>
@@ -102,7 +105,9 @@ export const ProfileHeader = React.memo<ProfileHeaderProps>(
           </View>
 
           <View style={styles.headerButtons}>
-            <TransferStatusIcon onPress={() => {}} />
+            <TransferStatusIcon
+              onPress={() => navigation.navigate('Activities')}
+            />
             <TouchableOpacity
               style={styles.notificationButton}
               onPress={onNotificationClick}
@@ -331,7 +336,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: '#2E7D32',
   },
   userInfo: {
@@ -340,11 +345,12 @@ const styles = StyleSheet.create({
   },
   greeting: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
   },
   storageText: {
     fontSize: 13,
+    fontFamily: Typography.fontFamily.regular,
     color: Colors.gray,
     marginTop: 2,
   },
@@ -400,7 +406,7 @@ const styles = StyleSheet.create({
   },
   quickAccessText: {
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: Typography.fontFamily.medium,
     color: '#2D2D3A',
   },
   chip: {
@@ -422,7 +428,7 @@ const styles = StyleSheet.create({
   },
   chipTextSelected: {
     color: Colors.purple.vibrant,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
   },
   summaryChip: {
     backgroundColor: '#F3F4F6',
