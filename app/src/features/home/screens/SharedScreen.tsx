@@ -14,12 +14,21 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../../../theme/colors';
 import fileService from '../../../services/api/fileService';
 import { FileItemCard } from '../components/FileItemCard';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useAppDispatch } from '../../../store/hooks';
+import { setCurrentFolderId } from '../../../store/uiSlice';
 
 const SharedScreen = () => {
   const navigation: any = useNavigation();
+  const dispatch = useAppDispatch();
   const [items, setItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(setCurrentFolderId(null));
+    }, [dispatch]),
+  );
 
   const loadSharedItems = useCallback(async () => {
     setIsLoading(true);

@@ -9,12 +9,15 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../../theme/colors';
 import { useHomeViewModel } from '../hooks/useHomeViewModel';
+import { useAppDispatch } from '../../../store/hooks';
+import { setCurrentFolderId } from '../../../store/uiSlice';
 import {
   ProfileHeader,
   GradientHeading,
@@ -27,10 +30,14 @@ import { SearchBar } from '../components/SearchBar';
 import { FileItemCard } from '../components/FileItemCard';
 import { FileItem } from '../types';
 import ShareModal from '../components/ShareModal';
+import UploadProgressModal from '../components/UploadProgressModal';
+// @ts-ignore
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
   const viewModel = useHomeViewModel();
+  const dispatch = useAppDispatch();
 
   const {
     uiState,
@@ -65,6 +72,12 @@ const HomeScreen = () => {
       clearShareEvent();
     }
   }, [shareEvent]);
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(setCurrentFolderId(null));
+    }, [dispatch]),
+  );
 
   const renderHeader = () => (
     <View style={styles.headerContent}>
@@ -218,6 +231,7 @@ const HomeScreen = () => {
         onClose={() => setShareModalVisible(false)}
         item={itemToShare}
       />
+      <UploadProgressModal />
     </SafeAreaView>
   );
 };

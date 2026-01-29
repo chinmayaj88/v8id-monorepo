@@ -7,7 +7,7 @@ import {
   Text,
   RefreshControl,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../../../theme/colors';
 import fileService, {
   FileDTO,
@@ -17,8 +17,18 @@ import { FileItem } from '../types';
 import FileItemCard from '../components/FileItemCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppModal from '../../../components/AppModal';
+import { useAppDispatch } from '../../../store/hooks';
+import { setCurrentFolderId } from '../../../store/uiSlice';
 
 export const TrashScreen = () => {
+  const dispatch = useAppDispatch();
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(setCurrentFolderId(null));
+    }, [dispatch]),
+  );
+
   const [items, setItems] = useState<FileItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [revealedItemId, setRevealedItemId] = useState<string | null>(null);

@@ -5,6 +5,8 @@ import {
   DeleteFileUseCase,
   RestoreFileUseCase,
   GetStorageAnalyticsUseCase,
+  InitiateUploadUseCase,
+  CompleteUploadUseCase,
 } from '../../../application/use-cases/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
@@ -16,8 +18,76 @@ export class FileController {
     private generateFileLinkUseCase: GenerateFileLinkUseCase,
     private deleteFileUseCase: DeleteFileUseCase,
     private restoreFileUseCase: RestoreFileUseCase,
-    private getStorageAnalyticsUseCase: GetStorageAnalyticsUseCase
+    private getStorageAnalyticsUseCase: GetStorageAnalyticsUseCase,
+    private initiateUploadUseCase: InitiateUploadUseCase,
+    private completeUploadUseCase: CompleteUploadUseCase
   ) {}
+
+  async initiateUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { fileName, mimeType, size, folderId, tier, path } = req.body;
+
+      if (!fileName || !mimeType || size === undefined) {
+        ResponseUtil.validationError(res, 'fileName, mimeType, and size are required');
+        return;
+      }
+
+      const result = await this.initiateUploadUseCase.execute(req.user.id, {
+        fileName,
+        mimeType,
+        size: BigInt(size),
+        folderId,
+        tier,
+        path,
+      });
+
+      ResponseUtil.success(res, result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to initiate upload';
+      ResponseUtil.error(res, 'INITIATE_UPLOAD_ERROR', message);
+    }
+  }
+
+  async completeUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { storageKey, fileName, mimeType, size, folderId, tier } = req.body;
+
+      if (!storageKey || !fileName || !mimeType || size === undefined) {
+        ResponseUtil.validationError(res, 'Missing required fields for complete upload');
+        return;
+      }
+
+      const result = await this.completeUploadUseCase.execute(req.user.id, {
+        storageKey,
+        fileName,
+        mimeType,
+        size: BigInt(size),
+        folderId,
+        tier,
+      });
+
+      // Convert BigInt for JSON
+      const response = {
+        ...result,
+        size: result.size.toString(),
+      };
+
+      ResponseUtil.success(res, response, 'Upload completed successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to complete upload';
+      ResponseUtil.error(res, 'COMPLETE_UPLOAD_ERROR', message);
+    }
+  }
 
   async getAnalytics(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {

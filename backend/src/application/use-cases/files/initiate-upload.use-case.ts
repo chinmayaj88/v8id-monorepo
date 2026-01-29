@@ -4,19 +4,24 @@ import {
   IFolderRepository,
   IUserRepository,
 } from '../../interfaces/index.js';
-import { StorageTier, File } from '../../../../generated/prisma/index.js';
+import { StorageTier } from '../../../../generated/prisma/index.js';
 
-export interface UploadFileDTO {
-  file: Buffer;
+export interface InitiateUploadDTO {
   fileName: string;
   mimeType: string;
   size: bigint;
   folderId?: string | null;
   tier?: StorageTier;
-  path?: string;
+  path?: string; // Optional path for recursive folder creation
 }
 
-export class UploadFileUseCase {
+export interface InitiateUploadResult {
+  uploadId: string;
+  parUrl: string;
+  storageKey: string;
+}
+
+export class InitiateUploadUseCase {
   constructor(
     private fileRepository: IFileRepository,
     private folderRepository: IFolderRepository,
@@ -24,92 +29,53 @@ export class UploadFileUseCase {
     private userRepository: IUserRepository
   ) {}
 
-  async execute(userId: string, dto: UploadFileDTO): Promise<File> {
+  async execute(userId: string, dto: InitiateUploadDTO): Promise<InitiateUploadResult> {
     // 1. Validate User and Quota
     const user = await this.userRepository.findById(userId);
     if (!user) throw new Error('User not found');
 
-    const currentUsed = user.storageUsed;
-    const newUsed = currentUsed + dto.size;
-    if (newUsed > user.storageQuota) {
+    if (user.storageUsed + dto.size > user.storageQuota) {
       throw new Error('Storage quota exceeded');
     }
 
-    // 2. Handle Recursive Folder Creation if path provided
+    // 3. Handle Recursive Folder Creation if path provided
     let folderId = dto.folderId || null;
     if (dto.path) {
       folderId = await this.ensureFolderPath(userId, dto.path, folderId);
-    } else if (folderId) {
-      // Validate folder exists if provided and no path
-      const folder = await this.folderRepository.findById(folderId);
-      if (!folder || folder.userId !== userId) {
-        throw new Error('Invalid destination folder');
-      }
     }
 
-    // 3. Filename Deduplication
+    // 4. Filename Deduplication (Robustness)
     let finalName = dto.fileName;
-    const exists = await this.fileRepository.existsByName(folderId, finalName, userId);
-    if (exists) {
+    const existingFiles = await this.fileRepository.findAllByUserId(userId, {
+      folderId: folderId,
+      isDeleted: false,
+    });
+
+    const baseNameInput = finalName.split('.')[0] || '';
+    const sameNameFiles = existingFiles.filter(f => f.name.startsWith(baseNameInput));
+    if (sameNameFiles.length > 0) {
       const ext = finalName.includes('.') ? `.${finalName.split('.').pop()}` : '';
       const baseName = finalName.replace(ext, '');
-      const timestamp = Math.floor(Date.now() / 1000);
-      finalName = `${baseName}_${timestamp}${ext}`;
+      finalName = `${baseName} (${sameNameFiles.length})${ext}`;
     }
 
-    // 4. Generate Storage Key
+    // 5. Generate Storage Key
     const fileUuid = crypto.randomUUID();
     const storageKey = `${userId}/${fileUuid}-${finalName}`;
 
-    // 5. Upload to Storage
-    const tier = dto.tier ?? StorageTier.STANDARD;
-
-    await this.storageService.uploadFile({
+    // 6. Create PAR for direct upload to OCI
+    const { parUrl, parId } = await this.storageService.createPreAuthenticatedRequest({
       objectName: storageKey,
-      file: dto.file,
-      contentType: dto.mimeType,
-      tier,
-      metadata: {
-        userId,
-        uploadedAt: new Date().toISOString(),
-      },
+      accessType: 'ObjectWrite',
+      tier: dto.tier || StorageTier.STANDARD,
+      expiresInHours: 24, // Allow 24h for upload
     });
 
-    // 6. Generate Thumbnail
-    let thumbnailKey: string | undefined = undefined;
-    if (dto.mimeType.startsWith('image/')) {
-      try {
-        const thumbnailBuffer = await this.storageService.generateThumbnail(dto.file);
-        thumbnailKey = `${userId}/thumbnails/${fileUuid}.webp`;
-        await this.storageService.uploadFile({
-          objectName: thumbnailKey,
-          file: thumbnailBuffer,
-          contentType: 'image/webp',
-          tier: StorageTier.STANDARD,
-        });
-      } catch (error) {
-        console.warn('Failed to generate thumbnail', error);
-      }
-    }
-
-    // 7. Save to DB
-    const file = await this.fileRepository.create({
-      userId,
-      folderId,
-      name: finalName,
+    return {
+      uploadId: parId,
+      parUrl,
       storageKey,
-      storageTier: tier,
-      size: dto.size,
-      mimeType: dto.mimeType,
-      extension: dto.fileName.split('.').pop(),
-      thumbnailKey,
-      isOfflineAvailable: false,
-    });
-
-    // 8. Update User Storage Usage
-    await this.userRepository.incrementStorageUsed(userId, dto.size);
-
-    return file;
+    };
   }
 
   private async ensureFolderPath(
@@ -121,6 +87,7 @@ export class UploadFileUseCase {
     let currentParentId = rootFolderId;
     let currentPath = '';
 
+    // If starting from a folder, get its path
     if (rootFolderId) {
       const rootFolder = await this.folderRepository.findById(rootFolderId);
       if (rootFolder) {

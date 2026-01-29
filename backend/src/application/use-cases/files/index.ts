@@ -14,3 +14,5 @@ export * from './get-shared-file.use-case.js';
 export * from './list-shared-with-me.use-case.js';
 export * from './create-folder-share.use-case.js';
 export * from './get-shared-folder.use-case.js';
+export * from './initiate-upload.use-case.js';
+export * from './complete-upload.use-case.js';

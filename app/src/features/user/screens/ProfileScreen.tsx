@@ -8,9 +8,11 @@ import {
   Image,
   StatusBar,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logoutUser } from '../../auth/store/authSlice';
+import { setCurrentFolderId } from '../../../store/uiSlice';
+import { useCallback } from 'react';
 import { Colors } from '../../../theme/colors';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -24,6 +26,12 @@ const ProfileScreen = () => {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
   const [showEditSheet, setShowEditSheet] = React.useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(setCurrentFolderId(null));
+    }, [dispatch]),
+  );
 
   // Mock data if user is incomplete (should fetch from DB/API in real scenario)
   const userName = user

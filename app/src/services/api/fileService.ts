@@ -57,6 +57,7 @@ const fileService = {
     fileData: any,
     folderId?: string,
     onProgress?: (progress: number) => void,
+    path?: string,
   ) => {
     const formData = new FormData();
     formData.append('file', {
@@ -66,7 +67,8 @@ const fileService = {
     } as any);
 
     if (folderId) formData.append('folderId', folderId);
-    formData.append('tier', 'STANDARD'); // Default
+    if (path) formData.append('path', path);
+    formData.append('tier', 'STANDARD');
 
     const response = await apiClient.post('/files/upload', formData, {
       headers: {
@@ -81,6 +83,42 @@ const fileService = {
         }
       },
     });
+    return response.data?.data;
+  },
+
+  initiateUpload: async (params: {
+    fileName: string;
+    mimeType: string;
+    size: number;
+    folderId?: string | null;
+    path?: string;
+    tier?: string;
+  }) => {
+    const response = await apiClient.post('/files/upload/initiate', params);
+    return response.data?.data;
+  },
+
+  uploadChunk: async (url: string, chunk: Blob | ArrayBuffer) => {
+    // Note: Direct upload to OCI via PAR URL
+    // We use standard fetch or a clean axios instance without interceptors for direct OCI upload
+    return fetch(url, {
+      method: 'PUT',
+      body: chunk,
+      headers: {
+        'Content-Type': 'application/octet-stream',
+      },
+    });
+  },
+
+  completeUpload: async (params: {
+    storageKey: string;
+    fileName: string;
+    mimeType: string;
+    size: number;
+    folderId?: string | null;
+    tier?: string;
+  }) => {
+    const response = await apiClient.post('/files/upload/complete', params);
     return response.data?.data;
   },
 

@@ -11,6 +11,9 @@ import SharedScreen from '../features/home/screens/SharedScreen';
 import { Colors } from '../theme/colors';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { setUploadMenuVisible } from '../store/uiSlice';
+import UploadMenu from '../features/home/components/UploadMenu';
 
 const Placeholder = ({ name }: { name: string }) => (
   <View
@@ -75,6 +78,7 @@ const CustomTabBarV2 = ({
   descriptors,
   navigation,
 }: BottomTabBarProps) => {
+  const dispatch = useAppDispatch();
   return (
     <View style={styles.tabBarWrapper}>
       <View style={styles.capsule}>
@@ -113,7 +117,7 @@ const CustomTabBarV2 = ({
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => {}}
+        onPress={() => dispatch(setUploadMenuVisible(true))}
         activeOpacity={0.9}
       >
         <MaterialIcons name="add" size={30} color="#FFF" />
@@ -123,18 +127,30 @@ const CustomTabBarV2 = ({
 };
 
 const TabNavigator = () => {
+  const dispatch = useAppDispatch();
+  const { uploadMenuVisible, currentFolderId } = useAppSelector(
+    state => state.ui,
+  );
+
   return (
-    <Tab.Navigator
-      tabBar={props => <CustomTabBarV2 {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Files" component={FolderScreen} />
-      <Tab.Screen name="Shared" component={SharedScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
+    <>
+      <Tab.Navigator
+        tabBar={props => <CustomTabBarV2 {...props} />}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Files" component={FolderScreen} />
+        <Tab.Screen name="Shared" component={SharedScreen} />
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+      </Tab.Navigator>
+      <UploadMenu
+        visible={uploadMenuVisible}
+        onClose={() => dispatch(setUploadMenuVisible(false))}
+        folderId={currentFolderId}
+      />
+    </>
   );
 };
 

@@ -40,6 +40,22 @@
               "path": ["api", "users", "me", "profile"]
             }
           }
+        },
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/search?q=user@example.com",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "search"],
+              "query": [
+                { "key": "q", "value": "user@example.com", "description": "Search by email" }
+              ]
+            },
+            "description": "Search for users by email (useful for sharing)."
+          }
         }
       ]
     },

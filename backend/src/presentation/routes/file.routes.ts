@@ -34,6 +34,14 @@ router.post('/upload', upload.single('file'), (req, res) =>
   filesContainer.fileController.upload(req, res)
 );
 
+router.post('/upload/initiate', (req, res) =>
+  filesContainer.fileController.initiateUpload(req, res)
+);
+
+router.post('/upload/complete', (req, res) =>
+  filesContainer.fileController.completeUpload(req, res)
+);
+
 // File operations
 router.post('/:id/share', (req, res) => filesContainer.shareController.createShare(req, res));
 router.post('/:id/link', (req, res) => filesContainer.fileController.generateLink(req, res));

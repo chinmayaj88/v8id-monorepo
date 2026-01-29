@@ -206,12 +206,113 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Share Folder (Internal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"INTERNAL\",\n    \"permission\": \"EDIT\",\n    \"email\": \"user@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/folders/{{folderId}}/share",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "folders", "{{folderId}}", "share"]
+            }
+          },
+          "response": []
         }
       ]
     },
     {
       "name": "Files",
       "item": [
+        {
+          "name": "Initiate Chunked Upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.success && jsonData.data) {",
+                  "        pm.environment.set(\"uploadId\", jsonData.data.uploadId);",
+                  "        console.log(\"✅ uploadId saved to environment\");",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"fileName\": \"large-video.mp4\",\n    \"mimeType\": \"video/mp4\",\n    \"size\": 52428800,\n    \"folderId\": \"{{folderId}}\",\n    \"tier\": \"STANDARD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload/initiate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload", "initiate"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Chunked Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"storageKey\": \"uploads/{{userId}}/{{uploadId}}\",\n    \"fileName\": \"large-video.mp4\",\n    \"mimeType\": \"video/mp4\",\n    \"size\": 52428800,\n    \"folderId\": \"{{folderId}}\",\n    \"tier\": \"STANDARD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload", "complete"]
+            }
+          },
+          "response": []
+        },
         {
           "name": "Get Storage Analytics",
           "request": {

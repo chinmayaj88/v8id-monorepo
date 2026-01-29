@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Share,
+  Alert,
 } from 'react-native';
 import { API_URL } from '@env';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +22,13 @@ import { FileItemCard } from '../components/FileItemCard';
 import { SearchBar } from '../components/SearchBar';
 import AppModal from '../../../components/AppModal';
 import ShareModal from '../components/ShareModal';
+import UploadProgressModal from '../components/UploadProgressModal';
+import { useAppDispatch } from '../../../store/hooks';
+import { setCurrentFolderId } from '../../../store/uiSlice';
+import { useFocusEffect } from '@react-navigation/native';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { pick, types } from '@react-native-documents/picker';
+import { uploadManager } from '../services/UploadManager';
 
 type SubTab = 'FOLDERS' | 'FILES';
 
@@ -38,6 +46,7 @@ const FolderScreen = () => {
 
   // Sharing State
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  const dispatch = useAppDispatch();
   const [itemToShare, setItemToShare] = useState<any>(null);
 
   // Modal State
@@ -135,9 +144,60 @@ const FolderScreen = () => {
     loadContents();
   }, [loadContents]);
 
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(setCurrentFolderId(parentId));
+    }, [dispatch, parentId]),
+  );
+
   const handleShare = (item: any) => {
     setItemToShare(item);
     setShareModalVisible(true);
+  };
+
+  const handlePickMedia = async () => {
+    try {
+      const result = await launchImageLibrary({
+        mediaType: 'mixed',
+        selectionLimit: 0,
+      });
+
+      if (result.assets && result.assets.length > 0) {
+        const files = result.assets.map((asset: any) => ({
+          uri: asset.uri!,
+          name: asset.fileName || `file_${Date.now()}`,
+          type: asset.type || 'application/octet-stream',
+          size: asset.fileSize || 0,
+        }));
+        uploadManager.enqueue(files, parentId);
+      }
+    } catch (err) {
+      console.error('ImagePicker Error: ', err);
+    }
+  };
+
+  const handleCreateFolder = () => {
+    Alert.prompt(
+      'New Folder',
+      'Enter a name for the new folder',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Create',
+          onPress: (name?: string) => {
+            if (name && name.trim()) {
+              fileService
+                .createFolder(name.trim(), parentId || undefined)
+                .then(() => loadContents())
+                .catch(error => {
+                  Alert.alert('Error', 'Failed to create folder');
+                });
+            }
+          },
+        },
+      ],
+      'plain-text',
+    );
   };
 
   const handleDelete = async (item: any) => {
@@ -283,9 +343,6 @@ const FolderScreen = () => {
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.iconButton}>
-              <MaterialIcons name="cloud-upload" size={24} color="#1E293B" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton}>
               <MaterialIcons
                 name="check-circle-outline"
                 size={24}
@@ -314,6 +371,7 @@ const FolderScreen = () => {
         >
           <TouchableOpacity
             style={[styles.actionChip, { backgroundColor: '#E0F2F1' }]}
+            onPress={handlePickMedia}
           >
             <MaterialIcons name="file-upload" size={20} color="#00695C" />
             <Text style={[styles.actionChipText, { color: '#00695C' }]}>
@@ -322,6 +380,7 @@ const FolderScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionChip, { backgroundColor: '#FCE4EC' }]}
+            onPress={handleCreateFolder}
           >
             <MaterialIcons name="create-new-folder" size={20} color="#C2185B" />
             <Text style={[styles.actionChipText, { color: '#C2185B' }]}>
@@ -427,6 +486,7 @@ const FolderScreen = () => {
         onClose={() => setShareModalVisible(false)}
         item={itemToShare}
       />
+      <UploadProgressModal />
     </SafeAreaView>
   );
 };
@@ -603,6 +663,23 @@ const styles = StyleSheet.create({
   },
   miniTabTextActive: {
     color: '#1E293B',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 24,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.purple.vibrant,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: Colors.purple.vibrant,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    zIndex: 900,
   },
 });
 
