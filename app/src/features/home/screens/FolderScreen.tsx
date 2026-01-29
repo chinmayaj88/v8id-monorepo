@@ -435,6 +435,7 @@ const FolderScreen = () => {
           />
         )}
       </View>
+
       <AppModal
         visible={modalConfig.visible}
         onClose={closeModal}
