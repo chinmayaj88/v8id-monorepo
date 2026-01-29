@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -107,9 +107,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
     borderRadius: 24,
-    height: 48,
+    height: 58,
     paddingHorizontal: 16,
-    borderWidth: 1,
+    borderWidth: 2,
     borderColor: '#E2E8F0',
   },
   icon: {
@@ -121,6 +121,7 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     paddingVertical: 8,
     fontFamily: Typography.fontFamily.regular,
+    fontWeight: '700',
   },
   filterButton: {
     marginLeft: 12,
