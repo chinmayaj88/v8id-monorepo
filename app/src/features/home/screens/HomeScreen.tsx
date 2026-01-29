@@ -34,6 +34,8 @@ import UploadProgressModal from '../components/UploadProgressModal';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
+import AppModal from '../../../components/AppModal';
+
 const HomeScreen = () => {
   const navigation = useNavigation();
   const viewModel = useHomeViewModel();
@@ -62,6 +64,60 @@ const HomeScreen = () => {
   // Sharing State
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [itemToShare, setItemToShare] = useState<any>(null);
+
+  // Modal State
+  const [modalConfig, setModalConfig] = useState<{
+    visible: boolean;
+    title: string;
+    description?: string;
+    variant?: 'default' | 'danger' | 'success';
+    icon?: string;
+    actions: { text: string; onPress: () => void; variant?: any }[];
+  }>({
+    visible: false,
+    title: '',
+    actions: [],
+  });
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, visible: false }));
+  };
+
+  const handleDelete = (item: FileItem) => {
+    setModalConfig({
+      visible: true,
+      title: 'Delete Item',
+      description: `Are you sure you want to delete "${item.name}"?`,
+      variant: 'danger',
+      icon: 'delete',
+      actions: [
+        {
+          text: 'Cancel',
+          onPress: closeModal,
+          variant: 'secondary',
+        },
+        {
+          text: 'Delete',
+          variant: 'danger',
+          onPress: async () => {
+            closeModal();
+            const success = await deleteFile(item.id);
+            if (!success) {
+              setTimeout(() => {
+                setModalConfig({
+                  visible: true,
+                  title: 'Error',
+                  description: 'Failed to delete item',
+                  variant: 'danger',
+                  actions: [{ text: 'OK', onPress: closeModal }],
+                });
+              }, 300);
+            }
+          },
+        },
+      ],
+    });
+  };
 
   // Handle Share Event
   useEffect(() => {
@@ -171,7 +227,7 @@ const HomeScreen = () => {
           if (revealedFileId === item.id) setRevealedFileId(null);
         }}
         onDownload={() => downloadFile(item.id)}
-        onDelete={() => deleteFile(item.id)}
+        onDelete={() => handleDelete(item)}
         onShare={() => {
           setItemToShare(item);
           setShareModalVisible(true);
@@ -230,6 +286,15 @@ const HomeScreen = () => {
         visible={shareModalVisible}
         onClose={() => setShareModalVisible(false)}
         item={itemToShare}
+      />
+      <AppModal
+        visible={modalConfig.visible}
+        onClose={closeModal}
+        title={modalConfig.title}
+        description={modalConfig.description}
+        variant={modalConfig.variant}
+        icon={modalConfig.icon}
+        actions={modalConfig.actions}
       />
       <UploadProgressModal />
     </SafeAreaView>

@@ -26,8 +26,8 @@ interface AppModalProps {
   variant?: 'default' | 'danger' | 'success' | 'info';
   actions?: Action[];
   children?: React.ReactNode;
-  badge?: string; // Kept for backward compatibility
-  label?: string; // New prop name from Gxx
+  badge?: string;
+  label?: string;
 }
 
 const AppModal: React.FC<AppModalProps> = ({
@@ -41,7 +41,6 @@ const AppModal: React.FC<AppModalProps> = ({
   badge,
   label,
 }) => {
-  // Prefer label, fallback to badge, fallback to generic
   const displayLabel = label || badge || 'DETAILS';
 
   const getButtonStyles = (btnVariant: Action['variant'] = 'primary') => {
@@ -100,7 +99,7 @@ const AppModal: React.FC<AppModalProps> = ({
                 onPress={onClose}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <MaterialIcons name="close" size={20} color={Colors.black} />
+                <MaterialIcons name="close" size={18} color={Colors.white} />
               </TouchableOpacity>
             )}
 
@@ -158,13 +157,13 @@ const AppModal: React.FC<AppModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Slightly darker overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   modalContainer: {
-    backgroundColor: Colors.black, // Dark backing for "shadow" effect
+    backgroundColor: Colors.black,
     borderRadius: 24,
     width: '100%',
     maxWidth: 340,
@@ -201,16 +200,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     right: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Subtle light bg on the black container
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 16,
-    width: 32,
-    height: 32,
+    width: 22,
+    height: 22,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 10,
   },
   bodyContainer: {
-    backgroundColor: Colors.white, // White body
+    backgroundColor: Colors.white,
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 24,
@@ -218,14 +217,9 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
     borderBottomLeftRadius: 24,
     width: '100%',
-    // Match logic: if notch is 'behind', body sits on top?
-    // In Gxx, notch was first child in column. Body was second.
-    // They share same bg color to look merged.
   },
   content: {
     width: '100%',
-    // alignItems: 'center', // Depending on preference, center or left. Gxx 'quiz' was left, default center.
-    // Let's keep it somewhat flexible. Center usually looks better for modals.
   },
   title: {
     fontSize: 22,

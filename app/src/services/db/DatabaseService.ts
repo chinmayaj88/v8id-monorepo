@@ -201,6 +201,16 @@ class DatabaseService {
     return (result.rows?._array || []).map(this.mapRowToFileItem);
   }
 
+  public deleteFile(id: string) {
+    if (!this.db) return;
+    this.db.execute('UPDATE files SET isDeleted = 1 WHERE id = ?', [id]);
+  }
+
+  public deleteFolder(id: string) {
+    if (!this.db) return;
+    this.db.execute('UPDATE folders SET isDeleted = 1 WHERE id = ?', [id]);
+  }
+
   public search(query: string): SearchSuggestion[] {
     if (!this.db || !query) return [];
 

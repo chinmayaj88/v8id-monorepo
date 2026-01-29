@@ -145,9 +145,25 @@ export const useHomeViewModel = () => {
     console.log('Downloading file', id);
   };
 
-  const deleteFile = (id: string) => {
-    console.log('Deleting file', id);
-    // TODO: Implement soft delete in DB and sync with backend
+  const deleteFile = async (id: string) => {
+    try {
+      // 1. API Call
+      await fileService.deleteFile(id);
+
+      // 2. Local DB Update
+      databaseService.deleteFile(id);
+
+      // 3. UI Update
+      setUiState(prev => ({
+        ...prev,
+        recentFiles: prev.recentFiles.filter(f => f.id !== id),
+      }));
+
+      return true;
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      return false;
+    }
   };
 
   const shareFile = async (id: string) => {
