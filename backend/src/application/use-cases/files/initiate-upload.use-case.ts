@@ -47,8 +47,9 @@ export class InitiateUploadUseCase {
       folderId = await this.ensureFolderPath(userId, dto.path, folderId);
     }
 
-    // 4. Filename Deduplication (Robustness)
-    let finalName = dto.fileName;
+    // 4. Filename Sanitization & Deduplication
+    const sanitizedInputName = this.sanitizeFilename(dto.fileName);
+    let finalName = sanitizedInputName;
     const existingFiles = await this.fileRepository.findAllByUserId(userId, {
       folderId: folderId,
       isDeleted: false,
@@ -139,5 +140,14 @@ export class InitiateUploadUseCase {
     }
 
     return currentParentId!;
+  }
+
+  /**
+   * Enterprise Safety: Sanitize user-provided filename
+   */
+  private sanitizeFilename(filename: string): string {
+    // Keep alphanumeric, dots, underscores, and hyphens.
+    // Replace anything else (including path separators) with an underscore.
+    return filename.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   }
 }

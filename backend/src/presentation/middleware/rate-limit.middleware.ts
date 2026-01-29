@@ -1,6 +1,6 @@
 /**
  * Rate Limiting Middleware
- * 
+ *
  * Protects endpoints from brute force attacks and abuse.
  */
 
@@ -85,3 +85,21 @@ export const refreshRateLimiter = rateLimit({
   },
 });
 
+/**
+ * Strict rate limiter for resource-heavy mutations
+ * 30 requests per 15 minutes per IP
+ */
+export const strictMutationRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30, // Limit each IP to 30 mutations per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req: Request, res: Response) => {
+    ResponseUtil.error(
+      res,
+      'RATE_LIMIT_EXCEEDED',
+      'Too many write requests, please try again later.',
+      429
+    );
+  },
+});

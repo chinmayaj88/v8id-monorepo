@@ -7,7 +7,7 @@ import { z } from 'zod';
 const envSchema = z.object({
   port: z.coerce.number().default(4000),
   nodeEnv: z.enum(['development', 'production', 'test']).default('development'),
-  corsOrigin: z.string().default('*'),
+  corsOrigin: z.string().min(1).default('http://localhost:3000,http://localhost:5173'),
   trustProxy: z.string().default('false'),
 });
 
@@ -30,5 +30,3 @@ function loadEnvConfig(): EnvConfig {
 }
 
 export const envConfig = loadEnvConfig();
-
-

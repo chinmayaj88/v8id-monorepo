@@ -58,6 +58,7 @@ export class AuditLogService implements IAuditLogService {
       'refreshToken',
       'newPassword',
       'oldPassword',
+      'currentPassword',
     ];
     const sanitized = { ...data };
 

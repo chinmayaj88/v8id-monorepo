@@ -3,6 +3,7 @@ import multer from 'multer';
 import { filesContainer } from '../../infrastructure/di/index.js';
 import { sharedContainer } from '../../infrastructure/di/index.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { strictMutationRateLimiter } from '../middleware/rate-limit.middleware.js';
 import { validateBody, initiateUploadSchema, completeUploadSchema } from '../validators/index.js';
 
 // Setup Auth Middleware
@@ -31,12 +32,15 @@ router.get('/shared', (req, res) => filesContainer.shareController.listSharedWit
 // Analytics
 router.get('/analytics', (req, res) => filesContainer.fileController.getAnalytics(req, res));
 
-router.post('/upload', upload.single('file'), (req, res) =>
+router.post('/upload', upload.single('file'), strictMutationRateLimiter, (req, res) =>
   filesContainer.fileController.upload(req, res)
 );
 
-router.post('/upload/initiate', validateBody(initiateUploadSchema), (req, res) =>
-  filesContainer.fileController.initiateUpload(req, res)
+router.post(
+  '/upload/initiate',
+  strictMutationRateLimiter,
+  validateBody(initiateUploadSchema),
+  (req, res) => filesContainer.fileController.initiateUpload(req, res)
 );
 
 router.post('/upload/complete', validateBody(completeUploadSchema), (req, res) =>
@@ -44,9 +48,17 @@ router.post('/upload/complete', validateBody(completeUploadSchema), (req, res) =
 );
 
 // File operations
-router.post('/:id/share', (req, res) => filesContainer.shareController.createShare(req, res));
-router.post('/:id/link', (req, res) => filesContainer.fileController.generateLink(req, res));
-router.delete('/:id', (req, res) => filesContainer.fileController.delete(req, res));
-router.post('/:id/restore', (req, res) => filesContainer.fileController.restore(req, res));
+router.post('/:id/share', strictMutationRateLimiter, (req, res) =>
+  filesContainer.shareController.createShare(req, res)
+);
+router.post('/:id/link', strictMutationRateLimiter, (req, res) =>
+  filesContainer.fileController.generateLink(req, res)
+);
+router.delete('/:id', strictMutationRateLimiter, (req, res) =>
+  filesContainer.fileController.delete(req, res)
+);
+router.post('/:id/restore', strictMutationRateLimiter, (req, res) =>
+  filesContainer.fileController.restore(req, res)
+);
 
 export default router;
