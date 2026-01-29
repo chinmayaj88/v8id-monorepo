@@ -93,7 +93,13 @@ const fileService = {
     folderId?: string | null;
     path?: string;
     tier?: string;
-  }) => {
+  }): Promise<{
+    ociUploadId?: string;
+    parUrl: string;
+    storageKey: string;
+    fileName: string;
+    isMultipart: boolean;
+  }> => {
     const response = await apiClient.post('/files/upload/initiate', params);
     return response.data?.data;
   },
@@ -117,6 +123,8 @@ const fileService = {
     size: number;
     folderId?: string | null;
     tier?: string;
+    ociUploadId?: string;
+    parts?: { partNumber: number; etag: string }[];
   }) => {
     const response = await apiClient.post('/files/upload/complete', params);
     return response.data?.data;

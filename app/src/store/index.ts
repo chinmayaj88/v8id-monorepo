@@ -7,7 +7,7 @@ export const store = configureStore({
   reducer: {
     auth: authReducer,
     ui: uiReducer,
-    upload: uploadReducer,
+    transfer: uploadReducer,
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({

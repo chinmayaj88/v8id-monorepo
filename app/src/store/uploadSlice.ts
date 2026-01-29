@@ -1,53 +1,67 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-export type UploadStatus =
+export type TaskStatus =
   | 'PENDING'
   | 'UPLOADING'
+  | 'DOWNLOADING'
+  | 'PAUSED'
+  | 'RESUMING'
   | 'COMPLETED'
   | 'FAILED'
   | 'CANCELLED';
 
-export interface UploadTask {
+export type TransferType = 'UPLOAD' | 'DOWNLOAD';
+
+export interface TransferTask {
   id: string;
   name: string;
   size: number;
   progress: number;
-  status: UploadStatus;
+  status: TaskStatus;
+  type: TransferType;
   error?: string;
   folderId?: string | null;
   path?: string;
-  uri: string;
-  type: string;
+  uri?: string; // Local URI for upload, remote URL or target path for download
+  mimeType?: string;
   startTime?: number;
   endTime?: number;
   retryCount: number;
+  ociUploadId?: string;
+  isMultipart?: boolean;
+  completedChunks?: { partNumber: number; etag: string }[];
+  storageKey?: string;
+  parUrl?: string; // PAR URL for upload/download
 }
 
-interface UploadState {
-  tasks: UploadTask[];
+// Keep UploadTask for backward compatibility
+export type UploadTask = TransferTask;
+
+interface TransferState {
+  tasks: TransferTask[];
   isTransferring: boolean;
 }
 
-const initialState: UploadState = {
+const initialState: TransferState = {
   tasks: [],
   isTransferring: false,
 };
 
-const uploadSlice = createSlice({
-  name: 'upload',
+const transferSlice = createSlice({
+  name: 'transfer',
   initialState,
   reducers: {
-    addTask: (state, action: PayloadAction<UploadTask>) => {
+    addTask: (state, action: PayloadAction<TransferTask>) => {
       state.tasks.push(action.payload);
       state.isTransferring = true;
     },
-    addTasks: (state, action: PayloadAction<UploadTask[]>) => {
+    addTasks: (state, action: PayloadAction<TransferTask[]>) => {
       state.tasks.push(...action.payload);
       state.isTransferring = true;
     },
     updateTask: (
       state,
-      action: PayloadAction<{ id: string; updates: Partial<UploadTask> }>,
+      action: PayloadAction<{ id: string; updates: Partial<TransferTask> }>,
     ) => {
       const index = state.tasks.findIndex(t => t.id === action.payload.id);
       if (index !== -1) {
@@ -59,21 +73,39 @@ const uploadSlice = createSlice({
 
       // Update global isTransferring status
       state.isTransferring = state.tasks.some(
-        t => t.status === 'PENDING' || t.status === 'UPLOADING',
+        t =>
+          t.status === 'PENDING' ||
+          t.status === 'UPLOADING' ||
+          t.status === 'DOWNLOADING' ||
+          t.status === 'RESUMING',
       );
     },
     removeTask: (state, action: PayloadAction<string>) => {
       state.tasks = state.tasks.filter(t => t.id !== action.payload);
       state.isTransferring = state.tasks.some(
-        t => t.status === 'PENDING' || t.status === 'UPLOADING',
+        t =>
+          t.status === 'PENDING' ||
+          t.status === 'UPLOADING' ||
+          t.status === 'DOWNLOADING' ||
+          t.status === 'RESUMING',
       );
     },
     clearCompleted: state => {
       state.tasks = state.tasks.filter(
-        t => t.status !== 'COMPLETED' && t.status !== 'CANCELLED',
+        t =>
+          t.status !== 'COMPLETED' &&
+          t.status !== 'CANCELLED' &&
+          t.status !== 'FAILED',
+      );
+      state.isTransferring = state.tasks.some(
+        t =>
+          t.status === 'PENDING' ||
+          t.status === 'UPLOADING' ||
+          t.status === 'DOWNLOADING' ||
+          t.status === 'RESUMING',
       );
     },
-    resetUploadState: state => {
+    resetTransferState: state => {
       state.tasks = [];
       state.isTransferring = false;
     },
@@ -86,7 +118,8 @@ export const {
   updateTask,
   removeTask,
   clearCompleted,
-  resetUploadState,
-} = uploadSlice.actions;
+  resetTransferState,
+} = transferSlice.actions;
 
-export default uploadSlice.reducer;
+// Reducer export
+export default transferSlice.reducer;

@@ -23,6 +23,16 @@ export interface IStorageService {
     metadata?: Record<string, string>;
   }>;
 
+  downloadFileRange(
+    objectName: string,
+    range: { start: number; end: number },
+    tier?: StorageTier
+  ): Promise<{
+    file: Buffer;
+    totalSize: number;
+    contentType: string;
+  }>;
+
   deleteFile(objectName: string, tier?: StorageTier): Promise<void>;
 
   fileExists(objectName: string, tier?: StorageTier): Promise<boolean>;
@@ -49,12 +59,36 @@ export interface IStorageService {
   createPreAuthenticatedRequest(params: {
     objectName: string;
     expiresInHours?: number;
-    accessType?: 'ObjectRead' | 'ObjectWrite' | 'ObjectReadWrite';
+    accessType?: 'ObjectRead' | 'ObjectWrite' | 'ObjectReadWrite' | 'MultipartUploadWrite';
     tier?: StorageTier;
   }): Promise<{
     parUrl: string;
     parId: string;
   }>;
+
+  /**
+   * Multipart Upload Methods (Backend-mediated or for generating part URLs)
+   */
+  createMultipartUpload(
+    objectName: string,
+    contentType: string,
+    tier?: StorageTier
+  ): Promise<{ uploadId: string }>;
+
+  uploadPart(
+    uploadId: string,
+    objectName: string,
+    partNumber: number,
+    file: Buffer,
+    tier?: StorageTier
+  ): Promise<{ etag: string }>;
+
+  commitMultipartUpload(
+    uploadId: string,
+    objectName: string,
+    parts: { partNumber: number; etag: string }[],
+    tier?: StorageTier
+  ): Promise<void>;
 
   /**
    * Delete Pre-Authenticated Request (PAR)

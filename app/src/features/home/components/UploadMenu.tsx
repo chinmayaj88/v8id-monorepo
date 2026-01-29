@@ -9,6 +9,7 @@ import {
   Animated,
   Dimensions,
   Platform,
+  TextInput,
 } from 'react-native';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
@@ -23,6 +24,8 @@ import {
 import { uploadManager } from '../services/UploadManager';
 import fileService from '../../../services/api/fileService';
 import { Alert } from 'react-native';
+import AppModal from '../../../components/AppModal';
+import { useState } from 'react';
 
 interface UploadMenuProps {
   visible: boolean;
@@ -35,6 +38,8 @@ const UploadMenu: React.FC<UploadMenuProps> = ({
   onClose,
   folderId,
 }) => {
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const handlePickMedia = async () => {
     onClose();
     try {
@@ -47,7 +52,7 @@ const UploadMenu: React.FC<UploadMenuProps> = ({
         const files = result.assets.map((asset: any) => ({
           uri: asset.uri!,
           name: asset.fileName || `file_${Date.now()}`,
-          type: asset.type || 'application/octet-stream',
+          mimeType: asset.type || 'application/octet-stream',
           size: asset.fileSize || 0,
         }));
         uploadManager.enqueue(files, folderId);
@@ -68,7 +73,7 @@ const UploadMenu: React.FC<UploadMenuProps> = ({
       const files = results.map((file: any) => ({
         uri: file.uri,
         name: file.name || `file_${Date.now()}`,
-        type: file.type || 'application/octet-stream',
+        mimeType: file.type || 'application/octet-stream',
         size: file.size || 0,
       }));
       uploadManager.enqueue(files, folderId);
@@ -82,31 +87,25 @@ const UploadMenu: React.FC<UploadMenuProps> = ({
   };
 
   const handleCreateFolder = () => {
-    onClose();
-    Alert.prompt(
-      'New Folder',
-      'Enter a name for the new folder',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Create',
-          onPress: (name?: string) => {
-            if (name && name.trim()) {
-              fileService
-                .createFolder(name.trim(), folderId || undefined)
-                .catch(error => {
-                  console.error('Failed to create folder:', error);
-                  Alert.alert('Error', 'Failed to create folder');
-                });
-            }
-          },
-        },
-      ],
-      'plain-text',
-    );
+    setNewFolderName('');
+    setShowCreateFolderModal(true);
+  };
+
+  const submitCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+
+    try {
+      await fileService.createFolder(
+        newFolderName.trim(),
+        folderId || undefined,
+      );
+      setShowCreateFolderModal(false);
+      onClose(); // Close the menu too
+      // Note: FolderScreen should refresh. If we want it to refresh automatically,
+      // we might need a callback or a global event.
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create folder');
+    }
   };
 
   return (
@@ -185,6 +184,32 @@ const UploadMenu: React.FC<UploadMenuProps> = ({
           </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
+      <AppModal
+        visible={showCreateFolderModal}
+        onClose={() => setShowCreateFolderModal(false)}
+        title="New Folder"
+        icon="create-new-folder"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowCreateFolderModal(false),
+            variant: 'secondary',
+          },
+          {
+            text: 'Create',
+            onPress: submitCreateFolder,
+            variant: 'primary',
+          },
+        ]}
+      >
+        <TextInput
+          style={styles.input}
+          placeholder="Folder name"
+          value={newFolderName}
+          onChangeText={setNewFolderName}
+          autoFocus={true}
+        />
+      </AppModal>
     </Modal>
   );
 };
@@ -247,6 +272,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#64748B',
+  },
+  input: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 8,
+    marginBottom: 20,
   },
 });
 

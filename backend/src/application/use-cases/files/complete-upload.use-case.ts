@@ -8,6 +8,8 @@ export interface CompleteUploadDTO {
   size: bigint;
   folderId?: string | null;
   tier?: StorageTier;
+  ociUploadId?: string;
+  parts?: { partNumber: number; etag: string }[];
 }
 
 export class CompleteUploadUseCase {
@@ -18,7 +20,21 @@ export class CompleteUploadUseCase {
   ) {}
 
   async execute(userId: string, dto: CompleteUploadDTO): Promise<File> {
-    // 1. Verify file exists in storage
+    // 1. If Multipart, Commit it first
+    if (dto.ociUploadId && dto.parts && dto.parts.length > 0) {
+      // Enterprise Optimization: Ensure parts are sorted by partNumber
+      // OCI strictly requires parts to be committed in order
+      const sortedParts = [...dto.parts].sort((a, b) => a.partNumber - b.partNumber);
+
+      await this.storageService.commitMultipartUpload(
+        dto.ociUploadId,
+        dto.storageKey,
+        sortedParts,
+        dto.tier
+      );
+    }
+
+    // 2. Verify file exists in storage
     const exists = await this.storageService.fileExists(dto.storageKey, dto.tier);
     if (!exists) {
       throw new Error('File not found in storage. Upload may have failed.');

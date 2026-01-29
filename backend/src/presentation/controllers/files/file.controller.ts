@@ -60,7 +60,7 @@ export class FileController {
         return;
       }
 
-      const { storageKey, fileName, mimeType, size, folderId, tier } = req.body;
+      const { storageKey, fileName, mimeType, size, folderId, tier, ociUploadId, parts } = req.body;
 
       if (!storageKey || !fileName || !mimeType || size === undefined) {
         ResponseUtil.validationError(res, 'Missing required fields for complete upload');
@@ -74,6 +74,8 @@ export class FileController {
         size: BigInt(size),
         folderId,
         tier,
+        ociUploadId,
+        parts,
       });
 
       // Convert BigInt for JSON

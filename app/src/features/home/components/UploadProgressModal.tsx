@@ -11,9 +11,17 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../../../theme/colors';
 import AppModal from '../../../components/AppModal';
 import { useUploadProgress } from '../services/UploadManager';
+import { downloadManager } from '../services/DownloadManager';
 
 const UploadProgressModal: React.FC = () => {
-  const { tasks, activeTasks, clearCompleted } = useUploadProgress();
+  const {
+    tasks,
+    activeTasks,
+    clearCompleted,
+    pauseTask,
+    resumeTask,
+    stopTask,
+  } = useUploadProgress();
 
   if (tasks.length === 0) return null;
 
@@ -25,30 +33,32 @@ const UploadProgressModal: React.FC = () => {
         <View style={styles.header}>
           <Text style={styles.title}>
             {isAnyActive
-              ? `Uploading ${activeTasks.length} items...`
-              : 'Uploads Completed'}
+              ? `Processing ${activeTasks.length} items...`
+              : 'All activities completed'}
           </Text>
-          {!isAnyActive && (
-            <TouchableOpacity onPress={clearCompleted}>
-              <MaterialIcons name="close" size={20} color="#64748B" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={clearCompleted}>
+            <MaterialIcons name="close" size={20} color="#64748B" />
+          </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.taskList}>
-          {tasks.map(task => (
+          {tasks.map((task: any) => (
             <View key={task.id} style={styles.taskItem}>
               <View style={styles.taskInfo}>
                 <MaterialIcons
                   name={
                     task.status === 'COMPLETED'
                       ? 'check-circle'
+                      : task.status === 'PAUSED'
+                      ? 'pause-circle-filled'
                       : 'insert-drive-file'
                   }
                   size={24}
                   color={
                     task.status === 'COMPLETED'
                       ? Colors.success
+                      : task.status === 'PAUSED'
+                      ? '#64748B'
                       : Colors.purple.vibrant
                   }
                 />
@@ -59,13 +69,64 @@ const UploadProgressModal: React.FC = () => {
                   <Text style={styles.taskStatus}>
                     {task.status === 'UPLOADING'
                       ? `Uploading... ${task.progress}%`
+                      : task.status === 'DOWNLOADING'
+                      ? `Downloading... ${task.progress}%`
+                      : task.status === 'PAUSED'
+                      ? `Paused at ${task.progress}%`
                       : task.status}
                   </Text>
                 </View>
               </View>
-              {task.status === 'UPLOADING' && (
-                <ActivityIndicator size="small" color={Colors.purple.vibrant} />
-              )}
+
+              <View style={styles.actionButtons}>
+                {(task.status === 'UPLOADING' ||
+                  task.status === 'DOWNLOADING' ||
+                  task.status === 'PENDING') && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (task.type === 'UPLOAD') pauseTask(task.id);
+                      else downloadManager.pauseDownload(task.id);
+                    }}
+                    style={styles.iconButton}
+                  >
+                    <MaterialIcons name="pause" size={20} color="#64748B" />
+                  </TouchableOpacity>
+                )}
+                {task.status === 'PAUSED' && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (task.type === 'UPLOAD') resumeTask(task.id);
+                      else downloadManager.resumeDownload(task.id);
+                    }}
+                    style={styles.iconButton}
+                  >
+                    <MaterialIcons
+                      name="play-arrow"
+                      size={20}
+                      color={Colors.purple.vibrant}
+                    />
+                  </TouchableOpacity>
+                )}
+                {(task.status === 'UPLOADING' ||
+                  task.status === 'DOWNLOADING' ||
+                  task.status === 'PENDING' ||
+                  task.status === 'PAUSED') && (
+                  <TouchableOpacity
+                    onPress={() => stopTask(task.id)}
+                    style={styles.iconButton}
+                  >
+                    <MaterialIcons name="stop" size={20} color={Colors.error} />
+                  </TouchableOpacity>
+                )}
+                {(task.status === 'UPLOADING' ||
+                  task.status === 'DOWNLOADING') && (
+                  <ActivityIndicator
+                    size="small"
+                    color={Colors.purple.vibrant}
+                    style={{ marginLeft: 8 }}
+                  />
+                )}
+              </View>
             </View>
           ))}
         </ScrollView>
@@ -134,6 +195,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#64748B',
     marginTop: 2,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  iconButton: {
+    padding: 4,
+    marginLeft: 4,
   },
 });
 

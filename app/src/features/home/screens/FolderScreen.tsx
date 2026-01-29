@@ -9,6 +9,7 @@ import {
   ScrollView,
   Share,
   Alert,
+  TextInput,
 } from 'react-native';
 import { API_URL } from '@env';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,6 +30,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
 import { uploadManager } from '../services/UploadManager';
+import { downloadManager } from '../services/DownloadManager';
 
 type SubTab = 'FOLDERS' | 'FILES';
 
@@ -48,6 +50,8 @@ const FolderScreen = () => {
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const dispatch = useAppDispatch();
   const [itemToShare, setItemToShare] = useState<any>(null);
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   // Modal State
   const [modalConfig, setModalConfig] = useState<{
@@ -166,7 +170,7 @@ const FolderScreen = () => {
         const files = result.assets.map((asset: any) => ({
           uri: asset.uri!,
           name: asset.fileName || `file_${Date.now()}`,
-          type: asset.type || 'application/octet-stream',
+          mimeType: asset.type || 'application/octet-stream',
           size: asset.fileSize || 0,
         }));
         uploadManager.enqueue(files, parentId);
@@ -177,27 +181,23 @@ const FolderScreen = () => {
   };
 
   const handleCreateFolder = () => {
-    Alert.prompt(
-      'New Folder',
-      'Enter a name for the new folder',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Create',
-          onPress: (name?: string) => {
-            if (name && name.trim()) {
-              fileService
-                .createFolder(name.trim(), parentId || undefined)
-                .then(() => loadContents())
-                .catch(error => {
-                  Alert.alert('Error', 'Failed to create folder');
-                });
-            }
-          },
-        },
-      ],
-      'plain-text',
-    );
+    setNewFolderName('');
+    setShowCreateFolderModal(true);
+  };
+
+  const submitCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+
+    try {
+      await fileService.createFolder(
+        newFolderName.trim(),
+        parentId || undefined,
+      );
+      setShowCreateFolderModal(false);
+      loadContents();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to create folder');
+    }
   };
 
   const handleDelete = async (item: any) => {
@@ -311,7 +311,14 @@ const FolderScreen = () => {
         isRevealed={revealedFileId === item.id}
         onExpand={() => setRevealedFileId(item.id)}
         onCollapse={() => revealedFileId === item.id && setRevealedFileId(null)}
-        onDownload={() => {}}
+        onDownload={() => {
+          downloadManager.startDownload(
+            item.id,
+            item.name,
+            item.size,
+            item.mimeType,
+          );
+        }}
         onDelete={() => handleDelete(item)}
         onShare={() => handleShare(item)}
         onClick={() => {
@@ -486,6 +493,32 @@ const FolderScreen = () => {
         onClose={() => setShareModalVisible(false)}
         item={itemToShare}
       />
+      <AppModal
+        visible={showCreateFolderModal}
+        onClose={() => setShowCreateFolderModal(false)}
+        title="New Folder"
+        icon="create-new-folder"
+        actions={[
+          {
+            text: 'Cancel',
+            onPress: () => setShowCreateFolderModal(false),
+            variant: 'secondary',
+          },
+          {
+            text: 'Create',
+            onPress: submitCreateFolder,
+            variant: 'primary',
+          },
+        ]}
+      >
+        <TextInput
+          style={styles.input}
+          placeholder="Folder name"
+          value={newFolderName}
+          onChangeText={setNewFolderName}
+          autoFocus
+        />
+      </AppModal>
       <UploadProgressModal />
     </SafeAreaView>
   );
@@ -680,6 +713,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     zIndex: 900,
+  },
+  input: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 8,
+    marginBottom: 20,
   },
 });
 

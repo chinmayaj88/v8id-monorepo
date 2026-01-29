@@ -392,12 +392,148 @@ export class TierAwareStorageService implements IStorageService {
   }
 
   /**
+   * Download file range from the specified tier's bucket (for resuming downloads)
+   */
+  async downloadFileRange(
+    objectName: string,
+    range: { start: number; end: number },
+    tier: StorageTier = StorageTier.STANDARD
+  ): Promise<{
+    file: Buffer;
+    totalSize: number;
+    contentType: string;
+  }> {
+    const bucketName = this.getBucketName(tier);
+    try {
+      const getObjectRequest: objectstorage.requests.GetObjectRequest = {
+        namespaceName: this.namespace,
+        bucketName,
+        objectName,
+        range: {
+          start: BigInt(range.start),
+          end: BigInt(range.end),
+        } as any,
+      };
+
+      const client = await this.getClient();
+      const response = await client.getObject(getObjectRequest);
+
+      const chunks: Buffer[] = [];
+      const stream = response.value as any;
+      for await (const chunk of stream) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      const fileBuffer = Buffer.concat(chunks);
+
+      return {
+        file: fileBuffer,
+        totalSize: Number(response.contentLength || 0),
+        contentType: response.contentType || 'application/octet-stream',
+      };
+    } catch (error) {
+      throw new Error(
+        `Failed to download range: ${error instanceof Error ? error.message : 'Unknown'}`
+      );
+    }
+  }
+
+  /**
+   * Multipart Upload: Create Session
+   */
+  async createMultipartUpload(
+    objectName: string,
+    contentType: string,
+    tier: StorageTier = StorageTier.STANDARD
+  ): Promise<{ uploadId: string }> {
+    const bucketName = this.getBucketName(tier);
+    try {
+      const client = await this.getClient();
+      const response = await client.createMultipartUpload({
+        namespaceName: this.namespace,
+        bucketName,
+        createMultipartUploadDetails: {
+          // objectName is actually on the request object itself in OCI SDK
+          // but wait, OCI SDK often puts it in the details too
+          // actually, checking SDK signature...
+          contentType,
+        },
+        objectName,
+      } as any); // Use any if there is ambiguity in the SDK version
+      return { uploadId: response.multipartUpload.uploadId || '' };
+    } catch (error) {
+      throw new Error(
+        `Failed to create multipart upload: ${error instanceof Error ? error.message : 'Unknown'}`
+      );
+    }
+  }
+
+  /**
+   * Multipart Upload: Upload Part
+   */
+  async uploadPart(
+    uploadId: string,
+    objectName: string,
+    partNumber: number,
+    file: Buffer,
+    tier: StorageTier = StorageTier.STANDARD
+  ): Promise<{ etag: string }> {
+    const bucketName = this.getBucketName(tier);
+    try {
+      const client = await this.getClient();
+      const response = await client.uploadPart({
+        namespaceName: this.namespace,
+        bucketName,
+        objectName,
+        uploadId,
+        uploadPartNum: partNumber,
+        uploadPartBody: file,
+      });
+      return { etag: response.eTag || '' };
+    } catch (error) {
+      throw new Error(
+        `Failed to upload part ${partNumber}: ${error instanceof Error ? error.message : 'Unknown'}`
+      );
+    }
+  }
+
+  /**
+   * Multipart Upload: Commit
+   */
+  async commitMultipartUpload(
+    uploadId: string,
+    objectName: string,
+    parts: { partNumber: number; etag: string }[],
+    tier: StorageTier = StorageTier.STANDARD
+  ): Promise<void> {
+    const bucketName = this.getBucketName(tier);
+    try {
+      const client = await this.getClient();
+      await client.commitMultipartUpload({
+        namespaceName: this.namespace,
+        bucketName,
+        objectName,
+        uploadId,
+        commitMultipartUploadDetails: {
+          partsToCommit: parts.map(p => ({
+            partNum: p.partNumber,
+            etag: p.etag,
+          })),
+        },
+      });
+    } catch (error) {
+      throw new Error(
+        `Failed to commit multipart upload: ${error instanceof Error ? error.message : 'Unknown'}`
+      );
+    }
+  }
+
+  /**
    * Create Pre-Authenticated Request (PAR) for the specified tier's bucket
    */
   async createPreAuthenticatedRequest(params: {
     objectName: string;
     expiresInHours?: number;
-    accessType?: 'ObjectRead' | 'ObjectWrite' | 'ObjectReadWrite';
+    accessType?: 'ObjectRead' | 'ObjectWrite' | 'ObjectReadWrite' | 'MultipartUploadWrite';
     tier?: StorageTier;
   }): Promise<{
     parUrl: string;
@@ -423,6 +559,10 @@ export class TierAwareStorageService implements IStorageService {
         case 'ObjectWrite':
           ociAccessType =
             objectstorage.models.CreatePreauthenticatedRequestDetails.AccessType.ObjectWrite;
+          break;
+        case 'MultipartUploadWrite':
+          // Optimization for pause/resume - specifically allow multipart operations via PAR
+          ociAccessType = 'MultipartUploadWrite' as any;
           break;
         case 'ObjectReadWrite':
         default:

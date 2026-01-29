@@ -251,7 +251,9 @@
                   "    const jsonData = pm.response.json();",
                   "    if (jsonData.success && jsonData.data) {",
                   "        pm.environment.set(\"uploadId\", jsonData.data.uploadId);",
-                  "        console.log(\"✅ uploadId saved to environment\");",
+                  "        pm.environment.set(\"ociUploadId\", jsonData.data.ociUploadId);",
+                  "        pm.environment.set(\"storageKey\", jsonData.data.storageKey);",
+                  "        console.log(\"✅ uploadId, ociUploadId, and storageKey saved to environment\");",
                   "    }",
                   "}"
                 ],
@@ -298,7 +300,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"storageKey\": \"uploads/{{userId}}/{{uploadId}}\",\n    \"fileName\": \"large-video.mp4\",\n    \"mimeType\": \"video/mp4\",\n    \"size\": 52428800,\n    \"folderId\": \"{{folderId}}\",\n    \"tier\": \"STANDARD\"\n}",
+              "raw": "{\n    \"storageKey\": \"{{storageKey}}\",\n    \"fileName\": \"large-video.mp4\",\n    \"mimeType\": \"video/mp4\",\n    \"size\": 52428800,\n    \"folderId\": \"{{folderId}}\",\n    \"tier\": \"STANDARD\",\n    \"ociUploadId\": \"{{ociUploadId}}\",\n    \"parts\": [\n        { \"partNumber\": 1, \"etag\": \"example-etag-1\" },\n        { \"partNumber\": 2, \"etag\": \"example-etag-2\" }\n    ]\n}",
               "options": {
                 "raw": {
                   "language": "json"

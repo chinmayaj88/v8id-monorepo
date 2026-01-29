@@ -19,6 +19,9 @@ export interface InitiateUploadResult {
   uploadId: string;
   parUrl: string;
   storageKey: string;
+  fileName: string; // The final deduplicated filename
+  ociUploadId?: string; // For chunked/resumable uploads
+  isMultipart: boolean;
 }
 
 export class InitiateUploadUseCase {
@@ -63,18 +66,35 @@ export class InitiateUploadUseCase {
     const fileUuid = crypto.randomUUID();
     const storageKey = `${userId}/${fileUuid}-${finalName}`;
 
-    // 6. Create PAR for direct upload to OCI
+    // 6. Handle Large Files with Multipart Upload (optimized for pause/resume)
+    const CHUNK_THRESHOLD = 10 * 1024 * 1024; // 10MB
+    const isMultipart = dto.size > BigInt(CHUNK_THRESHOLD);
+    let ociUploadId: string | undefined;
+
+    if (isMultipart) {
+      const multipart = await this.storageService.createMultipartUpload(
+        storageKey,
+        dto.mimeType,
+        dto.tier
+      );
+      ociUploadId = multipart.uploadId;
+    }
+
+    // 7. Create PAR (optimized access type for multipart if needed)
     const { parUrl, parId } = await this.storageService.createPreAuthenticatedRequest({
       objectName: storageKey,
-      accessType: 'ObjectWrite',
+      accessType: isMultipart ? 'MultipartUploadWrite' : 'ObjectWrite',
       tier: dto.tier || StorageTier.STANDARD,
-      expiresInHours: 24, // Allow 24h for upload
+      expiresInHours: 24,
     });
 
     return {
       uploadId: parId,
       parUrl,
       storageKey,
+      fileName: finalName,
+      ociUploadId,
+      isMultipart,
     };
   }
 
