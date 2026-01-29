@@ -15,19 +15,6 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setUploadMenuVisible } from '../store/uiSlice';
 import UploadMenu from '../features/home/components/UploadMenu';
 
-const Placeholder = ({ name }: { name: string }) => (
-  <View
-    style={{
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: '#FAFAFA',
-    }}
-  >
-    <Text style={{ fontSize: 18, color: '#333' }}>{name} Screen</Text>
-  </View>
-);
-
 export type TabParamList = {
   Home: undefined;
   Files: undefined;
@@ -161,7 +148,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 35,
   },
   capsule: {
     flexDirection: 'row',
