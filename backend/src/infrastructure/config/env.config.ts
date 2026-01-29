@@ -9,6 +9,7 @@ const envSchema = z.object({
   nodeEnv: z.enum(['development', 'production', 'test']).default('development'),
   corsOrigin: z.string().min(1).default('http://localhost:3000,http://localhost:5173'),
   trustProxy: z.string().default('false'),
+  vaultMasterKey: z.string().default('v8id-vault-default-master-key-change-me'),
 });
 
 type EnvConfig = z.infer<typeof envSchema>;
@@ -19,6 +20,7 @@ function loadEnvConfig(): EnvConfig {
     nodeEnv: process.env.NODE_ENV,
     corsOrigin: process.env.CORS_ORIGIN,
     trustProxy: process.env.TRUST_PROXY,
+    vaultMasterKey: process.env.VAULT_MASTER_KEY,
   });
 
   if (!result.success) {

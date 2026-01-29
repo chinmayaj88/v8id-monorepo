@@ -7,10 +7,10 @@ import {
 import HomeScreen from '../features/home/screens/HomeScreen';
 import ProfileScreen from '../features/user/screens/ProfileScreen';
 import FolderScreen from '../features/home/screens/FolderScreen';
-import SharedScreen from '../features/home/screens/SharedScreen';
+import VaultScreen from '../features/vault/screens/VaultScreen';
 import { Colors } from '../theme/colors';
 // @ts-ignore
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { setUploadMenuVisible } from '../store/uiSlice';
 import UploadMenu from '../features/home/components/UploadMenu';
@@ -31,7 +31,7 @@ const Placeholder = ({ name }: { name: string }) => (
 export type TabParamList = {
   Home: undefined;
   Files: undefined;
-  Shared: undefined;
+  Vault: undefined;
   Profile: undefined;
   Media: undefined;
 };
@@ -63,7 +63,7 @@ const TabButton = ({ route, state, descriptors, navigation, icon }: any) => {
       accessibilityLabel={options.tabBarAccessibilityLabel}
     >
       <View style={[styles.iconCircle, isFocused && styles.iconCircleSelected]}>
-        <MaterialIcons
+        <Icon
           name={icon}
           size={24}
           color={isFocused ? Colors.black : 'rgba(255,255,255,0.6)'}
@@ -94,7 +94,7 @@ const CustomTabBarV2 = ({
           state={state}
           descriptors={descriptors}
           navigation={navigation}
-          icon="folder-open"
+          icon="folder-outline"
         />
 
         <View style={{ width: 60 }} />
@@ -104,14 +104,14 @@ const CustomTabBarV2 = ({
           state={state}
           descriptors={descriptors}
           navigation={navigation}
-          icon="share"
+          icon="shield-lock-outline"
         />
         <TabButton
           route={state.routes[3]}
           state={state}
           descriptors={descriptors}
           navigation={navigation}
-          icon="person-outline"
+          icon="account-outline"
         />
       </View>
 
@@ -120,7 +120,7 @@ const CustomTabBarV2 = ({
         onPress={() => dispatch(setUploadMenuVisible(true))}
         activeOpacity={0.9}
       >
-        <MaterialIcons name="add" size={30} color="#FFF" />
+        <Icon name="plus" size={30} color="#FFF" />
       </TouchableOpacity>
     </View>
   );
@@ -142,7 +142,7 @@ const TabNavigator = () => {
       >
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Files" component={FolderScreen} />
-        <Tab.Screen name="Shared" component={SharedScreen} />
+        <Tab.Screen name="Vault" component={VaultScreen} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
       <UploadMenu

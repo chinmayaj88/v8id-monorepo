@@ -53,6 +53,7 @@ model User {
   files           File[]
   fileShares      FileShare[]
   folderShares    FolderShare[]
+  vaultSecrets    VaultSecret[]
 
   @@index([email])
   @@index([isActive])
@@ -247,4 +248,29 @@ model FolderShare {
   @@index([token])
   @@index([sharedWith])
   @@map("folder_shares")
+}
+
+// ----------------------------------------------------------------------
+// Password Vault System
+// ----------------------------------------------------------------------
+
+model VaultSecret {
+  id                String   @id @default(cuid())
+  userId            String
+  name              String   // e.g., "Google Account"
+  url               String?  // e.g., "https://google.com"
+  username          String?
+  encryptedPassword String   @db.Text
+  iv                String   // Initialization vector for AES-256-GCM
+  authTag           String   // Authentication tag for AES-256-GCM
+  notes             String?  @db.Text
+  category          String   @default("GENERAL") // SOCIAL, WORK, BANKING, etc.
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([url])
+  @@map("vault_secrets")
 }
