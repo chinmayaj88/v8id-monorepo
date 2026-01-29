@@ -6,10 +6,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  Dimensions,
 } from 'react-native';
+// @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { Colors } from '../theme/colors';
+import { Colors, Typography } from '../theme';
 
 interface Action {
   text: string;
@@ -26,32 +26,23 @@ interface AppModalProps {
   variant?: 'default' | 'danger' | 'success' | 'info';
   actions?: Action[];
   children?: React.ReactNode;
+  badge?: string; // Kept for backward compatibility
+  label?: string; // New prop name from Gxx
 }
-
-const { width } = Dimensions.get('window');
 
 const AppModal: React.FC<AppModalProps> = ({
   visible,
   onClose,
   title,
   description,
-  icon,
   variant = 'default',
   actions = [],
   children,
+  badge,
+  label,
 }) => {
-  const getIconColor = () => {
-    switch (variant) {
-      case 'danger':
-        return Colors.error;
-      case 'success':
-        return Colors.success;
-      case 'info':
-        return Colors.secondary;
-      default:
-        return Colors.primary;
-    }
-  };
+  // Prefer label, fallback to badge, fallback to generic
+  const displayLabel = label || badge || 'DETAILS';
 
   const getButtonStyles = (btnVariant: Action['variant'] = 'primary') => {
     switch (btnVariant) {
@@ -74,8 +65,9 @@ const AppModal: React.FC<AppModalProps> = ({
           border: Colors.border,
         };
       default:
+        // Primary
         return {
-          bg: Colors.primary,
+          bg: Colors.primary, // Purple
           text: Colors.white,
           border: Colors.primary,
         };
@@ -92,64 +84,70 @@ const AppModal: React.FC<AppModalProps> = ({
       <TouchableOpacity
         style={styles.overlay}
         activeOpacity={1}
-        onPress={onClose} // Optional: close on backdrop click
+        onPress={onClose}
       >
         <TouchableWithoutFeedback>
           <View style={styles.modalContainer}>
-            {/* Header Icon */}
-            {icon && (
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: `${getIconColor()}15` }, // 15 = roughly 8% opacity in hex? Wait, 15/255 fits better as hex string suffix if color is hex
-                ]}
-              >
-                <MaterialIcons name={icon} size={32} color={getIconColor()} />
-              </View>
-            )}
-
-            {/* Content */}
-            <View style={styles.content}>
-              <Text style={styles.title}>{title}</Text>
-              {description && (
-                <Text style={styles.description}>{description}</Text>
-              )}
-              {children}
+            {/* Curved Notch Section */}
+            <View style={styles.notchContainer}>
+              <Text style={styles.notchText}>{displayLabel}</Text>
             </View>
 
-            {/* Actions */}
-            {actions.length > 0 && (
-              <View style={styles.actionsContainer}>
-                {actions.map((action, index) => {
-                  const stylesForBtn = getButtonStyles(action.variant);
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.button,
-                        {
-                          backgroundColor: stylesForBtn.bg,
-                          borderColor: stylesForBtn.border,
-                          // If there are 2 actions, make them sit side-by-side
-                          flex: actions.length > 1 ? 1 : undefined,
-                          marginLeft: index > 0 ? 12 : 0,
-                        },
-                      ]}
-                      onPress={action.onPress}
-                    >
-                      <Text
-                        style={[
-                          styles.buttonText,
-                          { color: stylesForBtn.text },
-                        ]}
-                      >
-                        {action.text}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+            {/* Close Button - positioned on the opposite right end */}
+            {onClose && (
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={onClose}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <MaterialIcons name="close" size={20} color={Colors.black} />
+              </TouchableOpacity>
             )}
+
+            {/* Main Content Section */}
+            <View style={styles.bodyContainer}>
+              {/* Content */}
+              <View style={styles.content}>
+                <Text style={styles.title}>{title}</Text>
+                {description && (
+                  <Text style={styles.description}>{description}</Text>
+                )}
+                {children}
+              </View>
+
+              {/* Actions */}
+              {actions.length > 0 && (
+                <View style={styles.actionsContainer}>
+                  {actions.map((action, index) => {
+                    const stylesForBtn = getButtonStyles(action.variant);
+                    return (
+                      <TouchableOpacity
+                        key={index}
+                        style={[
+                          styles.button,
+                          {
+                            backgroundColor: stylesForBtn.bg,
+                            borderColor: stylesForBtn.border,
+                            flex: actions.length > 1 ? 1 : undefined,
+                            marginLeft: index > 0 ? 12 : 0,
+                          },
+                        ]}
+                        onPress={action.onPress}
+                      >
+                        <Text
+                          style={[
+                            styles.buttonText,
+                            { color: stylesForBtn.text },
+                          ]}
+                        >
+                          {action.text}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
           </View>
         </TouchableWithoutFeedback>
       </TouchableOpacity>
@@ -160,48 +158,85 @@ const AppModal: React.FC<AppModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Slightly darker overlay
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   modalContainer: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.black, // Dark backing for "shadow" effect
     borderRadius: 24,
-    padding: 24,
     width: '100%',
-    maxWidth: 400,
-    alignItems: 'center',
+    maxWidth: 340,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 4,
+      height: 8,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+    position: 'relative',
   },
-  iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+  notchContainer: {
+    backgroundColor: Colors.white, // White notch to match body
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    maxWidth: 160,
+    width: '45%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 60, // The unique curve
+  },
+  notchText: {
+    fontSize: 12,
+    fontFamily: Typography.fontFamily.bold,
+    color: Colors.black,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Subtle light bg on the black container
+    borderRadius: 16,
+    width: 32,
+    height: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    zIndex: 10,
+  },
+  bodyContainer: {
+    backgroundColor: Colors.white, // White body
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
+    borderTopRightRadius: 24,
+    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 24,
+    width: '100%',
+    // Match logic: if notch is 'behind', body sits on top?
+    // In Gxx, notch was first child in column. Body was second.
+    // They share same bg color to look merged.
   },
   content: {
-    alignItems: 'center',
     width: '100%',
+    // alignItems: 'center', // Depending on preference, center or left. Gxx 'quiz' was left, default center.
+    // Let's keep it somewhat flexible. Center usually looks better for modals.
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
     fontSize: 16,
+    fontFamily: Typography.fontFamily.regular,
     color: Colors.gray,
     textAlign: 'center',
     marginBottom: 24,
@@ -211,11 +246,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     justifyContent: 'center',
+    marginTop: 24,
   },
   button: {
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -223,7 +259,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
   },
 });
 
