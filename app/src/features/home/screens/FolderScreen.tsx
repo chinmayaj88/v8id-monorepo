@@ -31,6 +31,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
 import { uploadManager } from '../services/UploadManager';
 import { downloadManager } from '../services/DownloadManager';
+import { TransferStatusIcon } from '../components/TransferStatusIcon';
 
 type SubTab = 'FOLDERS' | 'FILES';
 
@@ -349,9 +350,13 @@ const FolderScreen = () => {
             <Text style={styles.mainTitle}>{initialFolderName}</Text>
           </View>
           <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.iconButton}>
+            <TransferStatusIcon onPress={() => {}} />
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => navigation.navigate('Notifications')}
+            >
               <MaterialIcons
-                name="check-circle-outline"
+                name="notifications-none"
                 size={24}
                 color="#1E293B"
               />

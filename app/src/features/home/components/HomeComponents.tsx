@@ -20,6 +20,7 @@ import Svg, {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../../../theme/colors';
 import { API_URL } from '@env';
+import { TransferStatusIcon } from './TransferStatusIcon';
 
 const { width } = Dimensions.get('window');
 
@@ -100,17 +101,20 @@ export const ProfileHeader = React.memo<ProfileHeaderProps>(
             </Text>
           </View>
 
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={onNotificationClick}
-          >
-            <MaterialIcons
-              name="notifications-none"
-              size={28}
-              color={Colors.black}
-            />
-            <View style={styles.notificationDot} />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TransferStatusIcon onPress={() => {}} />
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={onNotificationClick}
+            >
+              <MaterialIcons
+                name="notifications-none"
+                size={28}
+                color={Colors.black}
+              />
+              <View style={styles.notificationDot} />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -344,14 +348,19 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     marginTop: 2,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   notificationButton: {
-    padding: 8,
+    padding: 4,
+    marginLeft: 8,
     position: 'relative',
   },
   notificationDot: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 5,
+    right: 5,
     width: 8,
     height: 8,
     borderRadius: 4,

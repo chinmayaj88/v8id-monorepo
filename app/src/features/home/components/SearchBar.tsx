@@ -105,12 +105,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC', // Light background instead of white
-    borderRadius: 12, // More squared corners as per modern design, or 24 for full pills
+    backgroundColor: '#F8FAFC',
+    borderRadius: 24,
     height: 48,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0', // Slate 200
+    borderColor: '#E2E8F0',
   },
   icon: {
     marginRight: 10,

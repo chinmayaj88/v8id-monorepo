@@ -27,7 +27,7 @@ const NotificationScreen = () => {
           size={64}
           color={Colors.gray}
         />
-        <Text style={styles.emptyText}>No notifications for now</Text>
+        <Text style={styles.emptyText}>No recent notifications</Text>
       </View>
     </SafeAreaView>
   );
