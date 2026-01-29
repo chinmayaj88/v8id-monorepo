@@ -244,68 +244,6 @@ const FolderScreen = () => {
   };
 
   const renderItem = ({ item }: { item: any }) => {
-    if (item.isFolder) {
-      return (
-        <TouchableOpacity
-          style={styles.folderRow}
-          onPress={() => {
-            navigation.push('Folders', {
-              folderId: item.id,
-              folderName: item.name,
-            });
-          }}
-          activeOpacity={0.7}
-        >
-          <View
-            style={[
-              styles.folderIconBg,
-              { backgroundColor: item.color || '#E0F2F1' },
-            ]}
-          >
-            <MaterialIcons
-              name="folder"
-              size={24}
-              color={Colors.purple.vibrant}
-            />
-          </View>
-          <View style={styles.folderInfo}>
-            <Text style={styles.folderName} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Text style={styles.folderDate}>{item.size || item.timeAgo}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.moreButton}
-            onPress={() => {
-              showModal({
-                title: item.name,
-                actions: [
-                  {
-                    text: 'Share',
-                    onPress: () => {
-                      closeModal();
-                      handleShare(item);
-                    },
-                  },
-                  {
-                    text: 'Delete',
-                    onPress: () => {
-                      closeModal();
-                      handleDelete(item);
-                    },
-                    variant: 'danger',
-                  },
-                  { text: 'Cancel', onPress: closeModal, variant: 'secondary' },
-                ],
-              });
-            }}
-          >
-            <MaterialIcons name="more-horiz" size={24} color="#64748B" />
-          </TouchableOpacity>
-        </TouchableOpacity>
-      );
-    }
-
     return (
       <FileItemCard
         file={item}
@@ -313,6 +251,10 @@ const FolderScreen = () => {
         onExpand={() => setRevealedFileId(item.id)}
         onCollapse={() => revealedFileId === item.id && setRevealedFileId(null)}
         onDownload={() => {
+          if (item.isFolder) {
+            Alert.alert('Info', 'Folder download coming soon');
+            return;
+          }
           downloadManager.startDownload(
             item.id,
             item.name,
@@ -323,12 +265,19 @@ const FolderScreen = () => {
         onDelete={() => handleDelete(item)}
         onShare={() => handleShare(item)}
         onClick={() => {
-          // @ts-ignore
-          navigation.navigate('Viewer', {
-            fileId: item.id,
-            fileName: item.name,
-            fileType: item.mimeType,
-          });
+          if (item.isFolder) {
+            navigation.push('Folders', {
+              folderId: item.id,
+              folderName: item.name,
+            });
+          } else {
+            // @ts-ignore
+            navigation.navigate('Viewer', {
+              fileId: item.id,
+              fileName: item.name,
+              fileType: item.mimeType,
+            });
+          }
         }}
       />
     );
