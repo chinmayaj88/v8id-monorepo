@@ -51,7 +51,7 @@ export const TransferStatusIcon: React.FC<TransferStatusIconProps> = ({
   if (!isTransferring) {
     return (
       <TouchableOpacity style={styles.button} onPress={onPress}>
-        <MaterialIcons name="file-download" size={28} color={Colors.black} />
+        <MaterialIcons name="file-download" size={22} color={Colors.black} />
       </TouchableOpacity>
     );
   }
@@ -113,8 +113,7 @@ export const TransferStatusIcon: React.FC<TransferStatusIconProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    padding: 8,
-    position: 'relative',
+    // padding: 0, // Removed padding for better alignment within 44x44 wrapper
     justifyContent: 'center',
     alignItems: 'center',
   },
