@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   RefreshControl,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
