@@ -105,16 +105,18 @@ export const ProfileHeader = React.memo<ProfileHeaderProps>(
           </View>
 
           <View style={styles.headerButtons}>
-            <TransferStatusIcon
-              onPress={() => navigation.navigate('Activities')}
-            />
+            <View style={styles.headerButtonWrapper}>
+              <TransferStatusIcon
+                onPress={() => navigation.navigate('Activities')}
+              />
+            </View>
             <TouchableOpacity
-              style={styles.notificationButton}
+              style={styles.headerButtonWrapper}
               onPress={onNotificationClick}
             >
               <MaterialIcons
                 name="notifications-none"
-                size={28}
+                size={22}
                 color={Colors.black}
               />
               <View style={styles.notificationDot} />
@@ -358,15 +360,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  notificationButton: {
-    padding: 4,
-    marginLeft: 8,
-    position: 'relative',
+  headerButtonWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    marginLeft: 8, // Space between them, no overlap
+    // Optional shadow if desired for depth
+    // shadowColor: '#000',
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 4,
+    // elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   notificationDot: {
     position: 'absolute',
-    top: 5,
-    right: 5,
+    top: 10,
+    right: 12,
     width: 8,
     height: 8,
     borderRadius: 4,
@@ -383,7 +397,7 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
   quickAccessGradient: {
-    backgroundColor: '#DDD6F0', // Simplified gradient color
+    backgroundColor: '#DDD6F0',
     padding: 20,
     borderRadius: 24,
   },
