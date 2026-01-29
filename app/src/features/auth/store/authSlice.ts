@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, LoginRequest, AuthResponse } from '../types';
 import { authService } from '../../../services/api/authService';
 import { databaseService } from '../../../services/db/DatabaseService';
+import { SecureStorage } from '../../../services/security/SecureStorage';
 
 interface AuthState {
   user: User | null;
@@ -31,13 +32,16 @@ export const initializeAuth = createAsyncThunk(
   'auth/initialize',
   async (_, { dispatch }) => {
     try {
-      const token = await AsyncStorage.getItem('accessToken');
-      const refreshToken = await AsyncStorage.getItem('refreshToken');
+      const tokens = await SecureStorage.getTokens();
       const userJson = await AsyncStorage.getItem('user');
 
-      if (token && userJson) {
+      if (tokens && userJson) {
         const user = JSON.parse(userJson);
-        return { token, refreshToken, user };
+        return {
+          token: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          user,
+        };
       }
       return null;
     } catch (e) {
@@ -73,9 +77,12 @@ export const verifyTotp = createAsyncThunk(
       // Step 2: Verify TOTP, get access tokens
       const response = await authService.verifyTotp(data);
 
-      // Store in Async Storage
-      await AsyncStorage.setItem('accessToken', response.accessToken);
-      await AsyncStorage.setItem('refreshToken', response.refreshToken);
+      // Store in Secure Storage (Keychain)
+      await SecureStorage.saveTokens(
+        response.accessToken,
+        response.refreshToken,
+      );
+      // User data can stay in AsyncStorage for fast access to profile
       await AsyncStorage.setItem('user', JSON.stringify(response.user));
 
       return response;
@@ -125,8 +132,7 @@ export const logoutUser = createAsyncThunk(
       console.warn('Backend logout failed', error);
       // We still continue to clear local storage
     } finally {
-      await AsyncStorage.removeItem('accessToken');
-      await AsyncStorage.removeItem('refreshToken');
+      await SecureStorage.clearTokens();
       await AsyncStorage.removeItem('user');
       await AsyncStorage.removeItem('lastSyncTimestamp');
       databaseService.deleteSchema();
@@ -159,8 +165,7 @@ const authSlice = createSlice({
       state.refreshToken = null;
       state.tempToken = null;
       state.isAuthenticated = false;
-      AsyncStorage.removeItem('accessToken').catch(() => {});
-      AsyncStorage.removeItem('refreshToken').catch(() => {});
+      SecureStorage.clearTokens().catch(() => {});
       AsyncStorage.removeItem('user').catch(() => {});
       AsyncStorage.removeItem('lastSyncTimestamp').catch(() => {});
       databaseService.deleteSchema();

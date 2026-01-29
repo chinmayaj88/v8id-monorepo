@@ -16,7 +16,7 @@ export class AuditLogService implements IAuditLogService {
   constructor(private auditLogRepository: IAuditLogRepository) {}
 
   /**
-   * Log a security event
+   * Log a security event with automatic data sanitization
    */
   async logEvent(data: {
     userId?: string;
@@ -28,10 +28,12 @@ export class AuditLogService implements IAuditLogService {
     errorMessage?: string;
   }): Promise<void> {
     try {
+      const sanitizedData = data.eventData ? this.sanitizeEventData(data.eventData) : undefined;
+
       await this.auditLogRepository.create({
         userId: data.userId,
         eventType: data.eventType,
-        eventData: data.eventData,
+        eventData: sanitizedData,
         ipAddress: data.ipAddress,
         userAgent: data.userAgent,
         success: data.success ?? true,
@@ -41,6 +43,33 @@ export class AuditLogService implements IAuditLogService {
       // Don't throw - audit logging should never break the application
       console.error('Failed to log audit event:', error);
     }
+  }
+
+  /**
+   * Enterprise Safety: Mask sensitive keys in logging data
+   */
+  private sanitizeEventData(data: Record<string, any>): Record<string, any> {
+    const sensitiveKeys = [
+      'password',
+      'token',
+      'secret',
+      'totpCode',
+      'accessToken',
+      'refreshToken',
+      'newPassword',
+      'oldPassword',
+    ];
+    const sanitized = { ...data };
+
+    for (const key of Object.keys(sanitized)) {
+      if (sensitiveKeys.some(k => key.toLowerCase().includes(k.toLowerCase()))) {
+        sanitized[key] = '[REDACTED]';
+      } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+        sanitized[key] = this.sanitizeEventData(sanitized[key]);
+      }
+    }
+
+    return sanitized;
   }
 
   /**
@@ -280,4 +309,3 @@ export class AuditLogService implements IAuditLogService {
     });
   }
 }
-

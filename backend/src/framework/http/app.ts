@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { envConfig } from '../../infrastructure/config/env.config.js';
 import { ResponseUtil } from '../../presentation/utils/response.util.js';
 import { errorMiddleware } from '../../presentation/middleware/error.middleware.js';
+import { generalRateLimiter } from '../../presentation/middleware/rate-limit.middleware.js';
 import apiRoutes from '../../presentation/routes/index.js';
 
 /**
@@ -16,7 +17,10 @@ export function createApp(): Express {
   // Configure trust proxy
   configureTrustProxy(app);
 
-  // Security middleware
+  // Global Rate Limiting (Enterprise Protection)
+  app.use(generalRateLimiter);
+
+  // Security middleware (Hardened for Enterprise)
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -25,9 +29,18 @@ export function createApp(): Express {
           styleSrc: ["'self'", "'unsafe-inline'"],
           scriptSrc: ["'self'"],
           imgSrc: ["'self'", 'data:', 'https:'],
+          connectSrc: ["'self'", 'https://*.oraclecloud.com'], // Allow OCI
         },
       },
       crossOriginEmbedderPolicy: false,
+      hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      },
+      referrerPolicy: {
+        policy: 'no-referrer',
+      },
     })
   );
 
@@ -87,4 +100,3 @@ function configureTrustProxy(app: Express): void {
     app.set('trust proxy', false);
   }
 }
-

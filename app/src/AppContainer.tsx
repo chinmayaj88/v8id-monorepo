@@ -10,6 +10,7 @@ import { useAppDispatch } from './store/hooks';
 import { initializeAuth } from './features/auth/store/authSlice';
 import RootNavigator from './navigation';
 import { Colors } from './theme/colors';
+import { securityService } from './services/security/SecurityService';
 
 const AppContainer = () => {
   const isDarkMode = useColorScheme() === 'dark';

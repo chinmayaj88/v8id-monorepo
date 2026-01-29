@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_URL } from '@env';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SecureStorage } from '../security/SecureStorage';
 
 const apiClient = axios.create({
   baseURL: API_URL || 'http://localhost:3000/api',
@@ -14,12 +15,12 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async config => {
     try {
-      const token = await AsyncStorage.getItem('accessToken');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      const tokens = await SecureStorage.getTokens();
+      if (tokens?.accessToken) {
+        config.headers.Authorization = `Bearer ${tokens.accessToken}`;
       }
     } catch (e) {
-      console.error('Error fetching token from storage', e);
+      console.error('Error fetching token from secure storage', e);
     }
     return config;
   },
@@ -41,8 +42,8 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await AsyncStorage.getItem('refreshToken');
-        if (!refreshToken) {
+        const tokens = await SecureStorage.getTokens();
+        if (!tokens?.refreshToken) {
           throw new Error('No refresh token available');
         }
 
@@ -51,7 +52,7 @@ apiClient.interceptors.response.use(
         const refreshResponse = await axios.post(
           `${apiClient.defaults.baseURL}/auth/refresh`,
           {
-            refreshToken,
+            refreshToken: tokens.refreshToken,
           },
         );
 
@@ -60,8 +61,7 @@ apiClient.interceptors.response.use(
             refreshResponse.data.data;
 
           console.log('✅ [Auth] Token refreshed successfully');
-          await AsyncStorage.setItem('accessToken', accessToken);
-          await AsyncStorage.setItem('refreshToken', newRefreshToken);
+          await SecureStorage.saveTokens(accessToken, newRefreshToken);
 
           // Update instance defaults and the failed request headers
           apiClient.defaults.headers.Authorization = `Bearer ${accessToken}`;
@@ -74,7 +74,8 @@ apiClient.interceptors.response.use(
           '❌ [Auth] Refresh failed, session expired:',
           refreshError,
         );
-        await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
+        await SecureStorage.clearTokens();
+        await AsyncStorage.removeItem('user');
         // Here you could broadcast a logout event
       }
     }

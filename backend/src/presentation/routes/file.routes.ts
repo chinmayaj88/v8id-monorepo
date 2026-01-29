@@ -3,6 +3,7 @@ import multer from 'multer';
 import { filesContainer } from '../../infrastructure/di/index.js';
 import { sharedContainer } from '../../infrastructure/di/index.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
+import { validateBody, initiateUploadSchema, completeUploadSchema } from '../validators/index.js';
 
 // Setup Auth Middleware
 const authenticate = authMiddleware(
@@ -34,11 +35,11 @@ router.post('/upload', upload.single('file'), (req, res) =>
   filesContainer.fileController.upload(req, res)
 );
 
-router.post('/upload/initiate', (req, res) =>
+router.post('/upload/initiate', validateBody(initiateUploadSchema), (req, res) =>
   filesContainer.fileController.initiateUpload(req, res)
 );
 
-router.post('/upload/complete', (req, res) =>
+router.post('/upload/complete', validateBody(completeUploadSchema), (req, res) =>
   filesContainer.fileController.completeUpload(req, res)
 );
 

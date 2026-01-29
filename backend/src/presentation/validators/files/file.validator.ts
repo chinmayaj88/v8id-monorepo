@@ -75,24 +75,27 @@ export const listFoldersQuerySchema = z.object({
 
 export const initiateUploadSchema = z.object({
   fileName: z.string().min(1).max(500),
-  fileSize: z.coerce.number().int().positive(),
+  size: z.coerce.string().transform(v => BigInt(v)), // Support large numbers via string
   mimeType: z.string().min(1).max(100),
   folderId: z.string().nullable().optional(),
-  chunkSize: z.coerce.number().int().positive().optional(),
-});
-
-export const chunkUploadSchema = z.object({
-  sessionId: z.string().min(1),
-  chunkNumber: z.coerce.number().int().min(0),
-  isLastChunk: z.union([z.boolean(), z.string()]).transform(val => val === true || val === 'true'),
+  path: z.string().optional(),
+  tier: z.enum(['STANDARD', 'ARCHIVE']).optional(),
 });
 
 export const completeUploadSchema = z.object({
-  name: z.string().max(255).optional(),
-  description: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  storageKey: z.string().min(1).max(500),
+  fileName: z.string().min(1).max(500),
+  mimeType: z.string().min(1).max(100),
+  size: z.coerce.string().transform(v => BigInt(v)),
+  folderId: z.string().nullable().optional(),
+  tier: z.enum(['STANDARD', 'ARCHIVE']).optional(),
+  ociUploadId: z.string().optional(),
+  parts: z
+    .array(
+      z.object({
+        partNumber: z.number().int().positive(),
+        etag: z.string().min(1),
+      })
+    )
+    .optional(),
 });
-
-
-
