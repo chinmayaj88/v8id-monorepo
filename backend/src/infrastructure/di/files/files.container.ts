@@ -1,4 +1,5 @@
-import { sharedContainer } from '../shared/shared.container.js';
+import { vaultContainer } from '../vault/vault.container.js';
+import { sharedContainer, SharedContainer } from '../shared/shared.container.js';
 import {
   UploadFileUseCase,
   GenerateFileLinkUseCase,
@@ -23,9 +24,11 @@ import { FileController } from '../../../presentation/controllers/files/file.con
 import { FolderController } from '../../../presentation/controllers/files/folder.controller.js';
 import { TrashController } from '../../../presentation/controllers/files/trash.controller.js';
 import { ShareController } from '../../../presentation/controllers/files/share.controller.js';
+import { SearchController } from '../../../presentation/controllers/search.controller.js';
 import { FileRepository } from '../../repositories/files/file.repository.js';
 import { FolderRepository } from '../../repositories/files/folder.repository.js';
 import { ShareRepository } from '../../repositories/files/share.repository.js';
+import { UserRepository } from '../../repositories/user/user.repository.js';
 
 export class FilesContainer {
   private static instance: FilesContainer;
@@ -60,6 +63,7 @@ export class FilesContainer {
   public readonly folderController: FolderController;
   public readonly trashController: TrashController;
   public readonly shareController: ShareController;
+  public readonly searchController: SearchController;
 
   private constructor() {
     this.fileRepository = new FileRepository();
@@ -111,7 +115,8 @@ export class FilesContainer {
     this.searchFilesUseCase = new SearchFilesUseCase(
       this.fileRepository,
       this.folderRepository,
-      sharedContainer.userRepository
+      new UserRepository(),
+      vaultContainer.vaultRepository
     );
 
     this.listTrashUseCase = new ListTrashUseCase(
@@ -186,6 +191,8 @@ export class FilesContainer {
       this.listSharedWithMeUseCase,
       sharedContainer.storageService
     );
+
+    this.searchController = new SearchController(this.searchFilesUseCase);
   }
 
   public static getInstance(): FilesContainer {

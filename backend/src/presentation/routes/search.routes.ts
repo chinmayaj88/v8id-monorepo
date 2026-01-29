@@ -1,9 +1,6 @@
 import { Router } from 'express';
-import { SearchController } from '../controllers/search.controller.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { sharedContainer } from '../../infrastructure/di/index.js';
-import { FolderRepository, FileRepository } from '../../infrastructure/repositories/files/index.js';
-import { SearchFilesUseCase } from '../../application/use-cases/index.js';
 
 // Setup Auth Middleware
 const authenticate = authMiddleware(
@@ -12,11 +9,10 @@ const authenticate = authMiddleware(
   sharedContainer.jwtService
 );
 
-// Manual DI for now
-const folderRepository = new FolderRepository();
-const fileRepository = new FileRepository();
-const searchFilesUseCase = new SearchFilesUseCase(fileRepository, folderRepository);
-const searchController = new SearchController(searchFilesUseCase);
+import { filesContainer } from '../../infrastructure/di/files/files.container.js';
+
+// Use controller from DI container
+const { searchController } = filesContainer;
 
 const router: Router = Router();
 

@@ -163,6 +163,11 @@ const HomeScreen = () => {
                 folderId: suggestion.id,
                 folderName: suggestion.title,
               });
+            } else if (suggestion.type === 'SECRET') {
+              // @ts-ignore
+              navigation.navigate('Vault', {
+                secretId: suggestion.id,
+              });
             } else {
               // @ts-ignore
               navigation.navigate('Viewer', {

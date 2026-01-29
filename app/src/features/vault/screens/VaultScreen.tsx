@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  TextInput,
   RefreshControl,
   ActivityIndicator,
   Alert,
@@ -19,6 +18,7 @@ import vaultService, {
 } from '../../../services/api/vaultService';
 import AddVaultSecretModal from '../components/AddVaultSecretModal';
 import ViewVaultSecretModal from '../components/ViewVaultSecretModal';
+import { SearchBar } from '../../home/components/SearchBar';
 
 const CATEGORIES = [
   'ALL',
@@ -111,18 +111,11 @@ const VaultScreen = () => {
       </View>
 
       <View style={styles.searchContainer}>
-        <Icon
-          name="magnify"
-          size={20}
-          color={Colors.gray}
-          style={styles.searchIcon}
-        />
-        <TextInput
-          style={styles.searchInput}
+        <SearchBar
+          searchQuery={searchQuery}
+          onQueryChange={handleSearch}
           placeholder="Search credentials..."
-          value={searchQuery}
-          onChangeText={handleSearch}
-          placeholderTextColor={Colors.gray}
+          style={{ width: '100%' }}
         />
       </View>
 
@@ -244,24 +237,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
     marginHorizontal: 20,
     marginVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 45,
-    color: Colors.black,
-    fontSize: 16,
+    zIndex: 100,
   },
   categoriesWrapper: {
     marginBottom: 10,
@@ -338,7 +316,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 100,
+    minHeight: 400,
   },
   emptyText: {
     fontSize: 18,
@@ -353,6 +331,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     borderColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyAddButtonText: {
     color: Colors.primary,

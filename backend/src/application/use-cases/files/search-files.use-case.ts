@@ -2,10 +2,12 @@ import { File, Folder } from '../../../../generated/prisma/index.js';
 import { IFileRepository, IFolderRepository } from '../../interfaces/index.js';
 import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 import { FileItemDTO, FolderItemDTO } from '../../dtos/files/file-item.dto.js';
+import { IVaultRepository } from '../../interfaces/vault/vault-repository.interface.js';
+import { VaultSecretListItem } from '../vault/list-vault-secrets.use-case.js';
 
 export interface SearchFilesDTO {
   query: string;
-  type?: 'all' | 'folder' | 'file';
+  type?: 'all' | 'folder' | 'file' | 'secret';
   page?: number;
   limit?: number;
 }
@@ -13,6 +15,7 @@ export interface SearchFilesDTO {
 export interface SearchResults {
   folders: FolderItemDTO[];
   files: FileItemDTO[];
+  secrets: VaultSecretListItem[];
   totalCount: number;
 }
 
@@ -20,7 +23,8 @@ export class SearchFilesUseCase {
   constructor(
     private fileRepository: IFileRepository,
     private folderRepository: IFolderRepository,
-    private userRepository: IUserRepository
+    private userRepository: IUserRepository,
+    private vaultRepository: IVaultRepository
   ) {}
 
   async execute(userId: string, dto: SearchFilesDTO): Promise<SearchResults> {
@@ -28,7 +32,7 @@ export class SearchFilesUseCase {
     const search = query.trim();
 
     if (!search) {
-      return { folders: [], files: [], totalCount: 0 };
+      return { folders: [], files: [], secrets: [], totalCount: 0 };
     }
 
     const currentUser = await this.userRepository.findById(userId);
@@ -36,7 +40,8 @@ export class SearchFilesUseCase {
     const currentUserName = `${currentUser.firstName} ${currentUser.lastName}`.trim();
 
     // Parallel execution for performance
-    const promises: [Promise<Folder[]>, Promise<File[]>] = [
+    const promises: [Promise<Folder[]>, Promise<File[]>, Promise<any[]>] = [
+      Promise.resolve([]),
       Promise.resolve([]),
       Promise.resolve([]),
     ];
@@ -49,7 +54,14 @@ export class SearchFilesUseCase {
       promises[1] = this.fileRepository.findAllByUserId(userId, { search });
     }
 
-    const [foldersRaw, filesRaw] = await Promise.all(promises);
+    if ((type === 'all' || type === 'secret') && this.vaultRepository) {
+      promises[2] = this.vaultRepository.search(userId, search).catch(err => {
+        console.warn('Vault search failed:', err);
+        return [];
+      });
+    }
+
+    const [foldersRaw, filesRaw, secretsRaw] = await Promise.all(promises);
 
     // Map to DTOs
     const mapFolder = (f: Folder): FolderItemDTO => ({
@@ -74,10 +86,21 @@ export class SearchFilesUseCase {
       ownerName: currentUserName,
     });
 
+    const mapSecret = (s: any): VaultSecretListItem => ({
+      id: s.id,
+      name: s.name,
+      url: s.url,
+      username: s.username,
+      category: s.category,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    });
+
     return {
       folders: foldersRaw.map(mapFolder),
       files: filesRaw.map(mapFile),
-      totalCount: foldersRaw.length + filesRaw.length,
+      secrets: secretsRaw.map(mapSecret),
+      totalCount: foldersRaw.length + filesRaw.length + secretsRaw.length,
     };
   }
 }

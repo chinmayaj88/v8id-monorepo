@@ -20,6 +20,57 @@ interface FileItemCardProps {
   onRestore?: () => void;
 }
 
+// Helper to get glass styles based on file type
+// Helper to get styled colors based on file type
+const getFileStyles = (file: FileItem) => {
+  if (file.isFolder) {
+    return {
+      backgroundColor: '#FFF8E1', // Amber 50
+      iconColor: '#F59E0B', // Amber 600
+    };
+  }
+  const mime = (file.mimeType || '').toLowerCase();
+
+  if (mime.startsWith('image')) {
+    return {
+      backgroundColor: '#DCFCE7', // Green 100
+      iconColor: '#22C55E', // Green 500
+    };
+  }
+
+  if (mime.startsWith('video')) {
+    return {
+      backgroundColor: '#FCE7F3', // Pink 100
+      iconColor: '#EC4899', // Pink 500
+    };
+  }
+
+  if (
+    mime.includes('pdf') ||
+    mime.includes('word') ||
+    mime.includes('document') ||
+    mime.includes('text')
+  ) {
+    return {
+      backgroundColor: '#DBEAFE', // Blue 100
+      iconColor: '#3B82F6', // Blue 500
+    };
+  }
+
+  if (mime.startsWith('audio')) {
+    return {
+      backgroundColor: '#F3E8FF', // Purple 100
+      iconColor: '#A855F7',
+    };
+  }
+
+  // Default
+  return {
+    backgroundColor: '#F1F5F9', // Slate 100
+    iconColor: '#64748B',
+  };
+};
+
 export const FileItemCard = React.memo<FileItemCardProps>(
   ({
     file,
@@ -36,12 +87,18 @@ export const FileItemCard = React.memo<FileItemCardProps>(
   }) => {
     // Define actions based on mode
     const actions: SwipeAction[] = useMemo(() => {
+      // Light tint pastel colors for actions
+      const shareStyle = { bg: '#FEF9C3', icon: '#D97706' }; // Yellow 100, Yellow 700
+      const downloadStyle = { bg: '#DBEAFE', icon: '#2563EB' }; // Blue 100, Blue 600
+      const deleteStyle = { bg: '#FEE2E2', icon: '#DC2626' }; // Red 100, Red 600
+      const restoreStyle = { bg: '#DCFCE7', icon: '#16A34A' }; // Green 100, Green 600
+
       if (isTrashMode) {
         return [
           {
             icon: 'restore',
-            color: Colors.white,
-            backgroundColor: Colors.success,
+            color: restoreStyle.icon,
+            backgroundColor: restoreStyle.bg,
             onPress: () => {
               onCollapse();
               onRestore && onRestore();
@@ -49,8 +106,8 @@ export const FileItemCard = React.memo<FileItemCardProps>(
           },
           {
             icon: 'delete-forever',
-            color: Colors.white,
-            backgroundColor: '#EF4444',
+            color: deleteStyle.icon,
+            backgroundColor: deleteStyle.bg,
             onPress: () => {
               onCollapse();
               onDelete();
@@ -62,8 +119,8 @@ export const FileItemCard = React.memo<FileItemCardProps>(
       return [
         {
           icon: 'link', // or 'share'
-          color: '#1F2937', // Dark gray/black icon on yellow
-          backgroundColor: '#FDE047', // Yellow
+          color: shareStyle.icon,
+          backgroundColor: shareStyle.bg,
           onPress: () => {
             onCollapse();
             onShare();
@@ -71,8 +128,8 @@ export const FileItemCard = React.memo<FileItemCardProps>(
         },
         {
           icon: 'file-download',
-          color: Colors.white,
-          backgroundColor: '#3B82F6', // Blue
+          color: downloadStyle.icon,
+          backgroundColor: downloadStyle.bg,
           onPress: () => {
             onCollapse();
             onDownload();
@@ -80,8 +137,8 @@ export const FileItemCard = React.memo<FileItemCardProps>(
         },
         {
           icon: 'delete',
-          color: Colors.white,
-          backgroundColor: '#EF4444', // Red
+          color: deleteStyle.icon,
+          backgroundColor: deleteStyle.bg,
           onPress: () => {
             onCollapse();
             onDelete();
@@ -97,6 +154,8 @@ export const FileItemCard = React.memo<FileItemCardProps>(
 
     const fileIcon =
       file.icon || (file.isFolder ? 'folder' : 'insert-drive-file');
+
+    const fileStyles = getFileStyles(file);
 
     return (
       <SwipeableRow
@@ -114,7 +173,11 @@ export const FileItemCard = React.memo<FileItemCardProps>(
             <View
               style={[
                 styles.iconContainer,
-                { width: iconSize, height: iconSize },
+                {
+                  width: iconSize,
+                  height: iconSize,
+                  backgroundColor: fileStyles.backgroundColor,
+                },
               ]}
             >
               {file.thumbnailUrl ? (
@@ -126,7 +189,7 @@ export const FileItemCard = React.memo<FileItemCardProps>(
                 <MaterialIcons
                   name={fileIcon}
                   size={iconSize * 0.5}
-                  color={file.isFolder ? '#FFC107' : Colors.purple.vibrant}
+                  color={fileStyles.iconColor}
                 />
               )}
             </View>
@@ -179,8 +242,8 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   iconContainer: {
-    borderRadius: 14, // Squircle-ish
-    backgroundColor: '#EEF2FF', // Subtle tint matching the folder icon usually
+    borderRadius: 50, // Squircle-ish
+    // backgroundColor removed, dynamic now
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',

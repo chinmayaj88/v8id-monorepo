@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     height: 58,
     paddingHorizontal: 16,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
   },
   icon: {
@@ -121,7 +121,6 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     paddingVertical: 8,
     fontFamily: Typography.fontFamily.regular,
-    fontWeight: '700',
   },
   filterButton: {
     marginLeft: 12,

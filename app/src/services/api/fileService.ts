@@ -203,6 +203,15 @@ const fileService = {
     const response = await apiClient.get('/files/shared');
     return response.data?.data;
   },
+  search: async (
+    query: string,
+    type: 'all' | 'folder' | 'file' | 'secret' = 'all',
+  ) => {
+    const response = await apiClient.get('/search', {
+      params: { q: query, type },
+    });
+    return response.data?.data;
+  },
 };
 
 export default fileService;

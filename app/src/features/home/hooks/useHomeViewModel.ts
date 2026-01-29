@@ -113,14 +113,58 @@ export const useHomeViewModel = () => {
     }
   }, [isAuthenticated, loadDashboardData, isInitialSyncDone]);
 
-  const search = (query: string) => {
+  const search = async (query: string) => {
     setSearchQuery(query);
-    if (!query) {
+    if (!query || query.length < 2) {
       setSearchResults([]);
       return;
     }
-    const results = databaseService.search(query);
-    setSearchResults(results);
+
+    try {
+      // Use API search to get Unified results (Files, Folders, Secrets)
+      const results = await fileService.search(query);
+
+      const suggestions: SearchSuggestion[] = [];
+
+      // Map Files
+      results.files.forEach((f: any) => {
+        suggestions.push({
+          id: f.id,
+          title: f.name,
+          subtitle: f.size || 'File',
+          type: 'FILE',
+          icon: 'insert-drive-file', // You might want dynamic icon helper here
+        });
+      });
+
+      // Map Folders
+      results.folders.forEach((f: any) => {
+        suggestions.push({
+          id: f.id,
+          title: f.name,
+          subtitle: 'Folder',
+          type: 'FOLDER',
+          icon: 'folder',
+        });
+      });
+
+      // Map Secrets
+      if (results.secrets) {
+        results.secrets.forEach((s: any) => {
+          suggestions.push({
+            id: s.id,
+            title: s.name,
+            subtitle: s.username || 'Vault Secret',
+            type: 'SECRET',
+            icon: 'lock',
+          });
+        });
+      }
+
+      setSearchResults(suggestions);
+    } catch (error) {
+      console.error('Search failed', error);
+    }
   };
 
   const filterFiles = (filter: string) => {

@@ -198,29 +198,49 @@ export const QuickAccessCard: React.FC<QuickAccessCardProps> = ({
             }}
           />
 
+          <View
+            style={{
+              marginBottom: 10,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 18,
+                fontWeight: 'bold',
+                color: Colors.black,
+              }}
+            >
+              Quick Access Items
+            </Text>
+          </View>
+
           <View style={styles.quickAccessRow}>
             <QuickAccessItem
               name="Images"
               icon="image"
               color="#4CAF50"
+              size="2.4 GB"
               onClick={() => onOptionClick('Images')}
             />
             <QuickAccessItem
               name="Videos"
               icon="video-library"
               color="#E91E63"
+              size="4.2 GB"
               onClick={() => onOptionClick('Videos')}
             />
             <QuickAccessItem
               name="Docs"
               icon="description"
               color="#FFC107"
+              size="1.2 GB"
               onClick={() => onOptionClick('Docs')}
             />
             <QuickAccessItem
               name="Folders"
               icon="folder-open"
               color="#7C3AED"
+              size="850 MB"
               onClick={() => onOptionClick('Folders')}
             />
           </View>
@@ -230,12 +250,13 @@ export const QuickAccessCard: React.FC<QuickAccessCardProps> = ({
   );
 };
 
-const QuickAccessItem = ({ name, icon, color, onClick }: any) => (
+const QuickAccessItem = ({ name, icon, color, size, onClick }: any) => (
   <TouchableOpacity style={styles.quickAccessItem} onPress={onClick}>
     <View style={styles.iconCircle}>
       <MaterialIcons name={icon} size={28} color={color} />
     </View>
     <Text style={styles.quickAccessText}>{name}</Text>
+    <Text style={styles.quickAccessSize}>{size}</Text>
   </TouchableOpacity>
 );
 
@@ -367,13 +388,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.white,
-    marginLeft: 8, // Space between them, no overlap
-    // Optional shadow if desired for depth
-    // shadowColor: '#000',
-    // shadowOffset: { width: 0, height: 2 },
-    // shadowOpacity: 0.1,
-    // shadowRadius: 4,
-    // elevation: 2,
+    marginLeft: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
@@ -398,7 +413,7 @@ const styles = StyleSheet.create({
   },
   quickAccessGradient: {
     backgroundColor: '#DDD6F0',
-    padding: 20,
+    padding: 18,
     borderRadius: 24,
   },
   quickAccessRow: {
@@ -410,8 +425,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   iconCircle: {
-    width: 56,
-    height: 56,
+    width: 46,
+    height: 46,
     borderRadius: 28,
     backgroundColor: Colors.white,
     justifyContent: 'center',
@@ -422,6 +437,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: Typography.fontFamily.medium,
     color: '#2D2D3A',
+    fontWeight: 'bold',
+  },
+  quickAccessSize: {
+    fontSize: 10,
+    marginTop: 2,
+    color: '#64748B',
+    fontWeight: '500',
   },
   chip: {
     paddingHorizontal: 16,
@@ -445,9 +467,9 @@ const styles = StyleSheet.create({
     fontFamily: Typography.fontFamily.bold,
   },
   summaryChip: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#e7ebf1ff',
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 16,
   },
   summaryText: {
@@ -456,7 +478,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   promoCard: {
-    backgroundColor: '#EEF2FF', // Indigo tint
+    backgroundColor: '#EEF2FF',
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',

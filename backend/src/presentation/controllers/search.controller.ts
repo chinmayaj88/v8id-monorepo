@@ -14,7 +14,7 @@ export class SearchController {
       }
 
       const query = (req.query.q as string) || '';
-      const type = (req.query.type as 'all' | 'folder' | 'file') || 'all';
+      const type = (req.query.type as 'all' | 'folder' | 'file' | 'secret') || 'all';
 
       if (!query) {
         ResponseUtil.validationError(res, 'Query parameter "q" is required');

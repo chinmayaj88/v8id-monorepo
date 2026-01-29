@@ -23,7 +23,7 @@ export interface SearchSuggestion {
   id: string;
   title: string;
   subtitle: string;
-  type: 'FILE' | 'FOLDER';
+  type: 'FILE' | 'FOLDER' | 'SECRET';
   icon?: any;
 }
 
