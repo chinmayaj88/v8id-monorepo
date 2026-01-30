@@ -105,21 +105,21 @@ export const ProfileHeader = React.memo<ProfileHeaderProps>(
           </View>
 
           <View style={styles.headerButtons}>
-            <View style={styles.headerButtonWrapper}>
-              <TransferStatusIcon
-                onPress={() => navigation.navigate('Activities')}
-              />
-            </View>
+            <TouchableOpacity
+              style={styles.headerButtonWrapper}
+              onPress={() => navigation.navigate('Activities')}
+            >
+              <MaterialIcons name="swap-vert" size={24} color={Colors.black} />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButtonWrapper}
               onPress={onNotificationClick}
             >
               <MaterialIcons
                 name="notifications-none"
-                size={22}
+                size={24}
                 color={Colors.black}
               />
-              <View style={styles.notificationDot} />
             </TouchableOpacity>
           </View>
         </View>
@@ -391,13 +391,11 @@ const styles = StyleSheet.create({
   headerButtonWrapper: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    marginLeft: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    backgroundColor: '#F1F5F9',
+    marginLeft: 10,
   },
   notificationDot: {
     position: 'absolute',

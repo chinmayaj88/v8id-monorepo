@@ -18,6 +18,7 @@ interface FileItemCardProps {
   onClick: () => void;
   isTrashMode?: boolean;
   onRestore?: () => void;
+  isGrid?: boolean;
 }
 
 // Helper to get glass styles based on file type
@@ -84,6 +85,7 @@ export const FileItemCard = React.memo<FileItemCardProps>(
     onClick,
     isTrashMode,
     onRestore,
+    isGrid,
   }) => {
     // Define actions based on mode
     const actions: SwipeAction[] = useMemo(() => {
@@ -156,6 +158,48 @@ export const FileItemCard = React.memo<FileItemCardProps>(
       file.icon || (file.isFolder ? 'folder' : 'insert-drive-file');
 
     const fileStyles = getFileStyles(file);
+
+    if (isGrid) {
+      return (
+        <TouchableOpacity
+          style={[styles.card, styles.gridCard]}
+          onPress={onClick}
+          onLongPress={onExpand}
+          activeOpacity={0.9}
+        >
+          <View
+            style={[
+              styles.iconContainer,
+              {
+                width: 64,
+                height: 64,
+                backgroundColor: fileStyles.backgroundColor,
+                marginBottom: 12,
+              },
+            ]}
+          >
+            {file.thumbnailUrl ? (
+              <Image
+                source={{ uri: file.thumbnailUrl }}
+                style={styles.thumbnail}
+              />
+            ) : (
+              <MaterialIcons
+                name={fileIcon}
+                size={32}
+                color={fileStyles.iconColor}
+              />
+            )}
+          </View>
+          <Text style={styles.fileName} numberOfLines={1}>
+            {file.name}
+          </Text>
+          <Text style={styles.fileDetails} numberOfLines={1}>
+            {file.isFolder ? 'Folder' : file.size}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
 
     return (
       <SwipeableRow
@@ -271,6 +315,14 @@ const styles = StyleSheet.create({
   },
   chevron: {
     padding: 4,
+  },
+  gridCard: {
+    width: '48%',
+    height: 160,
+    marginBottom: 16,
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
