@@ -86,6 +86,7 @@ class DatabaseService {
         const sharedWith = folder.folderShares
           ? JSON.stringify(
               folder.folderShares.map((s: any) => ({
+                shareId: s.id || s.shareId,
                 name: s.sharedWith,
                 avatarUrl: s.avatarUrl || null,
               })),
@@ -117,6 +118,7 @@ class DatabaseService {
         const sharedWith = file.fileShares
           ? JSON.stringify(
               file.fileShares.map((s: any) => ({
+                shareId: s.id || s.shareId,
                 name: s.sharedWith,
                 avatarUrl: s.avatarUrl || null,
               })),
@@ -299,6 +301,36 @@ class DatabaseService {
   }
 
   // --- Helpers ---
+
+  public async pruneForeignItems(
+    currentUserId: string,
+    validFileIds: string[],
+    validFolderIds: string[],
+  ) {
+    if (!this.db) return;
+
+    // Prune Files
+    if (validFileIds.length > 0) {
+      const placeholders = validFileIds.map(() => '?').join(',');
+      this.db.execute(
+        `DELETE FROM files WHERE userId != ? AND id NOT IN (${placeholders})`,
+        [currentUserId, ...validFileIds],
+      );
+    } else {
+      this.db.execute(`DELETE FROM files WHERE userId != ?`, [currentUserId]);
+    }
+
+    // Prune Folders
+    if (validFolderIds.length > 0) {
+      const placeholders = validFolderIds.map(() => '?').join(',');
+      this.db.execute(
+        `DELETE FROM folders WHERE userId != ? AND id NOT IN (${placeholders})`,
+        [currentUserId, ...validFolderIds],
+      );
+    } else {
+      this.db.execute(`DELETE FROM folders WHERE userId != ?`, [currentUserId]);
+    }
+  }
 
   private mapRowToFileItem = (row: any): FileItem => {
     return {

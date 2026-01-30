@@ -1,5 +1,6 @@
 import { vaultContainer } from '../vault/vault.container.js';
 import { sharedContainer } from '../shared/shared.container.js';
+import { RevokeShareUseCase } from '../../../application/use-cases/files/revoke-share.use-case.js';
 import {
   UploadFileUseCase,
   GenerateFileLinkUseCase,
@@ -19,6 +20,8 @@ import {
   GetSharedFolderUseCase,
   InitiateUploadUseCase,
   CompleteUploadUseCase,
+  GetFileThumbnailUseCase,
+  GetMediaAlbumsUseCase,
 } from '../../../application/use-cases/index.js';
 import { FileController } from '../../../presentation/controllers/files/file.controller.js';
 import { FolderController } from '../../../presentation/controllers/files/folder.controller.js';
@@ -57,6 +60,9 @@ export class FilesContainer {
   public readonly listSharedWithMeUseCase: ListSharedWithMeUseCase;
   public readonly initiateUploadUseCase: InitiateUploadUseCase;
   public readonly completeUploadUseCase: CompleteUploadUseCase;
+  public readonly getFileThumbnailUseCase: GetFileThumbnailUseCase;
+  public readonly getMediaAlbumsUseCase: GetMediaAlbumsUseCase;
+  public readonly revokeShareUseCase: RevokeShareUseCase;
 
   // Controllers
   public readonly fileController: FileController;
@@ -153,6 +159,8 @@ export class FilesContainer {
       sharedContainer.userRepository
     );
 
+    this.revokeShareUseCase = new RevokeShareUseCase(this.shareRepository);
+
     this.initiateUploadUseCase = new InitiateUploadUseCase(
       this.fileRepository,
       this.folderRepository,
@@ -166,6 +174,15 @@ export class FilesContainer {
       sharedContainer.userRepository
     );
 
+    this.getFileThumbnailUseCase = new GetFileThumbnailUseCase(
+      this.fileRepository,
+      this.shareRepository,
+      sharedContainer.userRepository,
+      sharedContainer.storageService
+    );
+
+    this.getMediaAlbumsUseCase = new GetMediaAlbumsUseCase(this.fileRepository);
+
     // Controllers implementation
     this.fileController = new FileController(
       this.fileRepository,
@@ -174,7 +191,9 @@ export class FilesContainer {
       this.restoreFileUseCase,
       this.getStorageAnalyticsUseCase,
       this.initiateUploadUseCase,
-      this.completeUploadUseCase
+      this.completeUploadUseCase,
+      this.getFileThumbnailUseCase,
+      this.getMediaAlbumsUseCase
     );
 
     this.folderController = new FolderController(
@@ -192,7 +211,8 @@ export class FilesContainer {
       this.getSharedFileUseCase,
       this.getSharedFolderUseCase,
       this.listSharedWithMeUseCase,
-      sharedContainer.storageService
+      sharedContainer.storageService,
+      this.revokeShareUseCase
     );
 
     this.searchController = new SearchController(this.searchFilesUseCase);

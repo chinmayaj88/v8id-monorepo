@@ -6,7 +6,7 @@ export interface SyncDTO {
 }
 
 export interface SyncResult {
-  files: File[];
+  files: any[];
   folders: Folder[];
   lastSync: Date;
 }
@@ -42,7 +42,11 @@ export class SyncUseCase {
     }
 
     return {
-      files,
+      files: files.map(f => ({
+        ...f,
+        size: f.size.toString(),
+        thumbnailUrl: f.thumbnailKey ? `api/files/${f.id}/thumbnail` : null,
+      })),
       folders,
       lastSync: now,
     };

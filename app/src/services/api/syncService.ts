@@ -4,6 +4,8 @@ export interface SyncResult {
   files: any[];
   folders: any[];
   lastSync: string;
+  sharedFileIds?: string[];
+  sharedFolderIds?: string[];
 }
 
 export const syncService = {
@@ -43,8 +45,9 @@ export const syncService = {
             // Map 'sharedUsers' from DTO to 'fileShares' structure expected by DatabaseService
             fileShares: s.file.sharedUsers
               ? s.file.sharedUsers.map((u: any) => ({
-                  sharedWith: u.name, // using name as identifier/label
+                  sharedWith: u.name,
                   avatarUrl: u.avatarUrl,
+                  id: u.shareId,
                 }))
               : [],
           }));
@@ -58,6 +61,7 @@ export const syncService = {
               ? s.folder.sharedUsers.map((u: any) => ({
                   sharedWith: u.name,
                   avatarUrl: u.avatarUrl,
+                  id: u.shareId,
                 }))
               : [],
           }));
@@ -81,6 +85,8 @@ export const syncService = {
         files: uniqueFiles,
         folders: uniqueFolders,
         lastSync: syncData.lastSync,
+        sharedFileIds: sharedFiles.map(f => f.id),
+        sharedFolderIds: sharedFolders.map(f => f.id),
       };
     } catch (error) {
       console.error('[Sync Service Error]:', error);

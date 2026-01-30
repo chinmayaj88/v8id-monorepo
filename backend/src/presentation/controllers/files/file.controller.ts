@@ -6,6 +6,8 @@ import {
   GetStorageAnalyticsUseCase,
   InitiateUploadUseCase,
   CompleteUploadUseCase,
+  GetFileThumbnailUseCase,
+  GetMediaAlbumsUseCase,
 } from '../../../application/use-cases/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
@@ -19,8 +21,36 @@ export class FileController {
     private restoreFileUseCase: RestoreFileUseCase,
     private getStorageAnalyticsUseCase: GetStorageAnalyticsUseCase,
     private initiateUploadUseCase: InitiateUploadUseCase,
-    private completeUploadUseCase: CompleteUploadUseCase
+    private completeUploadUseCase: CompleteUploadUseCase,
+    private getFileThumbnailUseCase: GetFileThumbnailUseCase,
+    private getMediaAlbumsUseCase: GetMediaAlbumsUseCase
   ) {}
+
+  // Methods...
+  async getAlbums(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const type = req.query.type as string;
+      if (!['image', 'video', 'document'].includes(type)) {
+        ResponseUtil.validationError(res, 'Valid type (image, video, document) required');
+        return;
+      }
+
+      const albums = await this.getMediaAlbumsUseCase.execute(
+        req.user.id,
+        type as 'image' | 'video' | 'document'
+      );
+
+      ResponseUtil.success(res, albums);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get albums';
+      ResponseUtil.error(res, 'ALBUMS_ERROR', message);
+    }
+  }
 
   async handleUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -273,6 +303,35 @@ export class FileController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to restore file';
       ResponseUtil.error(res, 'RESTORE_FILE_ERROR', message);
+    }
+  }
+
+  async getThumbnail(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { id } = req.params;
+      // @ts-ignore - The use case returns object with file/contentType
+      const result = await this.getFileThumbnailUseCase.execute(req.user.id, id);
+
+      res.setHeader('Content-Type', result.contentType || 'image/jpeg');
+      if (result.contentLength) {
+        res.setHeader('Content-Length', result.contentLength);
+      }
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      res.send(result.file);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get thumbnail';
+      if (message.includes('not found') || message.includes('No thumbnail')) {
+        ResponseUtil.notFound(res, message);
+      } else if (message.includes('Unauthorized') || message.includes('Access denied')) {
+        ResponseUtil.forbidden(res, message);
+      } else {
+        ResponseUtil.error(res, 'THUMBNAIL_ERROR', message);
+      }
     }
   }
 }

@@ -76,4 +76,16 @@ export interface IFileRepository {
       offset?: number;
     }
   ): Promise<File[]>;
+  /**
+   * Get album aggregation for media types
+   */
+  getMediaAlbums(userId: string, type: 'image' | 'video' | 'document'): Promise<MediaAlbum[]>;
+}
+
+export interface MediaAlbum {
+  folderId: string | null;
+  folderName: string;
+  count: number;
+  thumbnailKey: string | null;
+  thumbnailFileId: string | null;
 }

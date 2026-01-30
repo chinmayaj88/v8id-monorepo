@@ -5,6 +5,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors, Typography } from '../../../theme';
 import { FileItem } from '../types';
 import { SwipeableRow, SwipeAction } from '../../../components/SwipeableRow';
+import { useAppSelector } from '../../../store/hooks';
 
 interface FileItemCardProps {
   file: FileItem;
@@ -19,6 +20,7 @@ interface FileItemCardProps {
   isTrashMode?: boolean;
   onRestore?: () => void;
   isGrid?: boolean;
+  isGallery?: boolean;
 }
 
 // --- Subcomponents ---
@@ -142,6 +144,23 @@ const getFileStyles = (file: FileItem) => {
   };
 };
 
+const getIconName = (mime?: string) => {
+  if (!mime) return 'insert-drive-file';
+  const m = mime.toLowerCase();
+  if (m.startsWith('image/')) return 'image';
+  if (m.startsWith('video/')) return 'movie'; // or play-circle
+  if (m.startsWith('audio/')) return 'audiotrack';
+  if (m.includes('pdf')) return 'picture-as-pdf';
+  if (
+    m.includes('document') ||
+    m.includes('word') ||
+    m.includes('sheet') ||
+    m.includes('text')
+  )
+    return 'description';
+  return 'insert-drive-file';
+};
+
 export const FileItemCard = React.memo<FileItemCardProps>(
   ({
     file,
@@ -156,6 +175,7 @@ export const FileItemCard = React.memo<FileItemCardProps>(
     isTrashMode,
     onRestore,
     isGrid,
+    isGallery,
   }) => {
     // Define actions based on mode
     const actions: SwipeAction[] = useMemo(() => {
@@ -225,9 +245,56 @@ export const FileItemCard = React.memo<FileItemCardProps>(
     };
 
     const fileIcon =
-      file.icon || (file.isFolder ? 'folder' : 'insert-drive-file');
+      file.icon || (file.isFolder ? 'folder' : getIconName(file.mimeType));
+
+    const token = useAppSelector(state => state.auth.token);
+
+    const getThumbnailSource = (url: string) => {
+      if (url.startsWith('http')) return { uri: url };
+      const baseUrl = API_URL.replace(/\/api\/?$/, '');
+      const fullUrl = `${baseUrl}/${url.replace(/^\//, '')}`;
+      return {
+        uri: fullUrl,
+        headers: { Authorization: `Bearer ${token}` },
+      };
+    };
 
     const fileStyles = getFileStyles(file);
+
+    if (isGallery) {
+      return (
+        <TouchableOpacity
+          style={styles.galleryCard}
+          onPress={onClick}
+          activeOpacity={0.8}
+        >
+          {file.thumbnailUrl ? (
+            <Image
+              source={getThumbnailSource(file.thumbnailUrl)}
+              style={styles.galleryImage}
+            />
+          ) : (
+            <View
+              style={[
+                styles.galleryPlaceholder,
+                { backgroundColor: fileStyles.backgroundColor },
+              ]}
+            >
+              <MaterialIcons
+                name={fileIcon}
+                size={32}
+                color={fileStyles.iconColor}
+              />
+            </View>
+          )}
+          {file.mimeType?.startsWith('video/') && (
+            <View style={styles.galleryBadge}>
+              <MaterialIcons name="play-arrow" size={12} color="#FFF" />
+            </View>
+          )}
+        </TouchableOpacity>
+      );
+    }
 
     if (isGrid) {
       return (
@@ -250,7 +317,7 @@ export const FileItemCard = React.memo<FileItemCardProps>(
           >
             {file.thumbnailUrl ? (
               <Image
-                source={{ uri: file.thumbnailUrl }}
+                source={getThumbnailSource(file.thumbnailUrl)}
                 style={styles.thumbnail}
               />
             ) : (
@@ -305,7 +372,7 @@ export const FileItemCard = React.memo<FileItemCardProps>(
             >
               {file.thumbnailUrl ? (
                 <Image
-                  source={{ uri: file.thumbnailUrl }}
+                  source={getThumbnailSource(file.thumbnailUrl)}
                   style={styles.thumbnail}
                 />
               ) : (
@@ -448,6 +515,31 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 10,
     fontWeight: 'bold',
+  },
+  galleryCard: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 1,
+    backgroundColor: '#F1F5F9',
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  galleryPlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 8,
+    padding: 4,
   },
 });
 

@@ -82,6 +82,15 @@ export const useHomeViewModel = () => {
         databaseService.upsertFiles(result.files);
       }
 
+      // Prune revoked shares (Foreign items not in the shared list)
+      if (user?.id) {
+        await databaseService.pruneForeignItems(
+          user.id,
+          result.sharedFileIds || [],
+          result.sharedFolderIds || [],
+        );
+      }
+
       // Save new timestamp
       if (result.lastSync) {
         await AsyncStorage.setItem(

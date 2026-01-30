@@ -215,4 +215,81 @@ export class FileRepository implements IFileRepository {
       include: { fileShares: true },
     });
   }
+  async getMediaAlbums(
+    userId: string,
+    type: 'image' | 'video' | 'document'
+  ): Promise<
+    {
+      folderId: string | null;
+      folderName: string;
+      count: number;
+      thumbnailKey: string | null;
+      thumbnailFileId: string | null;
+    }[]
+  > {
+    const where: Prisma.FileWhereInput = {
+      userId,
+      isDeleted: false,
+    };
+
+    if (type === 'document') {
+      where.OR = [
+        { mimeType: { contains: 'pdf' } },
+        { mimeType: { contains: 'word' } },
+        { mimeType: { contains: 'text' } },
+        { mimeType: { contains: 'presentation' } },
+        { mimeType: { contains: 'spreadsheet' } },
+      ];
+    } else {
+      where.mimeType = { startsWith: type + '/' };
+    }
+
+    const files = await prisma.file.findMany({
+      where,
+      select: {
+        id: true,
+        folderId: true,
+        thumbnailKey: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Group by folderId
+    const groups = new Map<string, { count: number; latest: any }>();
+    const rootKey = 'ROOT';
+
+    for (const f of files) {
+      const key = f.folderId || rootKey;
+      if (!groups.has(key)) {
+        groups.set(key, { count: 0, latest: f });
+      }
+      const g = groups.get(key)!;
+      g.count++;
+    }
+
+    // Fetch Folder Names
+    const folderIds = Array.from(groups.keys()).filter(k => k !== rootKey);
+    const foldersMap = new Map<string, string>();
+    if (folderIds.length > 0) {
+      const folders = await prisma.folder.findMany({
+        where: { id: { in: folderIds } },
+        select: { id: true, name: true },
+      });
+      folders.forEach(f => foldersMap.set(f.id, f.name));
+    }
+
+    // Map to result
+    const result = [];
+    for (const [key, val] of groups) {
+      result.push({
+        folderId: key === rootKey ? null : key,
+        folderName: key === rootKey ? 'Root' : foldersMap.get(key) || 'Unknown',
+        count: val.count,
+        thumbnailKey: val.latest.thumbnailKey,
+        thumbnailFileId: val.latest.id,
+      });
+    }
+    return result;
+  }
 }

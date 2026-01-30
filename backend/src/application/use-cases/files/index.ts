@@ -16,3 +16,5 @@ export * from './create-folder-share.use-case.js';
 export * from './get-shared-folder.use-case.js';
 export * from './initiate-upload.use-case.js';
 export * from './complete-upload.use-case.js';
+export * from './get-file-thumbnail.use-case.js';
+export * from './get-media-albums.use-case.js';

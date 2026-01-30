@@ -1,12 +1,8 @@
-import { File, Folder, StorageTier } from '../../../../generated/prisma/index.js';
+import { Folder, StorageTier } from '../../../../generated/prisma/index.js';
 import { IFileRepository, IFolderRepository } from '../../interfaces/index.js';
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
 import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
-import {
-  FileItemDTO,
-  FolderItemDTO,
-  FolderWithBreadcrumbsDTO,
-} from '../../dtos/files/file-item.dto.js';
+import { FileItemDTO, FolderItemDTO } from '../../dtos/files/file-item.dto.js';
 
 export interface ListFolderContentsDTO {
   parentId?: string | null; // Null for root
@@ -52,10 +48,13 @@ export class ListFolderContentsUseCase {
 
       // Check ownership
       if (currentFolderRaw.userId !== userId) {
+        // Access Check (handled recursively by repository)
         const share = await this.shareRepository.checkFolderAccess(parentId, currentUser.email);
+
         if (!share) {
           throw new Error('Access denied to folder');
         }
+
         isSharedFolder = true;
 
         const owner = await this.userRepository.findById(currentFolderRaw.userId);
@@ -118,8 +117,10 @@ export class ListFolderContentsUseCase {
       isOwner: f.userId === userId,
       ownerName: f.userId === userId ? currentUserName : folderOwnerName,
       // Map shares (recipients)
+      // Map shares (recipients)
       sharedUsers: f.folderShares
         ? f.folderShares.map((s: any) => ({
+            shareId: s.id,
             name: s.sharedWith, // Email
             avatarUrl: null,
           }))
@@ -132,7 +133,7 @@ export class ListFolderContentsUseCase {
       size: f.size.toString(),
       mimeType: f.mimeType,
       extension: f.extension,
-      thumbnailUrl: null,
+      thumbnailUrl: f.thumbnailKey ? `api/files/${f.id}/thumbnail` : null,
       createdAt: f.createdAt,
       updatedAt: f.updatedAt,
       isOwner: f.userId === userId,
@@ -141,6 +142,7 @@ export class ListFolderContentsUseCase {
       // Map shares (recipients)
       sharedUsers: f.fileShares
         ? f.fileShares.map((s: any) => ({
+            shareId: s.id,
             name: s.sharedWith, // Email
             avatarUrl: null,
           }))
@@ -182,7 +184,7 @@ export class ListFolderContentsUseCase {
           size: s.file.size.toString(),
           mimeType: s.file.mimeType,
           extension: s.file.extension,
-          thumbnailUrl: null,
+          thumbnailUrl: s.file.thumbnailKey ? `api/files/${s.file.id}/thumbnail` : null,
           createdAt: s.file.createdAt,
           updatedAt: s.file.updatedAt,
           isOwner: false,

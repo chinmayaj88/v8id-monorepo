@@ -80,6 +80,10 @@ export class ShareRepository implements IShareRepository {
     });
   }
 
+  async findFileShareById(id: string): Promise<FileShare | null> {
+    return prisma.fileShare.findUnique({ where: { id } });
+  }
+
   async deleteFileShare(id: string): Promise<void> {
     await prisma.fileShare.delete({
       where: { id },
@@ -151,6 +155,10 @@ export class ShareRepository implements IShareRepository {
     });
   }
 
+  async findFolderShareById(id: string): Promise<FolderShare | null> {
+    return prisma.folderShare.findUnique({ where: { id } });
+  }
+
   async deleteFolderShare(id: string): Promise<void> {
     await prisma.folderShare.delete({
       where: { id },
@@ -158,13 +166,32 @@ export class ShareRepository implements IShareRepository {
   }
 
   async checkFolderAccess(folderId: string, email: string): Promise<FolderShare | null> {
-    const share = await prisma.folderShare.findFirst({
-      where: {
-        folderId,
-        sharedWith: email,
-        type: ShareType.INTERNAL,
-      },
-    });
-    return share;
+    try {
+      // Optimized: Use Recursive CTE to find all ancestor folder IDs in one query
+      const ancestors = await prisma.$queryRaw<{ id: string }[]>`
+        WITH RECURSIVE Ancestors AS (
+          SELECT id, parentId FROM folders WHERE id = ${folderId}
+          UNION ALL
+          SELECT f.id, f.parentId FROM folders f 
+          INNER JOIN Ancestors a ON f.id = a.parentId
+        )
+        SELECT id FROM Ancestors;
+      `;
+
+      if (!ancestors || ancestors.length === 0) return null;
+
+      const ids = ancestors.map(a => a.id);
+
+      return prisma.folderShare.findFirst({
+        where: {
+          folderId: { in: ids },
+          sharedWith: email,
+          type: ShareType.INTERNAL,
+        },
+      });
+    } catch (error) {
+      console.error('Check access error:', error);
+      return null;
+    }
   }
 }

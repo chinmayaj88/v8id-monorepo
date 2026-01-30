@@ -178,6 +178,11 @@ const fileService = {
     return response.data?.data;
   },
 
+  revokeShare: async (shareId: string) => {
+    const response = await apiClient.delete(`/files/shares/${shareId}`);
+    return response.data;
+  },
+
   listSharedWithMe: async () => {
     const response = await apiClient.get('/files/shared');
     return response.data?.data;
@@ -189,6 +194,10 @@ const fileService = {
     const response = await apiClient.get('/search', {
       params: { q: query, type },
     });
+    return response.data?.data;
+  },
+  getMediaAlbums: async (type: 'image' | 'video' | 'document') => {
+    const response = await apiClient.get('/files/albums', { params: { type } });
     return response.data?.data;
   },
 };

@@ -202,6 +202,14 @@ const HomeScreen = () => {
           if (option === 'Files') {
             // @ts-ignore
             navigation.navigate('Files');
+          } else if (['Images', 'Videos', 'Docs'].includes(option)) {
+            const typeMap: any = {
+              Images: 'image',
+              Videos: 'video',
+              Docs: 'document',
+            };
+            // @ts-ignore
+            navigation.navigate('MediaGallery', { type: typeMap[option] });
           } else {
             setFilter(option);
           }

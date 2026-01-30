@@ -20,6 +20,7 @@ export interface IShareRepository {
   findFileShareByToken(token: string): Promise<FileShare | null>;
   findFileSharesByFileId(fileId: string): Promise<FileShare[]>;
   findFileSharesByEmail(email: string): Promise<FileShare[]>; // Shared with me
+  findFileShareById(id: string): Promise<FileShare | null>;
   deleteFileShare(id: string): Promise<void>;
   checkFileAccess(fileId: string, email: string): Promise<FileShare | null>;
 
@@ -28,6 +29,7 @@ export interface IShareRepository {
   findFolderShareByToken(token: string): Promise<FolderShare | null>;
   findFolderShareByFolderId(folderId: string): Promise<FolderShare[]>;
   findFolderSharesByEmail(email: string): Promise<FolderShare[]>;
+  findFolderShareById(id: string): Promise<FolderShare | null>;
   deleteFolderShare(id: string): Promise<void>;
   checkFolderAccess(folderId: string, email: string): Promise<FolderShare | null>;
 }

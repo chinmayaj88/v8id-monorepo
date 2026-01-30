@@ -7,6 +7,7 @@ import {
   CreateFolderShareUseCase,
   GetSharedFolderUseCase,
 } from '../../../application/use-cases/index.js';
+import { RevokeShareUseCase } from '../../../application/use-cases/files/revoke-share.use-case.js';
 import { ShareType, SharePermission } from '../../../../generated/prisma/index.js'; // Fix import
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 import { ResponseUtil } from '../../utils/response.util.js';
@@ -19,7 +20,8 @@ export class ShareController {
     private getSharedFileUseCase: GetSharedFileUseCase,
     private getSharedFolderUseCase: GetSharedFolderUseCase,
     private listSharedWithMeUseCase: ListSharedWithMeUseCase,
-    private storageService: IStorageService
+    private storageService: IStorageService,
+    private revokeShareUseCase: RevokeShareUseCase
   ) {}
 
   /**
@@ -233,6 +235,33 @@ export class ShareController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'List shared failed';
       ResponseUtil.error(res, 'LIST_SHARED_ERROR', message);
+    }
+  }
+
+  /**
+   * DELETE /api/shares/:id
+   * Revoke a specific share (file or folder)
+   */
+  async revokeShare(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { id } = req.params;
+
+      if (!id || typeof id !== 'string') {
+        ResponseUtil.validationError(res, 'Invalid share ID');
+        return;
+      }
+
+      await this.revokeShareUseCase.execute(req.user.id, id);
+
+      ResponseUtil.success(res, null, 'Share revoked successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Revoke failed';
+      ResponseUtil.error(res, 'REVOKE_ERROR', message);
     }
   }
 }

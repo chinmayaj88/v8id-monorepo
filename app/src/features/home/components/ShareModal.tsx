@@ -23,6 +23,11 @@ interface ShareModalProps {
     id: string;
     name: string;
     isFolder: boolean;
+    sharedUsers?: Array<{
+      shareId?: string;
+      name: string;
+      avatarUrl?: string | null;
+    }>;
   } | null;
   onShareSuccess?: () => void;
 }
@@ -156,9 +161,18 @@ const ShareModal: React.FC<ShareModalProps> = ({
       onShareSuccess?.();
       onClose();
     } catch (error) {
-      console.error('Share failed:', error);
     } finally {
       setIsSharing(false);
+    }
+  };
+
+  const handleRevoke = async (shareId: string) => {
+    try {
+      await fileService.revokeShare(shareId);
+      // Trigger refresh in parent
+      onShareSuccess?.();
+    } catch (error) {
+      console.error('Revoke failed:', error);
     }
   };
 
@@ -308,6 +322,43 @@ const ShareModal: React.FC<ShareModalProps> = ({
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Currently Shared List */}
+            {item?.sharedUsers && item.sharedUsers.length > 0 && (
+              <View style={{ marginTop: 16 }}>
+                <Text style={styles.label}>Currently Shared With</Text>
+                {item.sharedUsers.map((u, idx) => (
+                  <View
+                    key={idx}
+                    style={[styles.resultItem, { paddingVertical: 8 }]}
+                  >
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>
+                        {(u.name || '?').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.resultEmail}>{u.name}</Text>
+                    </View>
+                    {u.shareId && (
+                      <TouchableOpacity
+                        onPress={() => handleRevoke(u.shareId!)}
+                      >
+                        <Text
+                          style={{
+                            color: '#EF4444',
+                            fontSize: 12,
+                            fontWeight: '600',
+                          }}
+                        >
+                          Remove
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.content}>

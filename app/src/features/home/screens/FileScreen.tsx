@@ -6,17 +6,13 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  ScrollView,
-  Share,
   Alert,
   TextInput,
 } from 'react-native';
-import { API_URL } from '@env';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors, Typography } from '../../../theme';
-import { databaseService } from '../../../services/db/DatabaseService';
 import fileService from '../../../services/api/fileService';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { FileItemCard } from '../components/FileItemCard';
@@ -28,24 +24,35 @@ import { useAppDispatch } from '../../../store/hooks';
 import { setCurrentFolderId } from '../../../store/uiSlice';
 import { useFocusEffect } from '@react-navigation/native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { pick, types } from '@react-native-documents/picker';
 import { uploadManager } from '../services/UploadManager';
 import { downloadManager } from '../services/DownloadManager';
 
 type SubTab = 'FOLDERS' | 'FILES';
+
+const formatSize = (bytes: number) => {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
 
 const FileScreen = () => {
   const navigation: any = useNavigation();
   const route: any = useRoute();
   const parentId = route.params?.folderId || null;
   const initialFolderName = route.params?.folderName || 'Cloud Drive';
+  const filterType = route.params?.filterType; // 'image', 'video', 'document'
+  const initialViewMode = route.params?.viewMode || 'LIST';
 
   const [items, setItems] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<SubTab>('FOLDERS');
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [revealedFileId, setRevealedFileId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'LIST' | 'GRID'>('LIST');
+  const [viewMode, setViewMode] = useState<'LIST' | 'GRID'>(
+    initialViewMode as 'LIST' | 'GRID',
+  );
 
   // Sharing State
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -90,32 +97,38 @@ const FileScreen = () => {
 
     try {
       const parentIdArg = isRoot ? undefined : parentId;
-      const data = await fileService.listFolderContents(parentIdArg);
+      // Bump limit for gallery
+      const data = await fileService.listFolderContents(parentIdArg, 1000);
 
       // Map API response to UI items
       const folderItems = (data.folders || []).map((f: any) => ({
         id: f.id,
         name: f.name,
-        size: '', // Folders don't usually have size in list
+        size: '',
         timeAgo: new Date(f.updatedAt).toLocaleDateString(),
         isFolder: true,
         color: f.color,
+        sharedUsers: f.sharedUsers,
       }));
 
       const fileItems = (data.files || []).map((f: any) => ({
         id: f.id,
         name: f.name,
-        size: f.size,
+        size: formatSize(Number(f.size)),
         timeAgo: new Date(f.updatedAt).toLocaleDateString(),
         mimeType: f.mimeType,
         thumbnailUrl: f.thumbnailUrl,
         folderId: f.folderId,
         isFolder: false,
+        sharedUsers: f.sharedUsers,
       }));
 
       let combinedItems = [];
 
-      if (isRoot) {
+      // If filtering (Gallery Mode), ignore Tabs and take everything (we filter later)
+      if (filterType) {
+        combinedItems = [...folderItems, ...fileItems];
+      } else if (isRoot) {
         if (activeTab === 'FOLDERS') {
           combinedItems = folderItems;
         } else {
@@ -125,8 +138,26 @@ const FileScreen = () => {
         combinedItems = [...folderItems, ...fileItems];
       }
 
+      if (filterType) {
+        // Filter for specific media types and hide folders
+        combinedItems = combinedItems.filter(item => {
+          if (item.isFolder) return false;
+          // Case insensitive check
+          const mime = (item.mimeType || '').toLowerCase();
+          if (filterType === 'image') return mime.startsWith('image/');
+          if (filterType === 'video') return mime.startsWith('video/');
+          if (filterType === 'document')
+            return (
+              mime.indexOf('pdf') > -1 ||
+              mime.indexOf('word') > -1 ||
+              mime.indexOf('text') > -1
+            );
+          return true;
+        });
+      }
+
       if (searchQuery) {
-        combinedItems = [...folderItems, ...fileItems].filter(item =>
+        combinedItems = combinedItems.filter(item =>
           item.name.toLowerCase().includes(searchQuery.toLowerCase()),
         );
       }
@@ -143,7 +174,7 @@ const FileScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [parentId, isRoot, searchQuery, activeTab]);
+  }, [parentId, isRoot, searchQuery, activeTab, filterType]);
 
   useEffect(() => {
     loadContents();
@@ -158,27 +189,6 @@ const FileScreen = () => {
   const handleShare = (item: any) => {
     setItemToShare(item);
     setShareModalVisible(true);
-  };
-
-  const handlePickMedia = async () => {
-    try {
-      const result = await launchImageLibrary({
-        mediaType: 'mixed',
-        selectionLimit: 0,
-      });
-
-      if (result.assets && result.assets.length > 0) {
-        const files = result.assets.map((asset: any) => ({
-          uri: asset.uri!,
-          name: asset.fileName || `file_${Date.now()}`,
-          mimeType: asset.type || 'application/octet-stream',
-          size: asset.fileSize || 0,
-        }));
-        uploadManager.enqueue(files, parentId);
-      }
-    } catch (err) {
-      console.error('ImagePicker Error: ', err);
-    }
   };
 
   const handleCreateFolder = () => {
@@ -224,7 +234,6 @@ const FileScreen = () => {
               } else {
                 await fileService.deleteFile(item.id);
               }
-              // Optimistically update UI
               setItems(prev => prev.filter(i => i.id !== item.id));
             } catch (error) {
               console.error(error);
@@ -251,10 +260,7 @@ const FileScreen = () => {
         onExpand={() => setRevealedFileId(item.id)}
         onCollapse={() => revealedFileId === item.id && setRevealedFileId(null)}
         onDownload={() => {
-          if (item.isFolder) {
-            Alert.alert('Info', 'Folder download coming soon');
-            return;
-          }
+          if (item.isFolder) return;
           downloadManager.startDownload(
             item.id,
             item.name,
@@ -265,18 +271,27 @@ const FileScreen = () => {
         onDelete={() => handleDelete(item)}
         onShare={() => handleShare(item)}
         isGrid={viewMode === 'GRID'}
+        isGallery={!!filterType}
         onClick={() => {
           if (item.isFolder) {
             navigation.push('Files', {
               folderId: item.id,
               folderName: item.name,
+              filterType,
+              viewMode: filterType ? 'GRID' : 'LIST',
             });
           } else {
-            // @ts-ignore
+            // Updated Viewer Navigation for Gallery Swiping
+            const galleryFiles = items.filter(i => !i.isFolder);
+            const initialIndex = galleryFiles.findIndex(f => f.id === item.id);
             navigation.navigate('Viewer', {
               fileId: item.id,
               fileName: item.name,
               fileType: item.mimeType,
+              context: {
+                files: galleryFiles,
+                initialIndex: Math.max(0, initialIndex),
+              },
             });
           }
         }}
@@ -289,7 +304,7 @@ const FileScreen = () => {
       <View style={styles.topSection}>
         <View style={styles.header}>
           <View style={styles.headerTitleRow}>
-            {!isRoot && (
+            {(!isRoot || filterType) && (
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
                 style={styles.iconButton}
@@ -336,67 +351,71 @@ const FileScreen = () => {
       </View>
 
       <View style={styles.contentArea}>
-        <View style={styles.sortHeader}>
-          <TouchableOpacity style={styles.sortButton}>
-            <Text style={styles.sortText}>Name</Text>
-            <MaterialIcons
-              name="arrow-upward"
-              size={16}
-              color="#1E293B"
-              style={{ marginLeft: 4 }}
-            />
-          </TouchableOpacity>
-
-          {isRoot && (
-            <View style={styles.tabSwitcher}>
-              <TouchableOpacity
-                style={[
-                  styles.miniTab,
-                  activeTab === 'FOLDERS' && styles.miniTabActive,
-                ]}
-                onPress={() => setActiveTab('FOLDERS')}
-              >
-                <Text
-                  style={[
-                    styles.miniTabText,
-                    activeTab === 'FOLDERS' && styles.miniTabTextActive,
-                  ]}
-                >
-                  Folders
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.miniTab,
-                  activeTab === 'FILES' && styles.miniTabActive,
-                ]}
-                onPress={() => setActiveTab('FILES')}
-              >
-                <Text
-                  style={[
-                    styles.miniTabText,
-                    activeTab === 'FILES' && styles.miniTabTextActive,
-                  ]}
-                >
-                  Files
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <View style={styles.rightActions}>
-            <TouchableOpacity
-              style={styles.miniIconButton}
-              onPress={() => setViewMode(viewMode === 'LIST' ? 'GRID' : 'LIST')}
-            >
+        {!filterType && (
+          <View style={styles.sortHeader}>
+            <TouchableOpacity style={styles.sortButton}>
+              <Text style={styles.sortText}>Name</Text>
               <MaterialIcons
-                name={viewMode === 'LIST' ? 'grid-view' : 'view-list'}
-                size={24}
-                color="#64748B"
+                name="arrow-upward"
+                size={16}
+                color="#1E293B"
+                style={{ marginLeft: 4 }}
               />
             </TouchableOpacity>
+
+            {isRoot && (
+              <View style={styles.tabSwitcher}>
+                <TouchableOpacity
+                  style={[
+                    styles.miniTab,
+                    activeTab === 'FOLDERS' && styles.miniTabActive,
+                  ]}
+                  onPress={() => setActiveTab('FOLDERS')}
+                >
+                  <Text
+                    style={[
+                      styles.miniTabText,
+                      activeTab === 'FOLDERS' && styles.miniTabTextActive,
+                    ]}
+                  >
+                    Folders
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.miniTab,
+                    activeTab === 'FILES' && styles.miniTabActive,
+                  ]}
+                  onPress={() => setActiveTab('FILES')}
+                >
+                  <Text
+                    style={[
+                      styles.miniTabText,
+                      activeTab === 'FILES' && styles.miniTabTextActive,
+                    ]}
+                  >
+                    Files
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <View style={styles.rightActions}>
+              <TouchableOpacity
+                style={styles.miniIconButton}
+                onPress={() =>
+                  setViewMode(viewMode === 'LIST' ? 'GRID' : 'LIST')
+                }
+              >
+                <MaterialIcons
+                  name={viewMode === 'LIST' ? 'grid-view' : 'view-list'}
+                  size={24}
+                  color="#64748B"
+                />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        )}
 
         {isLoading ? (
           <View style={styles.loaderContainer}>
@@ -404,14 +423,22 @@ const FileScreen = () => {
           </View>
         ) : (
           <FlatList
-            key={viewMode}
+            key={filterType ? 'GALLERY' : viewMode} // Force re-render on mode change
             data={items}
             renderItem={renderItem}
-            numColumns={viewMode === 'GRID' ? 2 : 1}
+            numColumns={filterType ? 4 : viewMode === 'GRID' ? 2 : 1}
             keyExtractor={(item: any) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={
+              filterType
+                ? { padding: 4, paddingBottom: 100 }
+                : styles.listContent
+            }
             columnWrapperStyle={
-              viewMode === 'GRID' ? styles.columnWrapper : undefined
+              filterType
+                ? undefined
+                : viewMode === 'GRID'
+                ? styles.columnWrapper
+                : undefined
             }
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
@@ -523,7 +550,7 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    backgroundColor: '#F0F9FF', // Subtle light blue/green tint
+    backgroundColor: '#F0F9FF',
     borderTopLeftRadius: 40,
     borderTopRightRadius: 40,
     paddingTop: 24,
@@ -564,49 +591,12 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   listContent: {
-    paddingHorizontal: 20, // Reduced to give grid more room
+    paddingHorizontal: 20,
     paddingBottom: 120,
   },
   columnWrapper: {
     justifyContent: 'space-between',
     paddingHorizontal: 4,
-  },
-  folderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  folderIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  folderInfo: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  folderName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  folderDate: {
-    fontSize: 13,
-    color: '#64748B',
-  },
-  moreButton: {
-    padding: 8,
   },
   loaderContainer: {
     flex: 1,
@@ -656,23 +646,6 @@ const styles = StyleSheet.create({
   },
   miniTabTextActive: {
     color: Colors.purple.vibrant,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 30,
-    right: 24,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.purple.vibrant,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: Colors.purple.vibrant,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    zIndex: 900,
   },
   input: {
     width: '100%',

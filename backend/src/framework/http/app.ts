@@ -1,4 +1,5 @@
 import express, { type Express } from 'express';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import { envConfig } from '../../infrastructure/config/env.config.js';

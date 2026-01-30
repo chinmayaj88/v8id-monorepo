@@ -30,6 +30,7 @@ export class ListSharedWithMeUseCase {
           size: s.file.size.toString(),
           mimeType: s.file.mimeType,
           extension: s.file.extension,
+          thumbnailUrl: s.file.thumbnailKey ? `api/files/${s.file.id}/thumbnail` : null,
           createdAt: s.file.createdAt,
           updatedAt: s.file.updatedAt,
           isOwner: false,

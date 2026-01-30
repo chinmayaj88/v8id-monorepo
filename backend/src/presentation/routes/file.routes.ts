@@ -22,9 +22,13 @@ router.use(authenticate);
 // Use controller from DI container
 // Shared files
 router.get('/shared', (req, res) => filesContainer.shareController.listSharedWithMe(req, res));
+router.delete('/shares/:id', strictMutationRateLimiter, (req, res) =>
+  filesContainer.shareController.revokeShare(req, res)
+);
 
 // Analytics
 router.get('/analytics', (req, res) => filesContainer.fileController.getAnalytics(req, res));
+router.get('/albums', (req, res) => filesContainer.fileController.getAlbums(req, res));
 
 router.post('/upload', strictMutationRateLimiter, (req, res) =>
   filesContainer.fileController.handleUpload(req, res)
@@ -37,6 +41,7 @@ router.post('/download', strictMutationRateLimiter, (req, res) =>
 router.post('/:id/share', strictMutationRateLimiter, (req, res) =>
   filesContainer.shareController.createShare(req, res)
 );
+router.get('/:id/thumbnail', (req, res) => filesContainer.fileController.getThumbnail(req, res));
 router.delete('/:id', strictMutationRateLimiter, (req, res) =>
   filesContainer.fileController.delete(req, res)
 );
