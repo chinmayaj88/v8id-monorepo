@@ -19,6 +19,7 @@ import vaultService, {
 import AddVaultSecretModal from '../components/AddVaultSecretModal';
 import ViewVaultSecretModal from '../components/ViewVaultSecretModal';
 import { SearchBar } from '../../home/components/SearchBar';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 const CATEGORIES = [
   'ALL',
@@ -35,6 +36,7 @@ const VaultScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 600);
   const [modalVisible, setModalVisible] = useState(false);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [selectedSecretId, setSelectedSecretId] = useState<string | null>(null);
@@ -58,8 +60,12 @@ const VaultScreen = () => {
   }, []);
 
   useEffect(() => {
-    fetchSecrets();
-  }, [fetchSecrets]);
+    // Only fetch if debounced value is 0 or >= 2 chars
+    // This effect handles both initial load (empty string) and filtered searches
+    if (debouncedSearchQuery.length >= 2 || debouncedSearchQuery.length === 0) {
+      fetchSecrets(debouncedSearchQuery);
+    }
+  }, [debouncedSearchQuery, fetchSecrets]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -68,9 +74,6 @@ const VaultScreen = () => {
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    if (text.length >= 2 || text.length === 0) {
-      fetchSecrets(text);
-    }
   };
 
   const filteredSecrets = secrets.filter(

@@ -6,6 +6,7 @@ import { syncService } from '../../../services/api/syncService';
 import fileService from '../../../services/api/fileService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@env';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 export const useHomeViewModel = () => {
   const { user, isAuthenticated } = useAppSelector(state => state.auth);
@@ -20,6 +21,7 @@ export const useHomeViewModel = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 600);
   const [searchResults, setSearchResults] = useState<SearchSuggestion[]>([]);
   const [selectedFilter, setSelectedFilter] = useState('All');
   const [revealedFileId, setRevealedFileId] = useState<string | null>(null);
@@ -113,8 +115,7 @@ export const useHomeViewModel = () => {
     }
   }, [isAuthenticated, loadDashboardData, isInitialSyncDone]);
 
-  const search = async (query: string) => {
-    setSearchQuery(query);
+  const performSearch = useCallback(async (query: string) => {
     if (!query || query.length < 2) {
       setSearchResults([]);
       return;
@@ -133,7 +134,8 @@ export const useHomeViewModel = () => {
           title: f.name,
           subtitle: f.size || 'File',
           type: 'FILE',
-          icon: 'insert-drive-file', // You might want dynamic icon helper here
+          icon: 'insert-drive-file',
+          mimeType: f.mimeType,
         });
       });
 
@@ -165,6 +167,14 @@ export const useHomeViewModel = () => {
     } catch (error) {
       console.error('Search failed', error);
     }
+  }, []);
+
+  useEffect(() => {
+    performSearch(debouncedSearchQuery);
+  }, [debouncedSearchQuery, performSearch]);
+
+  const search = (query: string) => {
+    setSearchQuery(query);
   };
 
   const filterFiles = (filter: string) => {

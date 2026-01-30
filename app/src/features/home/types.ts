@@ -25,6 +25,7 @@ export interface SearchSuggestion {
   subtitle: string;
   type: 'FILE' | 'FOLDER' | 'SECRET';
   icon?: any;
+  mimeType?: string;
 }
 
 export interface HomeUiState {

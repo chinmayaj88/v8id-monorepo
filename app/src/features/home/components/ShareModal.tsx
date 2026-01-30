@@ -14,6 +14,7 @@ import { Colors } from '../../../theme/colors';
 import AppModal from '../../../components/AppModal';
 import { userService } from '../../../services/api/userService';
 import fileService from '../../../services/api/fileService';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 interface ShareModalProps {
   visible: boolean;
@@ -36,6 +37,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
     'internal',
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebounce(searchQuery, 600);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -58,9 +60,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
     }
   }, [visible]);
 
-  const handleSearch = useCallback(
+  const performSearch = useCallback(
     async (query: string) => {
-      setSearchQuery(query);
       if (query.length < 2) {
         setSearchResults([]);
         return;
@@ -81,6 +82,16 @@ const ShareModal: React.FC<ShareModalProps> = ({
     },
     [selectedUsers],
   );
+
+  useEffect(() => {
+    if (visible && activeTab === 'internal') {
+      performSearch(debouncedSearchQuery);
+    }
+  }, [debouncedSearchQuery, performSearch, visible, activeTab]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
   const toggleUser = (user: any) => {
     if (selectedUsers.find(u => u.id === user.id)) {

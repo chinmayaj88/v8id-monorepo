@@ -173,7 +173,7 @@ const HomeScreen = () => {
               navigation.navigate('Viewer', {
                 fileId: suggestion.id,
                 fileName: suggestion.title,
-                fileType: '*/*',
+                fileType: suggestion.mimeType || '*/*',
               });
             }
           }}
