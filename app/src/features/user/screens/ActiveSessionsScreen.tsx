@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import { useNavigation } from '@react-navigation/native';
 import { userService, DeviceSession } from '../../../services/api/userService';
 import AppModal from '../../../components/AppModal';
@@ -213,9 +213,9 @@ const ActiveSessionsScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.backButton}
+          style={styles.iconButton}
         >
-          <MaterialIcons name="arrow-back" size={24} color={Colors.black} />
+          <MaterialIcons name="arrow-back" size={20} color={Colors.black} />
         </TouchableOpacity>
         <Text style={styles.title}>Active Sessions</Text>
       </View>
@@ -280,17 +280,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
   },
-  backButton: {
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
     marginRight: 16,
-    padding: 4,
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
   },
   content: {
@@ -335,23 +339,25 @@ const styles = StyleSheet.create({
   },
   deviceName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
     marginBottom: 4,
   },
   currentBadge: {
     color: Colors.purple.vibrant,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     fontSize: 14,
   },
   sessionDetail: {
     fontSize: 14,
     color: '#64748B',
     marginBottom: 2,
+    fontFamily: Typography.fontFamily.regular,
   },
   sessionTime: {
     fontSize: 12,
     color: '#94A3B8',
+    fontFamily: Typography.fontFamily.regular,
   },
   revokeButton: {
     padding: 8,
@@ -383,7 +389,7 @@ const styles = StyleSheet.create({
   },
   revokeAllText: {
     color: Colors.error,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     fontSize: 16,
   },
 });

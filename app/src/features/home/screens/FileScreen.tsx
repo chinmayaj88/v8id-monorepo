@@ -292,9 +292,13 @@ const FileScreen = () => {
             {!isRoot && (
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                style={styles.backButton}
+                style={styles.iconButton}
               >
-                <MaterialIcons name="arrow-back" size={24} color="#1E293B" />
+                <MaterialIcons
+                  name="arrow-back"
+                  size={20}
+                  color={Colors.black}
+                />
               </TouchableOpacity>
             )}
             <Text style={styles.mainTitle}>{initialFolderName}</Text>
@@ -485,7 +489,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  backButton: {
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
     marginRight: 12,
   },
   mainTitle: {

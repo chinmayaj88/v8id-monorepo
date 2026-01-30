@@ -6,9 +6,12 @@ import {
   ActivityIndicator,
   Text,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors, Typography } from '../../../theme';
+// @ts-ignore
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import fileService, {
   FileDTO,
   FolderDTO,
@@ -21,6 +24,7 @@ import { useAppDispatch } from '../../../store/hooks';
 import { setCurrentFolderId } from '../../../store/uiSlice';
 
 export const TrashScreen = () => {
+  const navigation = useNavigation();
   const dispatch = useAppDispatch();
 
   useFocusEffect(
@@ -194,6 +198,12 @@ export const TrashScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.iconButton}
+        >
+          <MaterialIcons name="arrow-back" size={20} color={Colors.black} />
+        </TouchableOpacity>
         <Text style={styles.title}>Trash</Text>
       </View>
 
@@ -237,8 +247,19 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+    marginRight: 12,
   },
   title: {
     fontSize: 24,

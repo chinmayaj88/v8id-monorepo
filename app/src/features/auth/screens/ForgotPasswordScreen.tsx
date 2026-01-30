@@ -142,14 +142,13 @@ const ForgotPasswordScreen = ({ navigation }: any) => {
             <View style={styles.card}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                style={styles.backButton}
+                style={styles.iconButton}
               >
                 <MaterialIcons
-                  name="arrow-back-ios-new"
+                  name="arrow-back"
                   size={20}
-                  color={Colors.purple.deep}
+                  color={Colors.black}
                 />
-                <Text style={styles.backText}>Back</Text>
               </TouchableOpacity>
 
               {isSuccess ? (
@@ -293,17 +292,16 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 20,
   },
-  backButton: {
-    flexDirection: 'row',
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
     marginBottom: 16,
-  },
-  backText: {
-    fontSize: 14,
-    color: Colors.purple.deep,
-    fontFamily: Typography.fontFamily.medium,
-    marginLeft: 4,
   },
   cardTitle: {
     fontSize: 26,

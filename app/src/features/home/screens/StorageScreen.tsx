@@ -153,9 +153,9 @@ const StorageScreen = () => {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.backButton}
+          style={styles.iconButton}
         >
-          <MaterialIcons name="arrow-back" size={24} color={Colors.black} />
+          <MaterialIcons name="arrow-back" size={20} color={Colors.black} />
         </TouchableOpacity>
         <Text style={styles.title}>Storage</Text>
       </View>
@@ -265,11 +265,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
   },
-  backButton: {
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
     marginRight: 16,
   },
   title: {

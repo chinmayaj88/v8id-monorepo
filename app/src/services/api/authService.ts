@@ -52,8 +52,8 @@ export const authService = {
   },
 
   updateProfile: async (data: FormData): Promise<{ user: any }> => {
-    const response = await apiClient.post<{ data: { user: any } }>(
-      '/users/profile',
+    const response = await apiClient.put<{ data: any }>(
+      '/users/me/profile',
       data,
       {
         headers: {
@@ -61,6 +61,6 @@ export const authService = {
         },
       },
     );
-    return response.data.data;
+    return { user: response.data.data };
   },
 };
