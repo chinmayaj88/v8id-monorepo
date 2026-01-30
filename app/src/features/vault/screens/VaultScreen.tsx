@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import vaultService, {
   VaultSecretListItem,
 } from '../../../services/api/vaultService';
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
   },
   addButton: {
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 14,
     color: Colors.gray,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.medium,
   },
   categoryTextSelected: {
     color: Colors.white,
@@ -301,13 +301,14 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
     marginBottom: 2,
   },
   itemSubtitle: {
     fontSize: 13,
     color: Colors.gray,
+    fontFamily: Typography.fontFamily.regular,
   },
   loader: {
     marginTop: 50,
@@ -323,6 +324,7 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     marginTop: 15,
     textAlign: 'center',
+    fontFamily: Typography.fontFamily.medium,
   },
   emptyAddButton: {
     marginTop: 20,
@@ -336,7 +338,7 @@ const styles = StyleSheet.create({
   },
   emptyAddButtonText: {
     color: Colors.primary,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
   },
 });
 

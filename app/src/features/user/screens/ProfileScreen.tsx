@@ -337,6 +337,7 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 14,
     color: Colors.gray,
+    fontFamily: Typography.fontFamily.regular,
   },
   planCard: {
     backgroundColor: Colors.white,
@@ -366,6 +367,7 @@ const styles = StyleSheet.create({
   planLabel: {
     fontSize: 13,
     color: Colors.gray,
+    fontFamily: Typography.fontFamily.medium,
   },
   planName: {
     fontSize: 16,
@@ -381,13 +383,14 @@ const styles = StyleSheet.create({
   },
   freeText: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: Typography.fontFamily.bold,
     color: '#4CAF50',
   },
   planSubtitle: {
     fontSize: 13,
     color: Colors.gray,
     marginTop: 2,
+    fontFamily: Typography.fontFamily.regular,
   },
   manageButton: {
     backgroundColor: '#F3F4F6',
@@ -399,7 +402,7 @@ const styles = StyleSheet.create({
   },
   manageButtonText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontFamily: Typography.fontFamily.medium,
     color: Colors.black,
   },
   arrowCircle: {
@@ -435,6 +438,7 @@ const styles = StyleSheet.create({
   menuSubtitle: {
     fontSize: 12,
     color: Colors.gray,
+    fontFamily: Typography.fontFamily.regular,
   },
   logoutButton: {
     flexDirection: 'row',

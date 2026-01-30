@@ -15,7 +15,7 @@ import {
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { forgotPassword, clearError } from '../store/authSlice';
 
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
   },
   brandText: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.white,
     letterSpacing: -0.5,
   },
@@ -302,12 +302,12 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 14,
     color: Colors.purple.deep,
-    fontWeight: '500',
+    fontFamily: Typography.fontFamily.medium,
     marginLeft: 4,
   },
   cardTitle: {
     fontSize: 26,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.purple.darkNavy,
   },
   cardSubtitle: {
@@ -315,6 +315,7 @@ const styles = StyleSheet.create({
     color: Colors.purple.indigo,
     marginTop: 6,
     marginBottom: 28,
+    fontFamily: Typography.fontFamily.regular,
   },
   successContent: {
     alignItems: 'center',
@@ -327,7 +328,7 @@ const styles = StyleSheet.create({
   form: {},
   label: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: Typography.fontFamily.medium,
     color: Colors.purple.deep,
     marginBottom: 8,
   },
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: Colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
   },
 });
 

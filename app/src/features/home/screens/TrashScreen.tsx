@@ -8,7 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import fileService, {
   FileDTO,
   FolderDTO,
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
   },
   list: {
@@ -257,5 +257,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: Colors.gray,
+    fontFamily: Typography.fontFamily.medium,
   },
 });

@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { login, setCredentials, clearError } from '../store/authSlice';
 import ErrorBanner from '../../../components/ErrorBanner';
@@ -301,14 +301,14 @@ const styles = StyleSheet.create({
   },
   brandText: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.white,
     letterSpacing: -0.5,
   },
   brandSubtitle: {
     fontSize: 13,
     color: Colors.purple.light,
-    fontWeight: '300',
+    fontFamily: Typography.fontFamily.regular,
     marginTop: 4,
   },
   card: {
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 26,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.purple.darkNavy,
   },
   cardSubtitle: {
@@ -331,11 +331,12 @@ const styles = StyleSheet.create({
     color: Colors.purple.indigo,
     marginTop: 6,
     marginBottom: 28,
+    fontFamily: Typography.fontFamily.regular,
   },
   form: {},
   label: {
     fontSize: 13,
-    fontWeight: '500',
+    fontFamily: Typography.fontFamily.medium,
     color: Colors.purple.deep,
     marginBottom: 8,
   },
@@ -376,7 +377,7 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: 12,
     color: Colors.purple.indigo,
-    fontWeight: '500',
+    fontFamily: Typography.fontFamily.medium,
   },
   loginButton: {
     backgroundColor: Colors.purple.vibrant,
@@ -396,7 +397,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: Colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
   },
   privacyText: {
     fontSize: 10,
@@ -404,6 +405,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
     lineHeight: 14,
+    fontFamily: Typography.fontFamily.regular,
   },
 });
 

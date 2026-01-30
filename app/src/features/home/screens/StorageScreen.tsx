@@ -13,7 +13,7 @@ import {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 // @ts-ignore
 import Svg, { Circle } from 'react-native-svg';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import fileService, {
   StorageAnalyticsDTO,
 } from '../../../services/api/fileService';
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
   },
   scrollContent: {
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
   },
   overviewTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: '#333',
     marginBottom: 20,
     alignSelf: 'flex-start',
@@ -320,13 +320,14 @@ const styles = StyleSheet.create({
   },
   chartPercentage: {
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.purple.vibrant,
   },
   chartLabel: {
     fontSize: 14,
     color: Colors.gray,
     marginTop: 4,
+    fontFamily: Typography.fontFamily.regular,
   },
   usageTextRow: {
     flexDirection: 'row',
@@ -334,12 +335,13 @@ const styles = StyleSheet.create({
   },
   totalUsed: {
     fontSize: 20,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
   },
   totalQuota: {
     fontSize: 16,
     color: Colors.gray,
+    fontFamily: Typography.fontFamily.regular,
   },
   breakdownSection: {
     backgroundColor: Colors.white,
@@ -349,7 +351,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     color: '#333',
     marginBottom: 16,
   },
@@ -372,7 +374,7 @@ const styles = StyleSheet.create({
   },
   breakdownLabel: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.medium,
     color: '#333',
     marginBottom: 6,
   },
@@ -390,7 +392,7 @@ const styles = StyleSheet.create({
   },
   breakdownValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.gray,
   },
   upgradeBanner: {
@@ -403,7 +405,7 @@ const styles = StyleSheet.create({
   },
   upgradeTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.white,
     marginBottom: 4,
   },
@@ -411,6 +413,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
     maxWidth: 200,
+    fontFamily: Typography.fontFamily.regular,
   },
   upgradeButton: {
     backgroundColor: Colors.white,
@@ -420,7 +423,7 @@ const styles = StyleSheet.create({
   },
   upgradeButtonText: {
     color: Colors.purple.deep,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     fontSize: 14,
   },
   errorContainer: {

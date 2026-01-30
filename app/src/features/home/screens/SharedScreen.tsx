@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import fileService from '../../../services/api/fileService';
 import { FileItemCard } from '../components/FileItemCard';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     color: '#1E293B',
   },
   loader: {
@@ -169,6 +169,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#64748B',
+    fontFamily: Typography.fontFamily.medium,
   },
 });
 

@@ -11,7 +11,7 @@ import {
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import { clearCompleted, removeTask } from '../../../store/uploadSlice';
 
 const ActivitiesScreen = () => {
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
   },
   clearButton: {
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   },
   clearText: {
     color: Colors.purple.vibrant,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
   },
   listContent: {
     padding: 16,
@@ -140,13 +140,14 @@ const styles = StyleSheet.create({
   },
   taskName: {
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.black,
   },
   taskStatus: {
     fontSize: 12,
     color: Colors.gray,
     marginTop: 2,
+    fontFamily: Typography.fontFamily.regular,
   },
   removeButton: {
     padding: 4,
@@ -161,6 +162,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: Colors.gray,
+    fontFamily: Typography.fontFamily.medium,
   },
 });
 
