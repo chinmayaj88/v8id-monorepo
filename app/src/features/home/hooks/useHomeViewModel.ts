@@ -38,11 +38,7 @@ export const useHomeViewModel = () => {
       ...prev,
       recentFiles: recentFiles.map(f => ({
         ...f,
-        thumbnailUrl: f.thumbnailUrl
-          ? f.thumbnailUrl.startsWith('http')
-            ? f.thumbnailUrl
-            : `${API_URL.replace('/api', '')}${f.thumbnailUrl}`
-          : undefined,
+        thumbnailUrl: f.thumbnailUrl,
       })),
       totalFiles: stats.totalFiles,
       totalFolders: stats.totalFolders,
