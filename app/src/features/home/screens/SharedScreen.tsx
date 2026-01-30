@@ -82,7 +82,7 @@ const SharedScreen = () => {
         onClick={() => {
           if (item.isFolder) {
             // @ts-ignore
-            navigation.navigate('Folders', {
+            navigation.navigate('Files', {
               folderId: item.id,
               folderName: item.name,
               isShared: true,

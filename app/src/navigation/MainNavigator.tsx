@@ -19,7 +19,7 @@ const MainNavigator = () => {
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name="ActiveSessions" component={ActiveSessionsScreen} />
       <Stack.Screen name="Viewer" component={FileViewerScreen} />
-      <Stack.Screen name="Folders" component={FolderScreen} />
+      <Stack.Screen name="Files" component={FolderScreen} />
       <Stack.Screen name="Storage" component={StorageScreen} />
       <Stack.Screen name="Notifications" component={NotificationScreen} />
       <Stack.Screen name="Trash" component={TrashScreen} />

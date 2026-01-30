@@ -182,6 +182,7 @@ const bg2 = require('../../../assets/images/bg2.jpg');
 export const QuickAccessCard: React.FC<QuickAccessCardProps> = ({
   onOptionClick,
 }) => {
+  const navigation = useNavigation(); // Added useNavigation hook
   return (
     <View style={styles.cardContainer}>
       <View style={{ width: '100%', borderRadius: 24, overflow: 'hidden' }}>
@@ -237,11 +238,17 @@ export const QuickAccessCard: React.FC<QuickAccessCardProps> = ({
               onClick={() => onOptionClick('Docs')}
             />
             <QuickAccessItem
-              name="Folders"
-              icon="folder-open"
+              name="Files"
+              icon="file-present"
               color="#7C3AED"
               size="850 MB"
-              onClick={() => onOptionClick('Folders')}
+              onClick={() => {
+                if (onOptionClick) {
+                  onOptionClick('Files');
+                }
+                // @ts-ignore
+                navigation.navigate('Files');
+              }}
             />
           </View>
         </ImageBackground>

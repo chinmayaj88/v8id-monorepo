@@ -159,7 +159,7 @@ const HomeScreen = () => {
           onSuggestionClick={suggestion => {
             if (suggestion.type === 'FOLDER') {
               // @ts-ignore
-              navigation.navigate('Folders', {
+              navigation.navigate('Files', {
                 folderId: suggestion.id,
                 folderName: suggestion.title,
               });
@@ -199,9 +199,9 @@ const HomeScreen = () => {
 
       <QuickAccessCard
         onOptionClick={option => {
-          if (option === 'Folders') {
+          if (option === 'Files') {
             // @ts-ignore
-            navigation.navigate('Folders');
+            navigation.navigate('Files');
           } else {
             setFilter(option);
           }

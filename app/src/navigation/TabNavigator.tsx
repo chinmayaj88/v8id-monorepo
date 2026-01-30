@@ -81,7 +81,7 @@ const CustomTabBarV2 = ({
           state={state}
           descriptors={descriptors}
           navigation={navigation}
-          icon="folder-outline"
+          icon="file-document-outline"
         />
 
         <View style={{ width: 60 }} />

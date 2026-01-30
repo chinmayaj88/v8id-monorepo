@@ -266,7 +266,7 @@ const FolderScreen = () => {
         onShare={() => handleShare(item)}
         onClick={() => {
           if (item.isFolder) {
-            navigation.push('Folders', {
+            navigation.push('Files', {
               folderId: item.id,
               folderName: item.name,
             });
