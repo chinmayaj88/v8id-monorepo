@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Alert,
+  Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
@@ -17,12 +19,14 @@ import { FileItemCard } from '../components/FileItemCard';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAppDispatch } from '../../../store/hooks';
 import { setCurrentFolderId } from '../../../store/uiSlice';
+import { downloadManager } from '../services/DownloadManager';
 
 const SharedScreen = () => {
   const navigation: any = useNavigation();
   const dispatch = useAppDispatch();
   const [items, setItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [revealedFileId, setRevealedFileId] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,16 +73,43 @@ const SharedScreen = () => {
     loadSharedItems();
   }, [loadSharedItems]);
 
+  const handleDownload = (item: any) => {
+    if (item.isFolder) return;
+    downloadManager.startDownload(item.id, item.name, item.size, item.mimeType);
+    setRevealedFileId(null);
+  };
+
   const renderItem = ({ item }: { item: any }) => {
     return (
       <FileItemCard
         file={item}
-        isRevealed={false}
-        onExpand={() => {}}
-        onCollapse={() => {}}
-        onDownload={() => {}}
-        onDelete={() => {}}
-        onShare={() => {}}
+        isRevealed={revealedFileId === item.id}
+        onExpand={() => setRevealedFileId(item.id)}
+        onCollapse={() => {
+          if (revealedFileId === item.id) setRevealedFileId(null);
+        }}
+        onDownload={() => handleDownload(item)}
+        onDelete={() => {
+          setRevealedFileId(null);
+          Alert.alert(
+            'Remove Share',
+            'Are you sure you want to remove this item?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Remove',
+                style: 'destructive',
+                onPress: async () => {
+                  console.log('Remove share', item.id);
+                  // In future, call deleteShare API here
+                },
+              },
+            ],
+          );
+        }}
+        onShare={() => {
+          setRevealedFileId(null);
+        }}
         onClick={() => {
           if (item.isFolder) {
             // @ts-ignore

@@ -16,6 +16,7 @@ import Video from 'react-native-video';
 import { WebView } from 'react-native-webview';
 import { Colors } from '../../../theme/colors';
 import apiClient from '../../../services/api/apiClient';
+import fileService from '../../../services/api/fileService';
 import { databaseService } from '../../../services/db/DatabaseService';
 
 const { width } = Dimensions.get('window');
@@ -50,10 +51,13 @@ const FileViewerScreen = ({ route, navigation }: any) => {
       }
 
       console.log('📡 [API Fetch] Fresh link for', fileName);
-      const response = await apiClient.post(`/files/${fileId}/link`);
+      // Use service method which handles the correct endpoint
+      const result = await fileService.generateLink(fileId);
 
-      if (response.data?.success) {
-        const { linkUrl, expiresAt } = response.data.data;
+      if (result && result.success) {
+        const { url, expiresAt } = result; // API returns 'url', ensure we map it if service returns 'linkUrl' or 'url'
+        const linkUrl = url || result.linkUrl; // Handle safe extraction
+
         console.log('🔗 [Link Received] PAR URL Generated');
         setDownloadUrl(linkUrl);
 
@@ -154,7 +158,12 @@ const FileViewerScreen = ({ route, navigation }: any) => {
                 paused={false}
                 // @ts-ignore
                 resizeMode="contain"
-                onError={e => console.error('Video Error:', e)}
+                onError={e => {
+                  console.error('Video Error:', e);
+                  setError(
+                    'Playback failed. This video format or resolution (e.g., 8K/MKV) might not be supported on this device.',
+                  );
+                }}
               />
             ) : isWebViewable ? (
               <WebView

@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import multer from 'multer';
+
 import { filesContainer } from '../../infrastructure/di/index.js';
 import { sharedContainer } from '../../infrastructure/di/index.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { strictMutationRateLimiter } from '../middleware/rate-limit.middleware.js';
-import { validateBody, initiateUploadSchema, completeUploadSchema } from '../validators/index.js';
+// Removed unused schema imports
 
 // Setup Auth Middleware
 const authenticate = authMiddleware(
@@ -13,13 +13,7 @@ const authenticate = authMiddleware(
   sharedContainer.jwtService
 );
 
-// Multer setup
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: Number(process.env.MAX_FILE_SIZE) || 104857600, // 100MB default
-  },
-});
+// Multer setup removed as we use JSON-only initiation for OCI Direct Upload
 
 const router: Router = Router();
 
@@ -32,27 +26,16 @@ router.get('/shared', (req, res) => filesContainer.shareController.listSharedWit
 // Analytics
 router.get('/analytics', (req, res) => filesContainer.fileController.getAnalytics(req, res));
 
-router.post('/upload', upload.single('file'), strictMutationRateLimiter, (req, res) =>
-  filesContainer.fileController.upload(req, res)
-);
-
-router.post(
-  '/upload/initiate',
-  strictMutationRateLimiter,
-  validateBody(initiateUploadSchema),
-  (req, res) => filesContainer.fileController.initiateUpload(req, res)
-);
-
-router.post('/upload/complete', validateBody(completeUploadSchema), (req, res) =>
-  filesContainer.fileController.completeUpload(req, res)
+router.post('/upload', strictMutationRateLimiter, (req, res) =>
+  filesContainer.fileController.handleUpload(req, res)
 );
 
 // File operations
+router.post('/download', strictMutationRateLimiter, (req, res) =>
+  filesContainer.fileController.handleDownload(req, res)
+);
 router.post('/:id/share', strictMutationRateLimiter, (req, res) =>
   filesContainer.shareController.createShare(req, res)
-);
-router.post('/:id/link', strictMutationRateLimiter, (req, res) =>
-  filesContainer.fileController.generateLink(req, res)
 );
 router.delete('/:id', strictMutationRateLimiter, (req, res) =>
   filesContainer.fileController.delete(req, res)

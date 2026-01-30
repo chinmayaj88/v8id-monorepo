@@ -10,6 +10,7 @@ import FileScreen from '../features/home/screens/FileScreen';
 import StorageScreen from '../features/home/screens/StorageScreen';
 import { TrashScreen } from '../features/home/screens/TrashScreen';
 import ActivitiesScreen from '../features/home/screens/ActivitiesScreen';
+import SharedScreen from '../features/home/screens/SharedScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +25,7 @@ const MainNavigator = () => {
       <Stack.Screen name="Notifications" component={NotificationScreen} />
       <Stack.Screen name="Trash" component={TrashScreen} />
       <Stack.Screen name="Activities" component={ActivitiesScreen} />
+      <Stack.Screen name="Shared" component={SharedScreen} />
     </Stack.Navigator>
   );
 };

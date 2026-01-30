@@ -53,38 +53,7 @@ const fileService = {
     return response.data?.data;
   },
 
-  uploadFile: async (
-    fileData: any,
-    folderId?: string,
-    onProgress?: (progress: number) => void,
-    path?: string,
-  ) => {
-    const formData = new FormData();
-    formData.append('file', {
-      uri: fileData.uri,
-      type: fileData.type,
-      name: fileData.name,
-    } as any);
-
-    if (folderId) formData.append('folderId', folderId);
-    if (path) formData.append('path', path);
-    formData.append('tier', 'STANDARD');
-
-    const response = await apiClient.post('/files/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      onUploadProgress: progressEvent => {
-        if (onProgress && progressEvent.total) {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total,
-          );
-          onProgress(percentCompleted);
-        }
-      },
-    });
-    return response.data?.data;
-  },
+  // Legacy simple upload removed in favor of standardized chunked flow
 
   initiateUpload: async (params: {
     fileName: string;
@@ -100,8 +69,10 @@ const fileService = {
     fileName: string;
     isMultipart: boolean;
   }> => {
-    const response = await apiClient.post('/files/upload/initiate', params);
-    return response.data?.data;
+    const response = await apiClient.post('/files/upload', params);
+    const data = response.data?.data;
+    // Backend returns an array for batch support; unwrap the first item
+    return Array.isArray(data) ? data[0] : data;
   },
 
   uploadChunk: async (url: string, chunk: Blob | ArrayBuffer) => {
@@ -126,13 +97,21 @@ const fileService = {
     ociUploadId?: string;
     parts?: { partNumber: number; etag: string }[];
   }) => {
-    const response = await apiClient.post('/files/upload/complete', params);
-    return response.data?.data;
+    const response = await apiClient.post('/files/upload', params);
+    const data = response.data?.data;
+    return Array.isArray(data) ? data[0] : data;
   },
 
   generateLink: async (fileId: string) => {
-    const response = await apiClient.post(`/files/${fileId}/link`);
-    return response.data?.data;
+    // Use the unified download endpoint
+    const response = await apiClient.post('/files/download', { id: fileId });
+    const data = response.data?.data;
+    const result = Array.isArray(data) ? data[0] : data;
+
+    if (!result || !result.success) {
+      throw new Error(result?.error || 'Failed to generate link');
+    }
+    return result;
   },
 
   deleteFile: async (fileId: string, permanent = false) => {

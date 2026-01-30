@@ -215,7 +215,12 @@ const HomeScreen = () => {
         />
       </View>
 
-      <ViewedLinksCard onSeeAllClick={() => {}} />
+      <ViewedLinksCard
+        onSeeAllClick={() => {
+          // @ts-ignore
+          navigation.navigate('Shared');
+        }}
+      />
 
       <Text style={styles.sectionTitle}>Recent Activity</Text>
     </View>

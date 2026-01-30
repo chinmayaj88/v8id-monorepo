@@ -1,5 +1,5 @@
 import { vaultContainer } from '../vault/vault.container.js';
-import { sharedContainer, SharedContainer } from '../shared/shared.container.js';
+import { sharedContainer } from '../shared/shared.container.js';
 import {
   UploadFileUseCase,
   GenerateFileLinkUseCase,
@@ -165,7 +165,7 @@ export class FilesContainer {
 
     // Controllers implementation
     this.fileController = new FileController(
-      this.uploadFileUseCase,
+      this.fileRepository,
       this.generateFileLinkUseCase,
       this.deleteFileUseCase,
       this.restoreFileUseCase,

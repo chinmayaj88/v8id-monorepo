@@ -61,6 +61,8 @@ export class ShareRepository implements IShareRepository {
           select: {
             firstName: true,
             lastName: true,
+            email: true,
+            avatarPath: true,
           },
         },
       },
@@ -130,6 +132,8 @@ export class ShareRepository implements IShareRepository {
           select: {
             firstName: true,
             lastName: true,
+            email: true,
+            avatarPath: true,
           },
         },
       },

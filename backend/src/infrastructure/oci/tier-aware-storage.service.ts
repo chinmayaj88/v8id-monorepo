@@ -452,13 +452,10 @@ export class TierAwareStorageService implements IStorageService {
         namespaceName: this.namespace,
         bucketName,
         createMultipartUploadDetails: {
-          // objectName is actually on the request object itself in OCI SDK
-          // but wait, OCI SDK often puts it in the details too
-          // actually, checking SDK signature...
+          object: objectName,
           contentType,
         },
-        objectName,
-      } as any); // Use any if there is ambiguity in the SDK version
+      });
       return { uploadId: response.multipartUpload.uploadId || '' };
     } catch (error) {
       throw new Error(
@@ -559,10 +556,6 @@ export class TierAwareStorageService implements IStorageService {
         case 'ObjectWrite':
           ociAccessType =
             objectstorage.models.CreatePreauthenticatedRequestDetails.AccessType.ObjectWrite;
-          break;
-        case 'MultipartUploadWrite':
-          // Optimization for pause/resume - specifically allow multipart operations via PAR
-          ociAccessType = 'MultipartUploadWrite' as any;
           break;
         case 'ObjectReadWrite':
         default:

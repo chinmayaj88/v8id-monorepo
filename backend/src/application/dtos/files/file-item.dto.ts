@@ -9,6 +9,8 @@ export interface FileItemDTO {
   updatedAt: Date;
   isOwner: boolean;
   ownerName: string;
+  tier?: string;
+  sharedUsers?: Array<{ name: string; avatarUrl?: string | null }>;
 }
 
 export interface FolderItemDTO {
@@ -18,6 +20,7 @@ export interface FolderItemDTO {
   updatedAt: Date;
   isOwner: boolean;
   ownerName: string;
+  sharedUsers?: Array<{ name: string; avatarUrl?: string | null }>;
 }
 
 export interface FolderWithBreadcrumbsDTO extends FolderItemDTO {

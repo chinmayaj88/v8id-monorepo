@@ -135,6 +135,7 @@ export class FolderRepository implements IFolderRepository {
       orderBy: { name: 'asc' },
       take: options?.limit,
       skip: options?.offset,
+      include: { folderShares: true },
     });
   }
 
@@ -146,6 +147,7 @@ export class FolderRepository implements IFolderRepository {
           gt: since,
         },
       },
+      include: { folderShares: true },
     });
   }
 
@@ -165,6 +167,7 @@ export class FolderRepository implements IFolderRepository {
       orderBy: { name: 'asc' },
       take: options?.limit,
       skip: options?.offset,
+      include: { folderShares: true },
     });
   }
 }

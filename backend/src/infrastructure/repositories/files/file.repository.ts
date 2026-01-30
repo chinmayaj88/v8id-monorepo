@@ -122,6 +122,7 @@ export class FileRepository implements IFileRepository {
       orderBy: { createdAt: 'desc' },
       take: options?.limit,
       skip: options?.offset,
+      include: { fileShares: true },
     });
   }
 
@@ -166,6 +167,7 @@ export class FileRepository implements IFileRepository {
           gt: since,
         },
       },
+      include: { fileShares: true },
     });
   }
   async getStorageUsageByMimeType(
@@ -210,6 +212,7 @@ export class FileRepository implements IFileRepository {
       orderBy: { name: 'asc' },
       take: options?.limit,
       skip: options?.offset,
+      include: { fileShares: true },
     });
   }
 }

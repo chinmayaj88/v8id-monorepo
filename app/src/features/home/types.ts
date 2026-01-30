@@ -9,6 +9,12 @@ export interface FileItem {
   folderId?: string;
   isFolder?: boolean;
   icon?: any; // Icon source or name
+  tier?: 'Standard' | 'Archive' | string;
+  sharedUsers?: Array<{
+    id?: string;
+    name?: string;
+    avatarUrl?: string;
+  }>;
 }
 
 export interface FolderData {

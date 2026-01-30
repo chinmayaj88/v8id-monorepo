@@ -105,9 +105,14 @@ class UploadManager {
       let storageKey = task.storageKey;
       let isMultipart = task.isMultipart;
 
+      console.log('UploadManager: Starting task', task);
+
       if (!parUrl) {
+        const safeName = task.name || `unknown_file_${Date.now()}`;
+        console.log('UploadManager: Initiating upload with name:', safeName);
+
         const initResult = await fileService.initiateUpload({
-          fileName: task.name,
+          fileName: safeName,
           mimeType: task.mimeType || 'application/octet-stream',
           size: task.size,
           folderId: task.folderId,
@@ -254,12 +259,23 @@ class UploadManager {
     initialTask: UploadTask,
   ) {
     const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB to be safely above OCI 5MiB minimum
-    const totalChunks = Math.ceil(initialTask.size / CHUNK_SIZE);
 
-    // Get file blob once (React Native slices Blobs efficiently without full memory load)
+    // Get file blob/slice. If this fails (e.g. content:// URI issues), fallback to simple binary upload.
     if (!initialTask.uri) throw new Error('File URI missing');
-    const response = await fetch(initialTask.uri);
-    const blob = await response.blob();
+
+    let blob: Blob;
+    try {
+      blob = await this.getFileBlob(initialTask.uri);
+    } catch (e) {
+      console.warn(
+        'Chunked upload: Failed to get Blob, falling back to single stream upload',
+        e,
+      );
+      await this.performBinaryUpload(taskId, parUrl, initialTask);
+      return;
+    }
+
+    const totalChunks = Math.ceil(initialTask.size / CHUNK_SIZE);
 
     for (let i = 0; i < totalChunks; i++) {
       // 1. Check if paused
@@ -382,7 +398,8 @@ class UploadManager {
       xhr.upload.onprogress = event => {
         if (event.lengthComputable) {
           const rawProgress = Math.round((event.loaded / event.total) * 100);
-          const progress = Math.min(rawProgress, 99); // Stay at 99 until backend confirms
+          // Clamp between 0 and 99. Handle negative overflow from native side.
+          const progress = Math.max(0, Math.min(rawProgress, 99));
           store.dispatch(updateTask({ id: taskId, updates: { progress } }));
         }
       };
@@ -415,6 +432,27 @@ class UploadManager {
         type: task.type || 'application/octet-stream',
         name: task.name,
       } as any);
+    });
+  }
+
+  /**
+   * Helper to retrieve Blob from URI using XHR (Reliable for content:// URIs)
+   */
+  private getFileBlob(uri: string): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', uri);
+      xhr.responseType = 'blob'; // React Native returns a Blob reference, not full memory load
+      xhr.onload = () => {
+        if (xhr.status === 200 || xhr.status === 0) {
+          resolve(xhr.response);
+        } else {
+          reject(new Error(`Failed to load file blob: ${xhr.status}`));
+        }
+      };
+      xhr.onerror = () =>
+        reject(new Error('Failed to read file for processing'));
+      xhr.send();
     });
   }
 

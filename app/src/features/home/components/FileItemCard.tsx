@@ -21,7 +21,63 @@ interface FileItemCardProps {
   isGrid?: boolean;
 }
 
-// Helper to get glass styles based on file type
+// --- Subcomponents ---
+
+const TierBadge = ({ tier }: { tier?: string }) => {
+  if (!tier) return null;
+  const isArchive = tier.toLowerCase() === 'archive';
+  const label = isArchive ? 'A' : 'S';
+  const bg = isArchive ? '#F59E0B' : '#3B82F6'; // Amber vs Blue
+
+  return (
+    <View style={[styles.tierBadge, { backgroundColor: bg }]}>
+      <Text style={styles.tierText}>{label}</Text>
+    </View>
+  );
+};
+
+const AvatarPile = ({ users }: { users?: any[] }) => {
+  if (!users || users.length === 0) return null;
+  const displayUsers = users.slice(0, 3);
+
+  return (
+    <View style={styles.pileContainer}>
+      {displayUsers.map((u, i) => (
+        <View
+          key={u.id || i}
+          style={[
+            styles.avatarCircle,
+            {
+              zIndex: displayUsers.length - i,
+              marginLeft: i === 0 ? 0 : -10, // Overlap
+            },
+          ]}
+        >
+          {u.avatarUrl ? (
+            <Image source={{ uri: u.avatarUrl }} style={styles.avatarImg} />
+          ) : (
+            <Text style={styles.avatarText}>
+              {(u.name || '?').charAt(0).toUpperCase()}
+            </Text>
+          )}
+        </View>
+      ))}
+      {users.length > 3 && (
+        <View
+          style={[
+            styles.avatarCircle,
+            { zIndex: 0, marginLeft: -10, backgroundColor: '#E2E8F0' },
+          ]}
+        >
+          <Text style={[styles.avatarText, { color: '#64748B', fontSize: 10 }]}>
+            +{users.length - 3}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
 // Helper to get styled colors based on file type
 const getFileStyles = (file: FileItem) => {
   if (file.isFolder) {
@@ -190,13 +246,22 @@ export const FileItemCard = React.memo<FileItemCardProps>(
                 color={fileStyles.iconColor}
               />
             )}
+            <TierBadge tier={file.tier} />
           </View>
-          <Text style={styles.fileName} numberOfLines={1}>
-            {file.name}
-          </Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.fileName} numberOfLines={1}>
+              {file.name}
+            </Text>
+          </View>
+
           <Text style={styles.fileDetails} numberOfLines={1}>
             {file.isFolder ? 'Folder' : file.size}
           </Text>
+
+          <View style={{ marginTop: 8 }}>
+            <AvatarPile users={file.sharedUsers} />
+          </View>
         </TouchableOpacity>
       );
     }
@@ -236,6 +301,7 @@ export const FileItemCard = React.memo<FileItemCardProps>(
                   color={fileStyles.iconColor}
                 />
               )}
+              <TierBadge tier={file.tier} />
             </View>
 
             <View style={styles.fileInfo}>
@@ -246,6 +312,8 @@ export const FileItemCard = React.memo<FileItemCardProps>(
                 {file.isFolder ? 'Folder' : file.size} • {file.timeAgo}
               </Text>
             </View>
+
+            <AvatarPile users={file.sharedUsers} />
 
             <TouchableOpacity
               style={styles.chevron}
@@ -323,6 +391,49 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // New Styles
+  tierBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+  },
+  tierText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
+  pileContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  avatarCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#3B82F6',
+    borderWidth: 2,
+    borderColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
 

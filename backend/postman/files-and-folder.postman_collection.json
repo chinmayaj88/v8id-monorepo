@@ -21,13 +21,14 @@
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n    \"name\": \"New Project\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "New Project",
+                  "type": "text"
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/folders",
@@ -49,13 +50,19 @@
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n    \"name\": \"Sub Folder\",\n    \"parentId\": \"{{folderId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "name",
+                  "value": "Sub Folder",
+                  "type": "text"
+                },
+                {
+                  "key": "parentId",
+                  "value": "{{folderId}}",
+                  "type": "text"
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/folders",
@@ -219,13 +226,24 @@
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n    \"type\": \"INTERNAL\",\n    \"permission\": \"EDIT\",\n    \"email\": \"user@example.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "type",
+                  "value": "INTERNAL",
+                  "type": "text"
+                },
+                {
+                  "key": "permission",
+                  "value": "EDIT",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "user@example.com",
+                  "type": "text"
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/folders/{{folderId}}/share",
@@ -241,7 +259,7 @@
       "name": "Files",
       "item": [
         {
-          "name": "Initiate Chunked Upload",
+          "name": "1. Initiate Upload (Single or Batch)",
           "event": [
             {
               "listen": "test",
@@ -249,11 +267,11 @@
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "    const jsonData = pm.response.json();",
-                  "    if (jsonData.success && jsonData.data) {",
-                  "        pm.environment.set(\"uploadId\", jsonData.data.uploadId);",
-                  "        pm.environment.set(\"ociUploadId\", jsonData.data.ociUploadId);",
-                  "        pm.environment.set(\"storageKey\", jsonData.data.storageKey);",
-                  "        console.log(\"✅ uploadId, ociUploadId, and storageKey saved to environment\");",
+                  "    if (jsonData.success && jsonData.data && jsonData.data[0]) {",
+                  "        const firstFile = jsonData.data[0];",
+                  "        pm.environment.set(\"ociUploadId\", firstFile.ociUploadId);",
+                  "        pm.environment.set(\"storageKey\", firstFile.storageKey);",
+                  "        console.log(\"✅ ociUploadId and storageKey saved from first batch item\");",
                   "    }",
                   "}"
                 ],
@@ -271,24 +289,91 @@
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n    \"fileName\": \"large-video.mp4\",\n    \"mimeType\": \"video/mp4\",\n    \"size\": 52428800,\n    \"folderId\": \"{{folderId}}\",\n    \"tier\": \"STANDARD\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select File 1"
+                },
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": [],
+                  "description": "Select File 2 (Optional)"
+                },
+                {
+                  "key": "folderId",
+                  "value": "{{folderId}}",
+                  "type": "text"
                 }
-              }
+              ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/files/upload/initiate",
+              "raw": "{{baseUrl}}/api/files/upload",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "upload", "initiate"]
+              "path": ["api", "files", "upload"]
             }
           },
           "response": []
         },
         {
-          "name": "Complete Chunked Upload",
+          "name": "2. Complete Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "storageKey",
+                  "value": "{{storageKey}}",
+                  "type": "text"
+                },
+                {
+                  "key": "fileName",
+                  "value": "large-video.mp4",
+                  "type": "text"
+                },
+                {
+                  "key": "mimeType",
+                  "value": "video/mp4",
+                  "type": "text"
+                },
+                {
+                  "key": "size",
+                  "value": "52428800",
+                  "type": "text"
+                },
+                {
+                  "key": "ociUploadId",
+                  "value": "{{ociUploadId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "parts",
+                  "value": "[{\"partNumber\":1,\"etag\":\"etag-1\"}]",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/files/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "upload"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Download Files (Single or Batch)",
           "request": {
             "method": "POST",
             "header": [
@@ -300,17 +385,17 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"storageKey\": \"{{storageKey}}\",\n    \"fileName\": \"large-video.mp4\",\n    \"mimeType\": \"video/mp4\",\n    \"size\": 52428800,\n    \"folderId\": \"{{folderId}}\",\n    \"tier\": \"STANDARD\",\n    \"ociUploadId\": \"{{ociUploadId}}\",\n    \"parts\": [\n        { \"partNumber\": 1, \"etag\": \"example-etag-1\" },\n        { \"partNumber\": 2, \"etag\": \"example-etag-2\" }\n    ]\n}",
+              "raw": "{\n  \"ids\": [\"{{fileId}}\"]\n}",
               "options": {
-                "raw": {
+                "json": {
                   "language": "json"
                 }
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/files/upload/complete",
+              "raw": "{{baseUrl}}/api/files/download",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "upload", "complete"]
+              "path": ["api", "files", "download"]
             }
           },
           "response": []
@@ -330,98 +415,6 @@
               "raw": "{{baseUrl}}/api/files/analytics",
               "host": ["{{baseUrl}}"],
               "path": ["api", "files", "analytics"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Upload File (Root)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": []
-                },
-                {
-                  "key": "tier",
-                  "value": "STANDARD",
-                  "type": "text"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/files/upload",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "upload"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Upload File (To Folder)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "file",
-                  "type": "file",
-                  "src": []
-                },
-                {
-                  "key": "folderId",
-                  "value": "{{folderId}}",
-                  "type": "text"
-                },
-                {
-                  "key": "tier",
-                  "value": "STANDARD",
-                  "type": "text"
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/files/upload",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "upload"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Generate File Link",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/files/{{fileId}}/link",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "files", "{{fileId}}", "link"]
             }
           },
           "response": []
@@ -463,8 +456,7 @@
               "query": [
                 {
                   "key": "permanent",
-                  "value": "true",
-                  "description": "If true, permanently deletes the file from storage."
+                  "value": "true"
                 }
               ]
             }
@@ -672,13 +664,24 @@
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n    \"type\": \"PUBLIC_LINK\",\n    \"permission\": \"VIEW\",\n    \"expiresInSeconds\": 3600\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "type",
+                  "value": "PUBLIC_LINK",
+                  "type": "text"
+                },
+                {
+                  "key": "permission",
+                  "value": "VIEW",
+                  "type": "text"
+                },
+                {
+                  "key": "expiresInSeconds",
+                  "value": "3600",
+                  "type": "text"
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/files/{{fileId}}/share",
@@ -700,13 +703,24 @@
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n    \"type\": \"INTERNAL\",\n    \"permission\": \"EDIT\",\n    \"email\": \"user@example.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "type",
+                  "value": "INTERNAL",
+                  "type": "text"
+                },
+                {
+                  "key": "permission",
+                  "value": "EDIT",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "user@example.com",
+                  "type": "text"
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/files/{{fileId}}/share",

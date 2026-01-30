@@ -30,7 +30,8 @@ class DatabaseService {
         updatedAt INTEGER NOT NULL,
         isDeleted INTEGER DEFAULT 0,
         color TEXT,
-        userId TEXT
+        userId TEXT,
+        sharedWith TEXT
       );
     `);
 
@@ -46,9 +47,22 @@ class DatabaseService {
         thumbnailUrl TEXT,
         userId TEXT,
         linkUrl TEXT,
-        linkExpiresAt INTEGER
+        linkExpiresAt INTEGER,
+        tier TEXT,
+        sharedWith TEXT
       );
     `);
+
+    // Migrations for existing installs
+    try {
+      this.db.execute('ALTER TABLE files ADD COLUMN tier TEXT');
+    } catch (e) {}
+    try {
+      this.db.execute('ALTER TABLE files ADD COLUMN sharedWith TEXT');
+    } catch (e) {}
+    try {
+      this.db.execute('ALTER TABLE folders ADD COLUMN sharedWith TEXT');
+    } catch (e) {}
 
     // Index for recent files
     this.db.execute(
@@ -69,9 +83,18 @@ class DatabaseService {
     if (!this.db) return;
     this.db.transaction(tx => {
       folders.forEach(folder => {
+        const sharedWith = folder.folderShares
+          ? JSON.stringify(
+              folder.folderShares.map((s: any) => ({
+                name: s.sharedWith,
+                avatarUrl: null,
+              })),
+            )
+          : null;
+
         tx.execute(
-          `INSERT OR REPLACE INTO folders (id, name, parentId, updatedAt, isDeleted, color, userId) 
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT OR REPLACE INTO folders (id, name, parentId, updatedAt, isDeleted, color, userId, sharedWith) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             folder.id,
             folder.name,
@@ -80,6 +103,7 @@ class DatabaseService {
             folder.isDeleted ? 1 : 0,
             folder.color || null,
             folder.userId,
+            sharedWith,
           ],
         );
       });
@@ -90,9 +114,18 @@ class DatabaseService {
     if (!this.db) return;
     this.db.transaction(tx => {
       files.forEach(file => {
+        const sharedWith = file.fileShares
+          ? JSON.stringify(
+              file.fileShares.map((s: any) => ({
+                name: s.sharedWith,
+                avatarUrl: null,
+              })),
+            )
+          : null;
+
         tx.execute(
-          `INSERT OR REPLACE INTO files (id, name, folderId, size, mimeType, updatedAt, isDeleted, thumbnailUrl, userId) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT OR REPLACE INTO files (id, name, folderId, size, mimeType, updatedAt, isDeleted, thumbnailUrl, userId, tier, sharedWith) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             file.id,
             file.name,
@@ -103,6 +136,8 @@ class DatabaseService {
             file.isDeleted ? 1 : 0,
             file.thumbnailKey || file.thumbnailUrl || null,
             file.userId,
+            file.storageTier || null,
+            sharedWith,
           ],
         );
       });
@@ -131,10 +166,10 @@ class DatabaseService {
 
     const result = this.db.execute(
       `
-        SELECT id, name, size, mimeType, updatedAt, thumbnailUrl, folderId, 0 as isFolder FROM files 
+        SELECT id, name, size, mimeType, updatedAt, thumbnailUrl, folderId, tier, sharedWith, 0 as isFolder FROM files 
         WHERE isDeleted = 0 
         UNION ALL
-        SELECT id, name, 0 as size, 'folder' as mimeType, updatedAt, NULL as thumbnailUrl, parentId as folderId, 1 as isFolder FROM folders
+        SELECT id, name, 0 as size, 'folder' as mimeType, updatedAt, NULL as thumbnailUrl, parentId as folderId, NULL as tier, sharedWith, 1 as isFolder FROM folders
         WHERE isDeleted = 0
         ORDER BY updatedAt DESC 
         LIMIT ?
@@ -152,6 +187,7 @@ class DatabaseService {
           mimeType: 'folder',
           isFolder: true,
           icon: 'folder',
+          sharedUsers: row.sharedWith ? JSON.parse(row.sharedWith) : undefined,
         };
       }
       return this.mapRowToFileItem(row);
@@ -187,6 +223,7 @@ class DatabaseService {
       color: row.color,
       isFolder: true,
       icon: 'folder',
+      sharedUsers: row.sharedWith ? JSON.parse(row.sharedWith) : undefined,
     }));
   }
 
@@ -273,6 +310,8 @@ class DatabaseService {
       thumbnailUrl: row.thumbnailUrl,
       folderId: row.folderId,
       rawSize: row.size,
+      tier: row.tier,
+      sharedUsers: row.sharedWith ? JSON.parse(row.sharedWith) : undefined,
     };
   };
 

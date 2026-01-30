@@ -81,10 +81,10 @@ export class InitiateUploadUseCase {
       ociUploadId = multipart.uploadId;
     }
 
-    // 7. Create PAR (optimized access type for multipart if needed)
+    // 7. Create PAR (Object level PARs only support ObjectWrite, not MultipartUploadWrite)
     const { parUrl, parId } = await this.storageService.createPreAuthenticatedRequest({
       objectName: storageKey,
-      accessType: isMultipart ? 'MultipartUploadWrite' : 'ObjectWrite',
+      accessType: 'ObjectWrite',
       tier: dto.tier || StorageTier.STANDARD,
       expiresInHours: 24,
     });

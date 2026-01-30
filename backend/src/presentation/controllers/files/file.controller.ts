@@ -1,6 +1,5 @@
 import { Response } from 'express';
 import {
-  UploadFileUseCase,
   GenerateFileLinkUseCase,
   DeleteFileUseCase,
   RestoreFileUseCase,
@@ -10,11 +9,11 @@ import {
 } from '../../../application/use-cases/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
-import { StorageTier } from '../../../../generated/prisma/index.js';
+import { IFileRepository } from '../../../application/interfaces/index.js';
 
 export class FileController {
   constructor(
-    private uploadFileUseCase: UploadFileUseCase,
+    private fileRepository: IFileRepository,
     private generateFileLinkUseCase: GenerateFileLinkUseCase,
     private deleteFileUseCase: DeleteFileUseCase,
     private restoreFileUseCase: RestoreFileUseCase,
@@ -23,71 +22,128 @@ export class FileController {
     private completeUploadUseCase: CompleteUploadUseCase
   ) {}
 
-  async initiateUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async handleUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
+      // Debug logs to diagnose missing fields
+      console.log('Upload Request Headers:', req.headers);
+      console.log('Upload Request Body:', JSON.stringify(req.body, null, 2));
+
       if (!req.user) {
         ResponseUtil.unauthorized(res);
         return;
       }
 
-      const { fileName, mimeType, size, folderId, tier, path } = req.body;
+      // 1. Normalize input into an array (Industry Grade: Batch Support)
+      const inputs = Array.isArray(req.body) ? req.body : [req.body];
 
-      if (!fileName || !mimeType || size === undefined) {
-        ResponseUtil.validationError(res, 'fileName, mimeType, and size are required');
+      if (inputs.length > 10) {
+        ResponseUtil.validationError(res, 'Maximum 10 files per batch upload');
         return;
       }
 
-      const result = await this.initiateUploadUseCase.execute(req.user.id, {
-        fileName,
-        mimeType,
-        size: BigInt(size),
-        folderId,
-        tier,
-        path,
-      });
+      // 2. Global Batch Validation (5GB Limit)
+      const MAX_BATCH_SIZE = 5 * 1024 * 1024 * 1024;
+      const totalSize = inputs.reduce((sum, item) => sum + (Number(item.size) || 0), 0);
 
-      ResponseUtil.success(res, result);
+      if (totalSize > MAX_BATCH_SIZE) {
+        ResponseUtil.validationError(
+          res,
+          `Total batch size (${(totalSize / 1024 / 1024 / 1024).toFixed(2)} GB) exceeds 5GB limit`
+        );
+        return;
+      }
+
+      const results = await Promise.all(
+        inputs.map(async (input: any, index: number) => {
+          const storageKey = input.storageKey;
+          const ociUploadId = input.ociUploadId;
+          const parts = input.parts;
+          // Flexible field resolution to support various client payloads
+          const fileName = input.fileName || input.filename || input.name || input.originalName;
+          const mimeType = input.mimeType || input.mimetype || input.type || input.contentType;
+          const size = input.size !== undefined ? input.size : input.fileSize;
+
+          const folderId = input.folderId;
+          const tier = input.tier;
+          const path = input.path;
+
+          // MODE A: COMPLETION
+          if (storageKey || ociUploadId) {
+            if (!fileName || !mimeType || size === undefined) {
+              return { error: 'Missing metadata for completion', fileName };
+            }
+
+            const result = await this.completeUploadUseCase.execute(req.user!.id, {
+              storageKey,
+              fileName,
+              mimeType,
+              size: BigInt(size),
+              folderId,
+              tier,
+              ociUploadId,
+              parts: typeof parts === 'string' ? JSON.parse(parts) : parts,
+            });
+
+            return { ...result, size: result.size.toString(), mode: 'COMPLETED' };
+          }
+
+          // MODE B: INITIATION
+          let finalFileName: string = fileName || '';
+          let finalMimeType: string = mimeType || '';
+          let finalSize: number | string | bigint = size;
+
+          // Postman metadata helper: Extract from 'files' array if present
+          const expressFiles = req.files as Express.Multer.File[] | undefined;
+          const currentFile = expressFiles?.[index];
+          if (currentFile) {
+            finalFileName = finalFileName || currentFile.originalname;
+            finalMimeType = finalMimeType || currentFile.mimetype;
+            finalSize = finalSize !== undefined ? finalSize : currentFile.size;
+          }
+
+          if (!finalFileName || !finalMimeType || finalSize === undefined) {
+            const missing = [];
+            if (!finalFileName) missing.push('fileName');
+            if (!finalMimeType) missing.push('mimeType');
+            if (finalSize === undefined) missing.push('size');
+            return {
+              error: `VALIDATION_ERROR: Missing required fields for initiation: ${missing.join(', ')}`,
+              received: {
+                fileName: finalFileName,
+                mimeType: finalMimeType,
+                size: finalSize,
+                originalInput: input,
+              }, // Helpful debug info
+              index,
+            };
+          }
+
+          const result = await this.initiateUploadUseCase.execute(req.user!.id, {
+            fileName: finalFileName,
+            mimeType: finalMimeType,
+            size: BigInt(finalSize),
+            folderId: folderId || null,
+            tier,
+            path,
+          });
+
+          return { ...result, mode: 'INITIATED' };
+        })
+      );
+
+      // Check for partial failures
+      const hasErrors = results.some((r: any) => r.error);
+      if (hasErrors && inputs.length === 1) {
+        const validError = results[0] as any;
+        ResponseUtil.validationError(res, validError.error || 'Upload error', validError.received);
+        return;
+      }
+
+      ResponseUtil.success(res, results, 'Batch processed successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to initiate upload';
-      ResponseUtil.error(res, 'INITIATE_UPLOAD_ERROR', message);
-    }
-  }
-
-  async completeUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      if (!req.user) {
-        ResponseUtil.unauthorized(res);
-        return;
-      }
-
-      const { storageKey, fileName, mimeType, size, folderId, tier, ociUploadId, parts } = req.body;
-
-      if (!storageKey || !fileName || !mimeType || size === undefined) {
-        ResponseUtil.validationError(res, 'Missing required fields for complete upload');
-        return;
-      }
-
-      const result = await this.completeUploadUseCase.execute(req.user.id, {
-        storageKey,
-        fileName,
-        mimeType,
-        size: BigInt(size),
-        folderId,
-        tier,
-        ociUploadId,
-        parts,
-      });
-
-      // Convert BigInt for JSON
-      const response = {
-        ...result,
-        size: result.size.toString(),
-      };
-
-      ResponseUtil.success(res, response, 'Upload completed successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to complete upload';
-      ResponseUtil.error(res, 'COMPLETE_UPLOAD_ERROR', message);
+      console.error('Upload Handle Error:', error);
+      const message = error instanceof Error ? error.message : 'Upload workflow failed';
+      ResponseUtil.error(res, 'UPLOAD_ERROR', message);
     }
   }
 
@@ -106,69 +162,69 @@ export class FileController {
     }
   }
 
-  async upload(req: AuthenticatedRequest, res: Response): Promise<void> {
+  async handleDownload(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       if (!req.user) {
         ResponseUtil.unauthorized(res);
         return;
       }
 
-      if (!req.file) {
-        ResponseUtil.validationError(res, 'No file provided');
+      // 1. Normalize input (Batch Support)
+      const { ids, id } = req.body;
+      const fileIds: string[] = Array.isArray(ids) ? ids : id ? [id] : [];
+
+      if (fileIds.length === 0) {
+        ResponseUtil.validationError(res, 'No file IDs provided');
         return;
       }
 
-      const { folderId, tier } = req.body;
-
-      // Map string tier to Enum
-      let storageTier: StorageTier = StorageTier.STANDARD;
-      if (tier === 'ARCHIVE') {
-        storageTier = StorageTier.ARCHIVE;
+      if (fileIds.length > 20) {
+        ResponseUtil.validationError(res, 'Maximum 20 files per download batch');
+        return;
       }
 
-      const result = await this.uploadFileUseCase.execute(req.user.id, {
-        file: req.file.buffer,
-        fileName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        size: BigInt(req.file.size),
-        folderId: folderId || null,
-        tier: storageTier,
-      });
+      // 2. Volume Limit Check (Enterprise Grade: 5GB max per individual batch request)
+      const files = await Promise.all(fileIds.map(id => this.fileRepository.findById(id)));
+      const validFiles = files.filter(f => f && f.userId === req.user!.id);
 
-      // Convert BigInt to string for JSON response
-      const response = {
-        ...result,
-        size: result.size.toString(),
-      };
+      const totalDownloadSize = validFiles.reduce((sum, f) => sum + (f ? Number(f.size) : 0), 0);
+      const MAX_DOWNLOAD_BATCH_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
 
-      ResponseUtil.created(res, response);
+      if (totalDownloadSize > MAX_DOWNLOAD_BATCH_SIZE) {
+        ResponseUtil.validationError(
+          res,
+          `Requested download size (${(totalDownloadSize / 1024 / 1024 / 1024).toFixed(
+            2
+          )} GB) exceeds 5GB batch limit`
+        );
+        return;
+      }
+
+      // 3. Process all links
+      const results = await Promise.all(
+        fileIds.map(async fileId => {
+          try {
+            const result = await this.generateFileLinkUseCase.execute(req.user!.id, fileId);
+            return { ...result, success: true };
+          } catch (error) {
+            return {
+              id: fileId,
+              success: false,
+              error: error instanceof Error ? error.message : 'Failed to generate link',
+            };
+          }
+        })
+      );
+
+      ResponseUtil.success(res, results, 'Download links generated successfully');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to upload file';
-      ResponseUtil.error(res, 'UPLOAD_FILE_ERROR', message);
+      const message = error instanceof Error ? error.message : 'Download workflow failed';
+      ResponseUtil.error(res, 'DOWNLOAD_ERROR', message);
     }
   }
 
-  async generateLink(req: AuthenticatedRequest, res: Response): Promise<void> {
-    try {
-      if (!req.user) {
-        ResponseUtil.unauthorized(res);
-        return;
-      }
-
-      const id = req.params.id;
-      if (!id || typeof id !== 'string') {
-        ResponseUtil.validationError(res, 'File ID is required and must be a string');
-        return;
-      }
-
-      const result = await this.generateFileLinkUseCase.execute(req.user.id, id);
-
-      ResponseUtil.success(res, result);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to generate link';
-      ResponseUtil.error(res, 'GENERATE_LINK_ERROR', message);
-    }
-  }
+  // Remove old simple generateLink method as it's consolidated into handleDownload
+  async OLD_generateLink_DELETED() {}
 
   async delete(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
@@ -211,7 +267,7 @@ export class FileController {
         return;
       }
 
-      await this.restoreFileUseCase.execute(id, req.user.id);
+      await this.restoreFileUseCase.execute(id, req.user!.id);
 
       ResponseUtil.success(res, { success: true, message: 'File restored' });
     } catch (error) {
