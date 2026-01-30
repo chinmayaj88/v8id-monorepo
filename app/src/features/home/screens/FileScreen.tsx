@@ -15,7 +15,7 @@ import { API_URL } from '@env';
 import { SafeAreaView } from 'react-native-safe-area-context';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { Colors } from '../../../theme/colors';
+import { Colors, Typography } from '../../../theme';
 import { databaseService } from '../../../services/db/DatabaseService';
 import fileService from '../../../services/api/fileService';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -31,7 +31,6 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import { pick, types } from '@react-native-documents/picker';
 import { uploadManager } from '../services/UploadManager';
 import { downloadManager } from '../services/DownloadManager';
-import { TransferStatusIcon } from '../components/TransferStatusIcon';
 
 type SubTab = 'FOLDERS' | 'FILES';
 
@@ -46,6 +45,7 @@ const FileScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [revealedFileId, setRevealedFileId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'LIST' | 'GRID'>('LIST');
 
   // Sharing State
   const [shareModalVisible, setShareModalVisible] = useState(false);
@@ -264,6 +264,7 @@ const FileScreen = () => {
         }}
         onDelete={() => handleDelete(item)}
         onShare={() => handleShare(item)}
+        isGrid={viewMode === 'GRID'}
         onClick={() => {
           if (item.isFolder) {
             navigation.push('Files', {
@@ -299,11 +300,14 @@ const FileScreen = () => {
             <Text style={styles.mainTitle}>{initialFolderName}</Text>
           </View>
           <View style={styles.headerActions}>
-            <TransferStatusIcon
-              onPress={() => navigation.navigate('Activities')}
-            />
             <TouchableOpacity
-              style={styles.iconButton}
+              style={styles.headerIconButton}
+              onPress={() => navigation.navigate('Activities')}
+            >
+              <MaterialIcons name="swap-vert" size={24} color="#1E293B" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerIconButton}
               onPress={() => navigation.navigate('Notifications')}
             >
               <MaterialIcons
@@ -325,40 +329,6 @@ const FileScreen = () => {
             style={styles.searchBar}
           />
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.actionRow}
-          contentContainerStyle={styles.actionRowContent}
-        >
-          <TouchableOpacity
-            style={[styles.actionChip, { backgroundColor: '#E0F2F1' }]}
-            onPress={handlePickMedia}
-          >
-            <MaterialIcons name="file-upload" size={20} color="#00695C" />
-            <Text style={[styles.actionChipText, { color: '#00695C' }]}>
-              Upload
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionChip, { backgroundColor: '#FCE4EC' }]}
-            onPress={handleCreateFolder}
-          >
-            <MaterialIcons name="create-new-folder" size={20} color="#C2185B" />
-            <Text style={[styles.actionChipText, { color: '#C2185B' }]}>
-              Folder
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionChip, { backgroundColor: '#E3F2FD' }]}
-          >
-            <MaterialIcons name="document-scanner" size={20} color="#0D47A1" />
-            <Text style={[styles.actionChipText, { color: '#0D47A1' }]}>
-              Scan
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
       </View>
 
       <View style={styles.contentArea}>
@@ -410,9 +380,18 @@ const FileScreen = () => {
             </View>
           )}
 
-          <TouchableOpacity>
-            <MaterialIcons name="list" size={24} color="#64748B" />
-          </TouchableOpacity>
+          <View style={styles.rightActions}>
+            <TouchableOpacity
+              style={styles.miniIconButton}
+              onPress={() => setViewMode(viewMode === 'LIST' ? 'GRID' : 'LIST')}
+            >
+              <MaterialIcons
+                name={viewMode === 'LIST' ? 'grid-view' : 'view-list'}
+                size={24}
+                color="#64748B"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {isLoading ? (
@@ -421,10 +400,15 @@ const FileScreen = () => {
           </View>
         ) : (
           <FlatList
+            key={viewMode}
             data={items}
             renderItem={renderItem}
+            numColumns={viewMode === 'GRID' ? 2 : 1}
             keyExtractor={(item: any) => item.id}
             contentContainerStyle={styles.listContent}
+            columnWrapperStyle={
+              viewMode === 'GRID' ? styles.columnWrapper : undefined
+            }
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
@@ -484,93 +468,96 @@ const FileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.background,
   },
   topSection: {
+    paddingHorizontal: 24,
     paddingBottom: 20,
-    backgroundColor: '#FFF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
     paddingVertical: 12,
   },
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   backButton: {
     marginRight: 12,
   },
   mainTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontFamily: Typography.fontFamily.bold,
     color: '#1E293B',
   },
   headerActions: {
     flexDirection: 'row',
+    alignItems: 'center',
   },
-  iconButton: {
-    marginLeft: 16,
-    padding: 8,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 20,
+  headerIconButton: {
+    marginLeft: 8,
+    padding: 10,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 14,
   },
   searchWrapper: {
-    paddingHorizontal: 20,
     marginTop: 8,
   },
   searchBar: {
     marginBottom: 0,
   },
-  actionRow: {
-    marginTop: 20,
-    paddingLeft: 20,
-  },
-  actionRowContent: {
-    paddingRight: 20,
-  },
-  actionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginRight: 12,
-  },
-  actionChipText: {
-    marginLeft: 8,
-    fontWeight: '600',
-    fontSize: 14,
-  },
   contentArea: {
     flex: 1,
-    backgroundColor: '#E6F4EA',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    backgroundColor: '#F0F9FF', // Subtle light blue/green tint
+    borderTopLeftRadius: 40,
+    borderTopRightRadius: 40,
     paddingTop: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.05,
+    shadowRadius: 15,
+    elevation: 10,
   },
   sortHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   sortText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1E293B',
   },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniIconButton: {
+    marginLeft: 12,
+    padding: 4,
+  },
   listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 100,
+    paddingHorizontal: 20, // Reduced to give grid more room
+    paddingBottom: 120,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
   folderRow: {
     flexDirection: 'row',
@@ -617,42 +604,46 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     marginTop: 60,
-    marginBottom: 40,
+    paddingHorizontal: 40,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1E293B',
+    marginTop: 16,
   },
   emptySubtitle: {
-    marginTop: 4,
+    marginTop: 8,
     color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   tabSwitcher: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    borderRadius: 20,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 24,
     padding: 4,
   },
   miniTab: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   miniTabActive: {
     backgroundColor: '#FFF',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   miniTabText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     color: '#64748B',
   },
   miniTabTextActive: {
-    color: '#1E293B',
+    color: Colors.purple.vibrant,
   },
   fab: {
     position: 'absolute',
