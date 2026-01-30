@@ -1,4 +1,6 @@
-import { IFileRepository, IStorageService } from '../../interfaces/index.js';
+import { IFileRepository, IFolderRepository, IStorageService } from '../../interfaces/index.js';
+import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
+import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 import { StorageTier } from '../../../../generated/prisma/index.js';
 
 /**
@@ -19,7 +21,10 @@ export interface FileLinkResult {
 export class GenerateFileLinkUseCase {
   constructor(
     private fileRepository: IFileRepository,
-    private storageService: IStorageService
+    private folderRepository: IFolderRepository,
+    private storageService: IStorageService,
+    private shareRepository: IShareRepository,
+    private userRepository: IUserRepository
   ) {}
 
   async execute(userId: string, fileId: string): Promise<FileLinkResult> {
@@ -29,8 +34,40 @@ export class GenerateFileLinkUseCase {
       throw new Error('File not found');
     }
 
+    // Authorization Check
     if (file.userId !== userId) {
-      throw new Error('Unauthorized access to file');
+      const user = await this.userRepository.findById(userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // 1. Check direct file share
+      let hasAccess = !!(await this.shareRepository.checkFileAccess(fileId, user.email));
+
+      // 2. Check hierarchy folder share (recursive up the tree)
+      if (!hasAccess && file.folderId) {
+        let currentFolderId: string | null = file.folderId;
+        while (currentFolderId && !hasAccess) {
+          // Check if THIS folder is shared with user
+          const folderShare = await this.shareRepository.checkFolderAccess(
+            currentFolderId,
+            user.email
+          );
+          if (folderShare) {
+            hasAccess = true;
+            break;
+          }
+
+          // Traverse up to parent
+          const folder = await this.folderRepository.findById(currentFolderId);
+          if (!folder) break; // Should not happen
+          currentFolderId = folder.parentId;
+        }
+      }
+
+      if (!hasAccess) {
+        throw new Error('Unauthorized access to file');
+      }
     }
 
     // Default expiration: 1 hour

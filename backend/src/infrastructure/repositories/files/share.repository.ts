@@ -70,6 +70,16 @@ export class ShareRepository implements IShareRepository {
     });
   }
 
+  async checkFileAccess(fileId: string, email: string): Promise<FileShare | null> {
+    return prisma.fileShare.findFirst({
+      where: {
+        fileId,
+        sharedWith: email,
+        type: ShareType.INTERNAL,
+      },
+    });
+  }
+
   async deleteFileShare(id: string): Promise<void> {
     await prisma.fileShare.delete({
       where: { id },

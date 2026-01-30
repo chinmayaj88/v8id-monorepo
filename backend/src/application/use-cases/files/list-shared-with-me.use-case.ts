@@ -34,6 +34,13 @@ export class ListSharedWithMeUseCase {
           updatedAt: s.file.updatedAt,
           isOwner: false,
           ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+          tier: s.file.storageTier,
+          sharedUsers: [
+            {
+              name: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+              avatarUrl: s.owner.avatarPath,
+            },
+          ],
         },
       })),
       folders: folderShares.map((s: any) => ({
@@ -47,6 +54,12 @@ export class ListSharedWithMeUseCase {
           updatedAt: s.folder.updatedAt,
           isOwner: false,
           ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+          sharedUsers: [
+            {
+              name: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+              avatarUrl: s.owner.avatarPath,
+            },
+          ],
         },
       })),
     };

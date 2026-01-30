@@ -87,7 +87,7 @@ class DatabaseService {
           ? JSON.stringify(
               folder.folderShares.map((s: any) => ({
                 name: s.sharedWith,
-                avatarUrl: null,
+                avatarUrl: s.avatarUrl || null,
               })),
             )
           : null;
@@ -118,7 +118,7 @@ class DatabaseService {
           ? JSON.stringify(
               file.fileShares.map((s: any) => ({
                 name: s.sharedWith,
-                avatarUrl: null,
+                avatarUrl: s.avatarUrl || null,
               })),
             )
           : null;

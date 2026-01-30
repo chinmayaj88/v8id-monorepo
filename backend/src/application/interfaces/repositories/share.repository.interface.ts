@@ -21,6 +21,7 @@ export interface IShareRepository {
   findFileSharesByFileId(fileId: string): Promise<FileShare[]>;
   findFileSharesByEmail(email: string): Promise<FileShare[]>; // Shared with me
   deleteFileShare(id: string): Promise<void>;
+  checkFileAccess(fileId: string, email: string): Promise<FileShare | null>;
 
   // Folder Share Support
   createFolderShare(data: CreateFolderShareDTO): Promise<FolderShare>;

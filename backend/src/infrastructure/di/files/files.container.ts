@@ -80,7 +80,10 @@ export class FilesContainer {
 
     this.generateFileLinkUseCase = new GenerateFileLinkUseCase(
       this.fileRepository,
-      sharedContainer.storageService
+      this.folderRepository,
+      sharedContainer.storageService,
+      this.shareRepository,
+      sharedContainer.userRepository
     );
 
     this.deleteFileUseCase = new DeleteFileUseCase(

@@ -36,32 +36,46 @@ const TierBadge = ({ tier }: { tier?: string }) => {
   );
 };
 
+import { API_URL } from '@env';
+
 const AvatarPile = ({ users }: { users?: any[] }) => {
   if (!users || users.length === 0) return null;
   const displayUsers = users.slice(0, 3);
 
+  // Helper to format URL
+  const getAvatarSource = (url?: string) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return { uri: url };
+    // Prepend API base URL (removing /api suffix if present to match asset path logic)
+    const baseUrl = API_URL.replace(/\/api\/?$/, '');
+    return { uri: `${baseUrl}/${url.replace(/^\//, '')}` };
+  };
+
   return (
     <View style={styles.pileContainer}>
-      {displayUsers.map((u, i) => (
-        <View
-          key={u.id || i}
-          style={[
-            styles.avatarCircle,
-            {
-              zIndex: displayUsers.length - i,
-              marginLeft: i === 0 ? 0 : -10, // Overlap
-            },
-          ]}
-        >
-          {u.avatarUrl ? (
-            <Image source={{ uri: u.avatarUrl }} style={styles.avatarImg} />
-          ) : (
-            <Text style={styles.avatarText}>
-              {(u.name || '?').charAt(0).toUpperCase()}
-            </Text>
-          )}
-        </View>
-      ))}
+      {displayUsers.map((u, i) => {
+        const source = getAvatarSource(u.avatarUrl);
+        return (
+          <View
+            key={u.id || i}
+            style={[
+              styles.avatarCircle,
+              {
+                zIndex: displayUsers.length - i,
+                marginLeft: i === 0 ? 0 : -10, // Overlap
+              },
+            ]}
+          >
+            {source ? (
+              <Image source={source} style={styles.avatarImg} />
+            ) : (
+              <Text style={styles.avatarText}>
+                {(u.name || '?').charAt(0).toUpperCase()}
+              </Text>
+            )}
+          </View>
+        );
+      })}
       {users.length > 3 && (
         <View
           style={[
