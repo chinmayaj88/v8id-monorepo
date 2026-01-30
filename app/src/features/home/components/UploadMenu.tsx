@@ -101,7 +101,7 @@ const UploadMenu: React.FC<UploadMenuProps> = ({
       );
       setShowCreateFolderModal(false);
       onClose(); // Close the menu too
-      // Note: FolderScreen should refresh. If we want it to refresh automatically,
+      // Note: FileScreen should refresh. If we want it to refresh automatically,
       // we might need a callback or a global event.
     } catch (error) {
       Alert.alert('Error', 'Failed to create folder');

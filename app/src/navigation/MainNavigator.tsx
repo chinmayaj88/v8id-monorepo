@@ -6,7 +6,7 @@ import { View, Text } from 'react-native';
 
 import NotificationScreen from '../features/home/screens/NotificationScreen';
 import FileViewerScreen from '../features/home/screens/FileViewerScreen';
-import FolderScreen from '../features/home/screens/FolderScreen';
+import FileScreen from '../features/home/screens/FileScreen';
 import StorageScreen from '../features/home/screens/StorageScreen';
 import { TrashScreen } from '../features/home/screens/TrashScreen';
 import ActivitiesScreen from '../features/home/screens/ActivitiesScreen';
@@ -19,7 +19,7 @@ const MainNavigator = () => {
       <Stack.Screen name="MainTabs" component={TabNavigator} />
       <Stack.Screen name="ActiveSessions" component={ActiveSessionsScreen} />
       <Stack.Screen name="Viewer" component={FileViewerScreen} />
-      <Stack.Screen name="Files" component={FolderScreen} />
+      <Stack.Screen name="Files" component={FileScreen} />
       <Stack.Screen name="Storage" component={StorageScreen} />
       <Stack.Screen name="Notifications" component={NotificationScreen} />
       <Stack.Screen name="Trash" component={TrashScreen} />

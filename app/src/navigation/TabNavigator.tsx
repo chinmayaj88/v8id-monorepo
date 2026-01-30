@@ -6,7 +6,7 @@ import {
 } from '@react-navigation/bottom-tabs';
 import HomeScreen from '../features/home/screens/HomeScreen';
 import ProfileScreen from '../features/user/screens/ProfileScreen';
-import FolderScreen from '../features/home/screens/FolderScreen';
+import FileScreen from '../features/home/screens/FileScreen';
 import VaultScreen from '../features/vault/screens/VaultScreen';
 import { Colors } from '../theme/colors';
 // @ts-ignore
@@ -128,7 +128,7 @@ const TabNavigator = () => {
         }}
       >
         <Tab.Screen name="Home" component={HomeScreen} />
-        <Tab.Screen name="Files" component={FolderScreen} />
+        <Tab.Screen name="Files" component={FileScreen} />
         <Tab.Screen name="Vault" component={VaultScreen} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>

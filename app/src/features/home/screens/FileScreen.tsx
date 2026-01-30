@@ -35,7 +35,7 @@ import { TransferStatusIcon } from '../components/TransferStatusIcon';
 
 type SubTab = 'FOLDERS' | 'FILES';
 
-const FolderScreen = () => {
+const FileScreen = () => {
   const navigation: any = useNavigation();
   const route: any = useRoute();
   const parentId = route.params?.folderId || null;
@@ -685,4 +685,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FolderScreen;
+export default FileScreen;
