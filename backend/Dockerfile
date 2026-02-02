@@ -109,4 +109,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 # -------------------------
 # Start app
 # -------------------------
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/src/index.js"]
