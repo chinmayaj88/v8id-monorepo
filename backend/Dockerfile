@@ -52,7 +52,7 @@ RUN echo '{"type": "commonjs"}' > ./dist/generated/prisma/package.json
 # =========================
 # Production stage
 # =========================
-FROM node:22-alpine AS production
+FROM node:22-alpine AS production 
 
 # 🔹 Define pnpm global bin directory
 ENV PNPM_HOME=/pnpm
