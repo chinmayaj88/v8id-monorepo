@@ -11,7 +11,6 @@ export const {
   StorageTier,
   SharePermission,
   ShareType,
-  Prisma,
   $Enums,
 } = PrismaModule;
 
@@ -24,6 +23,7 @@ export type {
   FolderShare,
   VaultSecret,
   User,
+  Prisma, // Explicitly re-export Prisma namespace
 } from '../../../generated/prisma/index.js';
 
 import type {
