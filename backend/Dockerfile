@@ -46,6 +46,7 @@ ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
 
 RUN pnpm prisma generate
 RUN pnpm build
+RUN echo '{"type": "commonjs"}' > ./dist/generated/prisma/package.json
 
 
 # =========================
