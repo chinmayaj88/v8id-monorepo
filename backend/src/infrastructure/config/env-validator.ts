@@ -71,6 +71,44 @@ export function validateJwtSecret(configService: IConfigService): string {
 }
 
 /**
+ * Validates Vault Master Key
+ * @throws Error if key is missing or using default value in production
+ */
+export function validateVaultMasterKey(configService: IConfigService): string {
+  const key = configService.get('VAULT_MASTER_KEY');
+  const isProduction = configService.isProduction();
+
+  if (!key) {
+    if (isProduction) {
+      throw new Error(
+        'VAULT_MASTER_KEY is required in production. Set a secure encryption key (minimum 32 characters).'
+      );
+    }
+    console.warn(
+      '⚠️  WARNING: VAULT_MASTER_KEY not set. Using default key. CHANGE THIS IMMEDIATELY!'
+    );
+    return 'v8id-vault-default-master-key-change-me';
+  }
+
+  if (key === 'v8id-vault-default-master-key-change-me') {
+    if (isProduction) {
+      throw new Error(
+        'VAULT_MASTER_KEY cannot be the default value in production. Set a secure encryption key (minimum 32 characters).'
+      );
+    }
+    console.warn(
+      '⚠️  WARNING: Using default Vault Master Key. Change VAULT_MASTER_KEY in production!'
+    );
+  }
+
+  if (key.length < 32) {
+    throw new Error('VAULT_MASTER_KEY must be at least 32 characters long for security.');
+  }
+
+  return key;
+}
+
+/**
  * Validates database connection
  * @throws Error if database configuration is invalid
  */
@@ -98,6 +136,5 @@ export function validateEnvironment(configService: IConfigService): void {
   validateDatabaseConfig(configService);
   validateJwtSecret(configService);
   validateTotpEncryptionKey(configService);
+  validateVaultMasterKey(configService);
 }
-
-

@@ -31,4 +31,20 @@ function loadEnvConfig(): EnvConfig {
   return result.data;
 }
 
-export const envConfig = loadEnvConfig();
+export const envConfig = {
+  get port() {
+    return loadEnvConfig().port;
+  },
+  get nodeEnv() {
+    return loadEnvConfig().nodeEnv;
+  },
+  get corsOrigin() {
+    return loadEnvConfig().corsOrigin;
+  },
+  get trustProxy() {
+    return loadEnvConfig().trustProxy;
+  },
+  get vaultMasterKey() {
+    return loadEnvConfig().vaultMasterKey;
+  },
+};
