@@ -1,5 +1,5 @@
-import { File, Folder } from '../../../../generated/prisma/index.js';
 import { IFileRepository, IFolderRepository } from '../../interfaces/index.js';
+import { File, Folder } from '../../../infrastructure/database/index.js';
 
 export interface SyncDTO {
   since?: Date;

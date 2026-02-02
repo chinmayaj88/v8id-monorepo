@@ -1,5 +1,5 @@
-import { File, Folder } from '../../../../generated/prisma/index.js';
 import { IFileRepository, IFolderRepository } from '../../interfaces/index.js';
+import { File, Folder } from '../../../infrastructure/database/index.js';
 import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 import { FileItemDTO, FolderItemDTO } from '../../dtos/files/file-item.dto.js';
 import { IVaultRepository } from '../../interfaces/vault/vault-repository.interface.js';

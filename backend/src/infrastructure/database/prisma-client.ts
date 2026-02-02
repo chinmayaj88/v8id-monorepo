@@ -1,17 +1,51 @@
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { PrismaClient } from '../../../generated/prisma/index.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const PrismaModule = require('../../../generated/prisma/index.js');
+
+// Values
+export const { PrismaClient, UserRole, DeviceType, StorageTier, SharePermission, ShareType } =
+  PrismaModule;
+
+export { Prisma, $Enums } from '../../../generated/prisma/index.js';
+
+// Types
+export type * from '../../../generated/prisma/index.js';
+export type {
+  File,
+  Folder,
+  FileShare,
+  FolderShare,
+  VaultSecret,
+  User,
+} from '../../../generated/prisma/index.js';
+
+import type {
+  PrismaClient as PrismaClientType,
+  StorageTier as PrismaStorageTier,
+  UserRole as PrismaUserRole,
+  DeviceType as PrismaDeviceType,
+  SharePermission as PrismaSharePermission,
+  ShareType as PrismaShareType,
+} from '../../../generated/prisma/index.js';
+
+export type StorageTier = PrismaStorageTier;
+export type UserRole = PrismaUserRole;
+export type DeviceType = PrismaDeviceType;
+export type SharePermission = PrismaSharePermission;
+export type ShareType = PrismaShareType;
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+  prisma: PrismaClientType;
 };
 
-let prismaInstance: PrismaClient | undefined;
+let prismaInstance: PrismaClientType;
 
 /**
  * Enterprise Singleton for Prisma Client
  * Ensures that environment variables are fully loaded before the client is created.
  */
-function getPrismaClient(): PrismaClient {
+function getPrismaClient(): PrismaClientType {
   if (prismaInstance) return prismaInstance;
   if (globalForPrisma.prisma) return globalForPrisma.prisma;
 
@@ -76,7 +110,7 @@ function getPrismaClient(): PrismaClient {
 }
 
 // Export the prisma instance via a Proxy or direct export
-export const prisma = new Proxy({} as PrismaClient, {
+export const prisma: PrismaClientType = new Proxy({} as any, {
   get: (_target, prop, receiver) => {
     const instance = getPrismaClient();
     return Reflect.get(instance, prop, receiver);

@@ -1,4 +1,3 @@
-import { VaultSecret } from '../../../../generated/prisma/index.js';
 import { IVaultRepository } from '../../interfaces/vault/vault-repository.interface.js';
 
 export interface VaultSecretListItem {
@@ -29,3 +28,4 @@ export class ListVaultSecretsUseCase {
     }));
   }
 }
+

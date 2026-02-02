@@ -1,5 +1,4 @@
-import { Prisma, Folder } from '../../../../generated/prisma/index.js';
-import { prisma } from '../../database/index.js';
+import { prisma, Prisma, Folder } from '../../database/index.js';
 import { IFolderRepository } from '../../../application/interfaces/files/folder-repository.interface.js';
 
 export class FolderRepository implements IFolderRepository {
@@ -171,3 +170,4 @@ export class FolderRepository implements IFolderRepository {
     });
   }
 }
+

@@ -4,7 +4,7 @@ import {
   IFolderRepository,
   IUserRepository,
 } from '../../interfaces/index.js';
-import { StorageTier } from '../../../../generated/prisma/index.js';
+import { StorageTier } from '../../../infrastructure/database/index.js';
 
 export interface InitiateUploadDTO {
   fileName: string;

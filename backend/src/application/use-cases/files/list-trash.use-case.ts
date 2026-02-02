@@ -1,8 +1,8 @@
 import { IFileRepository } from '../../interfaces/files/file-repository.interface.js';
+import { File, Folder } from '../../../infrastructure/database/index.js';
 import { IFolderRepository } from '../../interfaces/files/folder-repository.interface.js';
 import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 import { FileItemDTO, FolderItemDTO } from '../../dtos/files/file-item.dto.js';
-import { File, Folder } from '../../../../generated/prisma/index.js';
 
 export class ListTrashUseCase {
   constructor(

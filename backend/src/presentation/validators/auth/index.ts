@@ -1,1 +1,1 @@
-﻿export * from './auth.validator.js';
+export * from './auth.validator.js';

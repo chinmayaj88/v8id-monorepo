@@ -1,7 +1,7 @@
 import { IFileRepository, IFolderRepository, IStorageService } from '../../interfaces/index.js';
+import { StorageTier } from '../../../infrastructure/database/index.js';
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
 import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
-import { StorageTier } from '../../../../generated/prisma/index.js';
 
 /**
  * Result of generating a file link

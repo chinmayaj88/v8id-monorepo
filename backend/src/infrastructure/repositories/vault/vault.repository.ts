@@ -1,5 +1,4 @@
-import { VaultSecret } from '../../../../generated/prisma/index.js';
-import { prisma } from '../../database/index.js';
+import { prisma, VaultSecret } from '../../database/index.js';
 import {
   IVaultRepository,
   CreateVaultSecretDTO,
@@ -55,3 +54,4 @@ export class VaultRepository implements IVaultRepository {
     });
   }
 }
+

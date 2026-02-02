@@ -185,7 +185,7 @@ export class UserRepository implements IUserRepository {
     ]);
 
     return {
-      users: users.map(user => this.toDomain(user)),
+      users: users.map((user: PrismaUser) => this.toDomain(user)),
       total,
     };
   }
@@ -202,7 +202,7 @@ export class UserRepository implements IUserRepository {
       orderBy: { email: 'asc' },
     });
 
-    return users.map(user => this.toDomain(user));
+    return users.map((user: PrismaUser) => this.toDomain(user));
   }
   async incrementStorageUsed(userId: string, bytes: bigint): Promise<void> {
     await prisma.user.update({

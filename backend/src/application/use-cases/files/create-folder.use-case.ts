@@ -1,5 +1,5 @@
-import { Folder } from '../../../../generated/prisma/index.js';
 import { IFolderRepository } from '../../interfaces/index.js';
+import { Folder } from '../../../infrastructure/database/index.js';
 
 export interface CreateFolderDTO {
   parentId?: string | null;

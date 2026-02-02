@@ -1,5 +1,5 @@
-import { FileShare, File } from '../../../../generated/prisma/index.js';
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
+import { FileShare, File } from '../../../infrastructure/database/index.js';
 
 export interface SharedFileResult {
   share: FileShare;

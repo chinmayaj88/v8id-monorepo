@@ -1,4 +1,4 @@
-import { FileShare, ShareType, SharePermission } from '../../../../generated/prisma/index.js';
+import { ShareType, SharePermission, FileShare } from '../../../infrastructure/database/index.js';
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
 import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 import { IFileRepository } from '../../interfaces/files/file-repository.interface.js';

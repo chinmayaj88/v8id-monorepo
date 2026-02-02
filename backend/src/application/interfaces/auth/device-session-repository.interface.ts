@@ -1,3 +1,4 @@
+import { FileShare, FolderShare, VaultSecret, File, Folder, User, ShareType, SharePermission } from '../../../infrastructure/database/index.js';
 export interface DeviceSession {
   id: string;
   userId: string;
@@ -60,3 +61,4 @@ export interface IDeviceSessionRepository {
   findByIdAndUserId(sessionId: string, userId: string): Promise<DeviceSession | null>;
   revokeAllExpectCurrent(userId: string, currentSessionId: string): Promise<void>;
 }
+

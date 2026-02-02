@@ -1,3 +1,4 @@
+import { FileShare, FolderShare, VaultSecret, File, Folder, User, ShareType, SharePermission } from '../../../infrastructure/database/index.js';
 export enum AuditEventType {
   // Authentication events
   LOGIN = 'LOGIN',
@@ -156,5 +157,6 @@ export interface IAuditLogService {
     }
   ): Promise<void>;
 }
+
 
 

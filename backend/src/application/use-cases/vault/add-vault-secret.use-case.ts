@@ -1,5 +1,5 @@
-import { VaultSecret } from '../../../../generated/prisma/index.js';
 import { IVaultRepository } from '../../interfaces/vault/vault-repository.interface.js';
+import { VaultSecret } from '../../../infrastructure/database/index.js';
 import { VaultEncryptionService } from '../../../infrastructure/services/security/vault-encryption.service.js';
 import { envConfig } from '../../../infrastructure/config/env.config.js';
 

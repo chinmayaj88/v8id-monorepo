@@ -1,4 +1,4 @@
-import { Folder } from '../../../../generated/prisma/index.js';
+import { FileShare, FolderShare, VaultSecret, File, Folder, User, ShareType, SharePermission } from '../../../infrastructure/database/index.js';
 
 export interface IFolderRepository {
   create(data: {
@@ -65,3 +65,5 @@ export interface IFolderRepository {
     }
   ): Promise<Folder[]>;
 }
+
+

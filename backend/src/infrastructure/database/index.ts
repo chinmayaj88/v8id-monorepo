@@ -1,9 +1,8 @@
 /**
  * Database Infrastructure
- * 
+ *
  * Database connection, configuration, and query handling.
  * Handles all database-related concerns.
  */
 
-export { prisma } from './prisma-client.js';
-
+export * from './prisma-client.js';

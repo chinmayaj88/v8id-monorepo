@@ -1,5 +1,5 @@
-import { Folder, StorageTier } from '../../../../generated/prisma/index.js';
 import { IFileRepository, IFolderRepository } from '../../interfaces/index.js';
+import { Folder, StorageTier } from '../../../infrastructure/database/index.js';
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
 import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 import { FileItemDTO, FolderItemDTO } from '../../dtos/files/file-item.dto.js';

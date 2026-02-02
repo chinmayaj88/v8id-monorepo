@@ -8,7 +8,7 @@ import {
   GetSharedFolderUseCase,
 } from '../../../application/use-cases/index.js';
 import { RevokeShareUseCase } from '../../../application/use-cases/files/revoke-share.use-case.js';
-import { ShareType, SharePermission } from '../../../../generated/prisma/index.js'; // Fix import
+import { ShareType, SharePermission } from '../../../infrastructure/database/index.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { IStorageService } from '../../../application/interfaces/files/storage-service.interface.js';

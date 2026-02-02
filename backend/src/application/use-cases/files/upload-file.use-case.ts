@@ -4,7 +4,7 @@ import {
   IFolderRepository,
   IUserRepository,
 } from '../../interfaces/index.js';
-import { StorageTier, File } from '../../../../generated/prisma/index.js';
+import { File, StorageTier } from '../../../infrastructure/database/index.js';
 
 export interface UploadFileDTO {
   file: Buffer;

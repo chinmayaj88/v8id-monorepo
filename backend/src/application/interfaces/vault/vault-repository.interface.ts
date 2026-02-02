@@ -1,4 +1,4 @@
-import { VaultSecret } from '../../../../generated/prisma/index.js';
+import { FileShare, FolderShare, VaultSecret, File, Folder, User, ShareType, SharePermission } from '../../../infrastructure/database/index.js';
 
 export interface CreateVaultSecretDTO {
   userId: string;
@@ -31,3 +31,5 @@ export interface IVaultRepository {
   delete(id: string): Promise<void>;
   search(userId: string, query: string): Promise<VaultSecret[]>;
 }
+
+

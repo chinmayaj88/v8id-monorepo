@@ -1,3 +1,4 @@
+import { FileShare, FolderShare, VaultSecret, File, Folder, User, ShareType, SharePermission } from '../../../infrastructure/database/index.js';
 /**
  * Thumbnail Service Interface
  * 
@@ -38,5 +39,6 @@ export interface IThumbnailService {
    */
   getOptimalDimensions(mimeType: string): { width: number; height: number };
 }
+
 
 

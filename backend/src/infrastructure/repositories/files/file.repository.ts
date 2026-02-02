@@ -1,5 +1,4 @@
-import { Prisma, File, StorageTier } from '../../../../generated/prisma/index.js';
-import { prisma } from '../../database/index.js';
+import { prisma, Prisma, File, StorageTier } from '../../database/index.js';
 import { IFileRepository } from '../../../application/interfaces/files/file-repository.interface.js';
 
 export class FileRepository implements IFileRepository {
@@ -184,7 +183,7 @@ export class FileRepository implements IFileRepository {
       },
     });
 
-    return result.map(item => ({
+    return result.map((item: { mimeType: string; _sum: { size: bigint | null } }) => ({
       mimeType: item.mimeType,
       totalSize: item._sum.size || BigInt(0),
     }));

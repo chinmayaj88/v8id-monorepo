@@ -1,5 +1,4 @@
-import { FileShare, FolderShare, ShareType } from '../../../../generated/prisma/index.js';
-import { prisma } from '../../database/index.js';
+import { prisma, FileShare, FolderShare, ShareType } from '../../database/index.js';
 import {
   IShareRepository,
   CreateFileShareDTO,
@@ -180,7 +179,7 @@ export class ShareRepository implements IShareRepository {
 
       if (!ancestors || ancestors.length === 0) return null;
 
-      const ids = ancestors.map(a => a.id);
+      const ids = ancestors.map((a: { id: string }) => a.id);
 
       return prisma.folderShare.findFirst({
         where: {

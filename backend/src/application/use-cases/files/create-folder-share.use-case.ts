@@ -1,4 +1,4 @@
-import { FolderShare, ShareType, SharePermission } from '../../../../generated/prisma/index.js';
+import { ShareType, SharePermission, FolderShare } from '../../../infrastructure/database/index.js';
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
 import { IFolderRepository } from '../../interfaces/files/folder-repository.interface.js';
 import { v4 as uuidv4 } from 'uuid';

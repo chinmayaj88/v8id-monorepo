@@ -1,4 +1,14 @@
-import { StorageTier } from '../../../../generated/prisma/index.js';
+import {
+  FileShare,
+  FolderShare,
+  VaultSecret,
+  File,
+  Folder,
+  User,
+  ShareType,
+  SharePermission,
+  StorageTier,
+} from '../../../infrastructure/database/index.js';
 
 export interface IStorageService {
   uploadFile(params: {

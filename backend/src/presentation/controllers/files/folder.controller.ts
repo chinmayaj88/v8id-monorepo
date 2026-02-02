@@ -1,11 +1,11 @@
 import { Response } from 'express';
-import { StorageTier } from '../../../../generated/prisma/index.js';
 import {
   CreateFolderUseCase,
   ListFolderContentsUseCase,
   DeleteFolderUseCase,
   RestoreFolderUseCase,
 } from '../../../application/use-cases/index.js';
+import { StorageTier } from '../../../domain/entities/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 

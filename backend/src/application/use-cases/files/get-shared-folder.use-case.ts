@@ -1,5 +1,5 @@
-import { FolderShare, Folder } from '../../../../generated/prisma/index.js';
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
+import { Folder, FolderShare } from '../../../infrastructure/database/index.js';
 
 export interface SharedFolderResult {
   share: FolderShare;
