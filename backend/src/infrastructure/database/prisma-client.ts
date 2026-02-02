@@ -4,10 +4,16 @@ const require = createRequire(import.meta.url);
 const PrismaModule = require('../../../generated/prisma/index.js');
 
 // Values
-export const { PrismaClient, UserRole, DeviceType, StorageTier, SharePermission, ShareType } =
-  PrismaModule;
-
-export { Prisma, $Enums } from '../../../generated/prisma/index.js';
+export const {
+  PrismaClient,
+  UserRole,
+  DeviceType,
+  StorageTier,
+  SharePermission,
+  ShareType,
+  Prisma,
+  $Enums,
+} = PrismaModule;
 
 // Types
 export type * from '../../../generated/prisma/index.js';
