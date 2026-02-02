@@ -72,38 +72,34 @@ export class TierAwareStorageService implements IStorageService {
 
     // Check if we have explicit credentials (typically Development)
     if (envTenancy && envUser && envFingerprint && (envPrivateKey || envPrivateKeyPath)) {
-      try {
-        let privateKeyContent: string;
-        if (envPrivateKey) {
-          privateKeyContent = envPrivateKey.trim();
-        } else {
-          const resolvedKeyPath = path.isAbsolute(envPrivateKeyPath!)
-            ? envPrivateKeyPath!
-            : path.resolve(process.cwd(), envPrivateKeyPath!);
+      let privateKeyContent: string;
+      if (envPrivateKey) {
+        privateKeyContent = envPrivateKey.trim();
+      } else {
+        const resolvedKeyPath = path.isAbsolute(envPrivateKeyPath)
+          ? envPrivateKeyPath
+          : path.resolve(process.cwd(), envPrivateKeyPath);
 
-          if (!fs.existsSync(resolvedKeyPath)) {
-            throw new Error(`OCI private key file not found at: ${resolvedKeyPath}`);
-          }
-          privateKeyContent = fs.readFileSync(resolvedKeyPath, 'utf8').trim();
+        if (!fs.existsSync(resolvedKeyPath)) {
+          throw new Error(`OCI private key file not found at: ${resolvedKeyPath}`);
         }
-
-        if (!privateKeyContent.endsWith('\n')) privateKeyContent += '\n';
-
-        const provider = new common.SimpleAuthenticationDetailsProvider(
-          envTenancy,
-          envUser,
-          envFingerprint,
-          privateKeyContent,
-          process.env.OCI_PRIVATE_KEY_PASSPHRASE || null,
-          this.region
-        );
-
-        this.client = new objectstorage.ObjectStorageClient({
-          authenticationDetailsProvider: provider,
-        });
-      } catch (error) {
-        throw error;
+        privateKeyContent = fs.readFileSync(resolvedKeyPath, 'utf8').trim();
       }
+
+      if (!privateKeyContent.endsWith('\n')) privateKeyContent += '\n';
+
+      const provider = new common.SimpleAuthenticationDetailsProvider(
+        envTenancy,
+        envUser,
+        envFingerprint,
+        privateKeyContent,
+        process.env.OCI_PRIVATE_KEY_PASSPHRASE || null,
+        this.region
+      );
+
+      this.client = new objectstorage.ObjectStorageClient({
+        authenticationDetailsProvider: provider,
+      });
     } else {
       // Use Instance Principals (Production)
       try {

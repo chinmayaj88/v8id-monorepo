@@ -123,7 +123,7 @@ export class FileController {
           let finalSize: number | string | bigint = size;
 
           // Postman metadata helper: Extract from 'files' array if present
-          const expressFiles = req.files as Express.Multer.File[] | undefined;
+          const expressFiles = req.files as any[] | undefined;
           const currentFile = expressFiles?.[index];
           if (currentFile) {
             finalFileName = finalFileName || currentFile.originalname;
@@ -314,7 +314,7 @@ export class FileController {
       }
 
       const { id } = req.params;
-      // @ts-ignore - The use case returns object with file/contentType
+      // @ts-expect-error - The use case returns object with file/contentType
       const result = await this.getFileThumbnailUseCase.execute(req.user.id, id);
 
       res.setHeader('Content-Type', result.contentType || 'image/jpeg');

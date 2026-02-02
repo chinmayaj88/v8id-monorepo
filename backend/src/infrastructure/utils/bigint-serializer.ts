@@ -7,7 +7,7 @@
  */
 
 // Check if property is already defined to avoid conflicts/errors
-if (!BigInt.prototype.hasOwnProperty('toJSON')) {
+if (!Object.prototype.hasOwnProperty.call(BigInt.prototype, 'toJSON')) {
   Object.defineProperty(BigInt.prototype, 'toJSON', {
     value: function () {
       return this.toString();
