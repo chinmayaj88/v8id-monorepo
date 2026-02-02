@@ -132,7 +132,7 @@ jobs:
       - name: Health Check
         run: |
           for i in {1..30}; do
-            if curl -fs http://${{ secrets.OCI_COMPUTE_IP }}:4000/health; then
+            if curl -fs http://${{ secrets.OCI_COMPUTE_IP }}/health; then
               echo "✅ Health check passed"
               exit 0
             fi
