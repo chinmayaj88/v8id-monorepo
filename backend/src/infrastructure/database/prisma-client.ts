@@ -29,10 +29,15 @@ import type {
   ShareType as PrismaShareType,
 } from '../../../generated/prisma/index.js';
 
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export type StorageTier = PrismaStorageTier;
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export type UserRole = PrismaUserRole;
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export type DeviceType = PrismaDeviceType;
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export type SharePermission = PrismaSharePermission;
+// eslint-disable-next-line @typescript-eslint/no-redeclare
 export type ShareType = PrismaShareType;
 
 const globalForPrisma = globalThis as unknown as {
