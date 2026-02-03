@@ -48,6 +48,16 @@ export class ShareRepository implements IShareRepository {
     });
   }
 
+  async findFileSharesByOwner(ownerId: string): Promise<FileShare[]> {
+    return prisma.fileShare.findMany({
+      where: { ownerId },
+      include: {
+        file: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async findFileSharesByEmail(email: string): Promise<FileShare[]> {
     return prisma.fileShare.findMany({
       where: {
@@ -64,6 +74,20 @@ export class ShareRepository implements IShareRepository {
             avatarPath: true,
           },
         },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // ... (keep checkFileAccess)
+
+  // Folder
+
+  async findFolderSharesByOwner(ownerId: string): Promise<FolderShare[]> {
+    return prisma.folderShare.findMany({
+      where: { ownerId },
+      include: {
+        folder: true,
       },
       orderBy: { createdAt: 'desc' },
     });

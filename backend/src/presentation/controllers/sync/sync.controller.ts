@@ -26,7 +26,7 @@ export class SyncController {
         }
       }
 
-      const result = await this.syncUseCase.execute(req.user.id, { since });
+      const result = await this.syncUseCase.execute(req.user.id, req.user.email, { since });
 
       // Generate ETag based on the content or lastSync
       // Simple ETag: Hash of the stringified result

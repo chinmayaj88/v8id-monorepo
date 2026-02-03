@@ -14,55 +14,126 @@ export class ListSharedWithMeUseCase {
       throw new Error('User not found');
     }
 
-    const [fileShares, folderShares] = await Promise.all([
-      this.shareRepository.findFileSharesByEmail(user.email),
-      this.shareRepository.findFolderSharesByEmail(user.email),
-    ]);
+    const [incomingFileShares, incomingFolderShares, outgoingFileShares, outgoingFolderShares] =
+      await Promise.all([
+        this.shareRepository.findFileSharesByEmail(user.email),
+        this.shareRepository.findFolderSharesByEmail(user.email),
+        this.shareRepository.findFileSharesByOwner(userId),
+        this.shareRepository.findFolderSharesByOwner(userId),
+      ]);
+
+    // Process Incoming (Shared With Me)
+    const incomingFiles = incomingFileShares.map((s: any) => ({
+      id: s.id,
+      permission: s.permission,
+      sharedAt: s.createdAt,
+      file: {
+        id: s.file.id,
+        name: s.file.name,
+        size: s.file.size.toString(),
+        mimeType: s.file.mimeType,
+        extension: s.file.extension,
+        thumbnailUrl: s.file.thumbnailKey ? `api/files/${s.file.id}/thumbnail` : null,
+        createdAt: s.file.createdAt,
+        updatedAt: s.file.updatedAt,
+        isOwner: false,
+        ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+        tier: s.file.storageTier,
+        sharedUsers: [
+          {
+            name: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+            avatarUrl: s.owner.avatarPath,
+          },
+        ],
+      },
+    }));
+
+    const incomingFolders = incomingFolderShares.map((s: any) => ({
+      id: s.id,
+      permission: s.permission,
+      sharedAt: s.createdAt,
+      folder: {
+        id: s.folder.id,
+        name: s.folder.name,
+        createdAt: s.folder.createdAt,
+        updatedAt: s.folder.updatedAt,
+        isOwner: false,
+        ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+        sharedUsers: [
+          {
+            name: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+            avatarUrl: s.owner.avatarPath,
+          },
+        ],
+      },
+    }));
+
+    // Process Outgoing (Shared By Me) - Group by File ID
+    const outgoingFilesMap = new Map<string, any>();
+
+    outgoingFileShares.forEach((s: any) => {
+      if (!s.file) return;
+      if (!outgoingFilesMap.has(s.file.id)) {
+        outgoingFilesMap.set(s.file.id, {
+          id: s.id, // Use one share ID as reference
+          permission: s.permission,
+          sharedAt: s.createdAt,
+          file: {
+            id: s.file.id,
+            name: s.file.name,
+            size: s.file.size.toString(),
+            mimeType: s.file.mimeType,
+            extension: s.file.extension,
+            thumbnailUrl: s.file.thumbnailKey ? `api/files/${s.file.id}/thumbnail` : null,
+            createdAt: s.file.createdAt,
+            updatedAt: s.file.updatedAt,
+            isOwner: true,
+            ownerName: 'Me',
+            tier: s.file.storageTier,
+            sharedUsers: [],
+          },
+        });
+      }
+
+      // Add recipient to sharedUsers
+      const item = outgoingFilesMap.get(s.file.id);
+      item.file.sharedUsers.push({
+        name: s.sharedWith, // Email
+        avatarUrl: null, // No avatar for external/email shares easily available
+      });
+    });
+
+    const outgoingFoldersMap = new Map<string, any>();
+
+    outgoingFolderShares.forEach((s: any) => {
+      if (!s.folder) return;
+      if (!outgoingFoldersMap.has(s.folder.id)) {
+        outgoingFoldersMap.set(s.folder.id, {
+          id: s.id,
+          permission: s.permission,
+          sharedAt: s.createdAt,
+          folder: {
+            id: s.folder.id,
+            name: s.folder.name,
+            createdAt: s.folder.createdAt,
+            updatedAt: s.folder.updatedAt,
+            isOwner: true,
+            ownerName: 'Me',
+            sharedUsers: [],
+          },
+        });
+      }
+
+      const item = outgoingFoldersMap.get(s.folder.id);
+      item.folder.sharedUsers.push({
+        name: s.sharedWith,
+        avatarUrl: null,
+      });
+    });
 
     return {
-      files: fileShares.map((s: any) => ({
-        id: s.id,
-        permission: s.permission,
-        sharedAt: s.createdAt,
-        file: {
-          id: s.file.id,
-          name: s.file.name,
-          size: s.file.size.toString(),
-          mimeType: s.file.mimeType,
-          extension: s.file.extension,
-          thumbnailUrl: s.file.thumbnailKey ? `api/files/${s.file.id}/thumbnail` : null,
-          createdAt: s.file.createdAt,
-          updatedAt: s.file.updatedAt,
-          isOwner: false,
-          ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-          tier: s.file.storageTier,
-          sharedUsers: [
-            {
-              name: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-              avatarUrl: s.owner.avatarPath,
-            },
-          ],
-        },
-      })),
-      folders: folderShares.map((s: any) => ({
-        id: s.id,
-        permission: s.permission,
-        sharedAt: s.createdAt,
-        folder: {
-          id: s.folder.id,
-          name: s.folder.name,
-          createdAt: s.folder.createdAt,
-          updatedAt: s.folder.updatedAt,
-          isOwner: false,
-          ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-          sharedUsers: [
-            {
-              name: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-              avatarUrl: s.owner.avatarPath,
-            },
-          ],
-        },
-      })),
+      files: [...incomingFiles, ...Array.from(outgoingFilesMap.values())],
+      folders: [...incomingFolders, ...Array.from(outgoingFoldersMap.values())],
     };
   }
 }

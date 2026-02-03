@@ -12,7 +12,6 @@ import { IAuditLogService } from '../../interfaces/index.js';
 import { IAccountLockoutService } from '../../interfaces/index.js';
 import { ISuspiciousActivityService } from '../../interfaces/index.js';
 import { IEmailService } from '../../interfaces/index.js';
-import { StorageUtils } from '../../utils/storage.utils.js';
 
 export interface VerifyCredentialsResult {
   requiresTotp: boolean;
@@ -20,14 +19,7 @@ export interface VerifyCredentialsResult {
   user: {
     id: string;
     email: string;
-    firstName?: string;
-    lastName?: string;
     role: string;
-    storageQuota: string;
-    storageUsed: string;
-    storagePercentage: number;
-    storageUsedFormatted: string;
-    storageQuotaFormatted: string;
   };
 }
 
@@ -143,14 +135,7 @@ export class VerifyCredentialsUseCase {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
         role: user.role,
-        storageQuota: user.storageQuota.toString(),
-        storageUsed: user.storageUsed.toString(),
-        storagePercentage: user.getStorageUsagePercentage(),
-        storageUsedFormatted: StorageUtils.formatSize(user.storageUsed),
-        storageQuotaFormatted: StorageUtils.formatSize(user.storageQuota),
       },
     };
   }

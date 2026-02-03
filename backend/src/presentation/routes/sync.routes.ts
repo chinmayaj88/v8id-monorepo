@@ -15,9 +15,12 @@ const authenticate = authMiddleware(
   sharedContainer.jwtService
 );
 
+import { ShareRepository } from '../../infrastructure/repositories/files/share.repository.js';
+
 const fileRepository = new FileRepository();
 const folderRepository = new FolderRepository();
-const syncUseCase = new SyncUseCase(fileRepository, folderRepository);
+const shareRepository = new ShareRepository();
+const syncUseCase = new SyncUseCase(fileRepository, folderRepository, shareRepository);
 const syncController = new SyncController(syncUseCase);
 
 router.use(authenticate);
