@@ -36,4 +36,11 @@ export const userService = {
     }>('/users/search', { params: { query } });
     return response.data.data.users;
   },
+
+  createUser: async (data: any): Promise<any> => {
+    const response = await apiClient.post<{
+      data: any;
+    }>('/users', data);
+    return response.data;
+  },
 };

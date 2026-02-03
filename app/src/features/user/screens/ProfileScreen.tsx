@@ -20,12 +20,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { API_URL } from '@env';
 
 import EditProfileSheet from '../components/EditProfileSheet';
+import AddUserSheet from '../components/AddUserSheet';
 
 const ProfileScreen = () => {
   const navigation: any = useNavigation();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector(state => state.auth);
   const [showEditSheet, setShowEditSheet] = React.useState(false);
+  const [showAddUserSheet, setShowAddUserSheet] = React.useState(false);
+
+  const isAdmin = user?.role === 'ADMIN';
 
   useFocusEffect(
     useCallback(() => {
@@ -111,13 +115,23 @@ const ProfileScreen = () => {
             subtitle="Auto-backup your photos"
             onClick={() => {}}
           />
-          <AccountMenuItem
-            icon="desktop-windows"
-            iconColor="#2196F3"
-            title="Link your desktop"
-            subtitle="Sync files with your computer"
-            onClick={() => {}}
-          />
+          {isAdmin ? (
+            <AccountMenuItem
+              icon="person-add"
+              iconColor={Colors.primary}
+              title="Add User"
+              subtitle="Create new user & 2FA"
+              onClick={() => setShowAddUserSheet(true)}
+            />
+          ) : (
+            <AccountMenuItem
+              icon="desktop-windows"
+              iconColor="#2196F3"
+              title="Link your desktop"
+              subtitle="Sync files with your computer"
+              onClick={() => {}}
+            />
+          )}
           <AccountMenuItem
             icon="delete-outline"
             iconColor="#9C27B0"
@@ -164,6 +178,10 @@ const ProfileScreen = () => {
       <EditProfileSheet
         visible={showEditSheet}
         onClose={() => setShowEditSheet(false)}
+      />
+      <AddUserSheet
+        visible={showAddUserSheet}
+        onClose={() => setShowAddUserSheet(false)}
       />
     </SafeAreaView>
   );

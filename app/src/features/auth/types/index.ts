@@ -8,6 +8,7 @@ export interface User {
   storageQuota?: string;
   storageUsed?: string;
   storagePercentage?: number;
+  role?: string;
 }
 
 export * from './dtos';
