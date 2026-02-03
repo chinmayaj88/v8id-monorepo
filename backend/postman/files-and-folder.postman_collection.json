@@ -481,6 +481,51 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Get Albums",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/albums?type=image",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "albums"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "image",
+                  "description": "One of: image, video, document"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Thumbnail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/{{fileId}}/thumbnail",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "{{fileId}}", "thumbnail"]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -758,6 +803,31 @@
               "raw": "{{baseUrl}}/api/files/shared",
               "host": ["{{baseUrl}}"],
               "path": ["api", "files", "shared"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Share",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/files/shares/{{shareId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "files", "shares", "{{shareId}}"],
+              "variable": [
+                {
+                  "key": "shareId",
+                  "value": ""
+                }
+              ]
             }
           },
           "response": []

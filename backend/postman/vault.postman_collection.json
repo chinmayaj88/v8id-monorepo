@@ -1,0 +1,135 @@
+{
+  "info": {
+    "_postman_id": "vault-collection",
+    "name": "Password Vault",
+    "description": "Endpoints for managing secrets in the secure password vault.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Secrets",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/vault",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "vault"]
+        },
+        "description": "Retrieves metadata for all secrets in the vault."
+      },
+      "response": []
+    },
+    {
+      "name": "Get Secret Details",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/vault/{{secretId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "vault", "{{secretId}}"]
+        },
+        "description": "Retrieves full details of a secret, including decrypted password/value."
+      },
+      "response": []
+    },
+    {
+      "name": "Search Vault",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/vault/search?q=google",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "vault", "search"],
+          "query": [
+            {
+              "key": "q",
+              "value": "google",
+              "description": "Search query for title, username, or website"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Add Secret",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Google Account\",\n  \"username\": \"user@gmail.com\",\n  \"password\": \"SuperSecurePassword123!\",\n  \"website\": \"https://google.com\",\n  \"notes\": \"My primary account\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/vault",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "vault"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Secret",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/vault/{{secretId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "vault", "{{secretId}}"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "secretId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
