@@ -8,7 +8,7 @@ This infrastructure creates:
 
 - **VCN (Virtual Cloud Network)**: Isolated network with public and private subnets
 - **Compute Instance**: Backend application server (Oracle Linux)
-- **Object Storage Buckets**: 
+- **Object Storage Buckets**:
   - `v8id-cloud-standard`: Standard tier storage
   - `v8id-cloud-archive`: Archive tier storage
 - **Vault** (optional): Secrets management
@@ -96,6 +96,7 @@ terraform init -migrate-state
 ```
 
 **Benefits of Remote State:**
+
 - ✅ State backup in OCI Object Storage
 - ✅ Team collaboration (shared state)
 - ✅ Encrypted at rest
@@ -119,6 +120,7 @@ terraform state list
 ### Step 2: Make Changes
 
 Edit Terraform configuration files:
+
 - `main.tf` - Provider and data sources
 - `compute.tf` - Compute instance settings
 - `modules/*/main.tf` - Module-specific resources
@@ -308,6 +310,7 @@ terraform/
 ## Resources Created
 
 ### Network
+
 - 1 VCN (10.0.0.0/16)
 - 1 Public Subnet (10.0.1.0/24)
 - 1 Private Subnet (10.0.2.0/24)
@@ -318,6 +321,7 @@ terraform/
 - 2 Security Lists (public, private)
 
 ### Compute
+
 - 1 Compute Instance (VM.Standard.E2.1.Micro - Always Free, 1 OCPU, 1GB RAM)
   - OS: Canonical Ubuntu 22.04 Minimal
   - Up to 2 instances free per tenancy
@@ -325,15 +329,18 @@ terraform/
 - Cloud-init script for Docker, Node.js 22, pnpm
 
 ### Storage
+
 - 1 Standard Bucket (`v8id-cloud-standard`) - default settings
 - 1 Archive Bucket (`v8id-cloud-archive`) - default settings
 
 ### IAM
+
 - 1 Dynamic Group (compute instances)
 - 1 Policy (compute to Object Storage access)
 - 1 Policy (compute to Vault access, if enabled)
 
 ### Vault (optional)
+
 - 1 Vault
 - 1 Master Encryption Key
 - 1 Secret (database credentials example)
@@ -371,10 +378,11 @@ The MySQL HeatWave database is external. Configure connection via:
 The backend uses instance principal authentication (via dynamic group). No API keys needed.
 
 Environment variables for backend:
+
 ```env
 OCI_OBJECT_STORAGE_NAMESPACE=<namespace>
-OCI_OBJECT_STORAGE_BUCKET_NAME_STANDARD=v8id-cloud-standard
-OCI_OBJECT_STORAGE_BUCKET_NAME_ARCHIVE=v8id-cloud-archive
+OCI_OBJECT_STORAGE_STANDARD=v8id-cloud-standard
+OCI_OBJECT_STORAGE_ARCHIVE=v8id-cloud-archive
 ```
 
 ## Security Notes
@@ -401,25 +409,30 @@ This configuration uses OCI Always Free tier resources:
 ### Terraform Errors
 
 **Error: "Compartment not found"**
+
 - Verify `compartment_id` in `terraform.tfvars`
 - Ensure compartment exists and you have access
 
 **Error: "Invalid fingerprint"**
+
 - Verify fingerprint matches uploaded public key
 - Check key format (should be colon-separated hex)
 
 **Error: "Namespace not found"**
+
 - Get namespace from OCI Console > Object Storage
 - It's shown in bucket URLs: `https://objectstorage.<region>.oraclecloud.com/n/<namespace>/b/<bucket>/o/`
 
 ### Compute Instance Issues
 
 **Can't SSH to instance**
+
 - Instance is in private subnet (no public IP)
 - Use bastion host or VPN
 - Check security list rules
 
 **Application can't access Object Storage**
+
 - Verify dynamic group includes instance
 - Check IAM policies are applied
 - Verify bucket names match

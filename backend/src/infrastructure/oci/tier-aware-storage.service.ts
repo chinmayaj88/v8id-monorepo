@@ -41,9 +41,8 @@ export class TierAwareStorageService implements IStorageService {
   constructor() {
     // Get namespace and buckets from environment variables
     this.namespace = process.env.OCI_OBJECT_STORAGE_NAMESPACE || '';
-    this.standardBucketName =
-      process.env.OCI_OBJECT_STORAGE_BUCKET_NAME_STANDARD || 'void-standard';
-    this.archiveBucketName = process.env.OCI_OBJECT_STORAGE_BUCKET_NAME_ARCHIVE || 'void-archive';
+    this.standardBucketName = process.env.OCI_OBJECT_STORAGE_STANDARD || 'v8id-cloud-standard';
+    this.archiveBucketName = process.env.OCI_OBJECT_STORAGE_ARCHIVE || 'v8id-cloud-archive';
 
     if (!this.namespace) {
       throw new Error('OCI_OBJECT_STORAGE_NAMESPACE environment variable is required');
