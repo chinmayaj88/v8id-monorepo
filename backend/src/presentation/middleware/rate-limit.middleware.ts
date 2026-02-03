@@ -7,6 +7,10 @@
 import rateLimit from 'express-rate-limit';
 import { Request, Response } from 'express';
 import { ResponseUtil } from '../utils/response.util.js';
+import { envConfig } from '../../infrastructure/config/env.config.js';
+
+// Skip rate limiting in development
+const skipInDev = () => envConfig.nodeEnv === 'development';
 
 /**
  * General API rate limiter
@@ -17,6 +21,7 @@ export const generalRateLimiter = rateLimit({
   max: 100, // Limit each IP to 100 requests per windowMs
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  skip: skipInDev,
   handler: (_req: Request, res: Response) => {
     ResponseUtil.error(
       res,
@@ -37,6 +42,7 @@ export const authRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests
+  skip: skipInDev,
   handler: (_req: Request, res: Response) => {
     ResponseUtil.error(
       res,
@@ -56,6 +62,7 @@ export const totpRateLimiter = rateLimit({
   max: 10, // Limit each IP to 10 TOTP attempts per windowMs
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInDev,
   handler: (_req: Request, res: Response) => {
     ResponseUtil.error(
       res,
@@ -75,6 +82,7 @@ export const refreshRateLimiter = rateLimit({
   max: 20, // Limit each IP to 20 refresh attempts per windowMs
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInDev,
   handler: (_req: Request, res: Response) => {
     ResponseUtil.error(
       res,
@@ -94,6 +102,7 @@ export const strictMutationRateLimiter = rateLimit({
   max: 30, // Limit each IP to 30 mutations per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipInDev,
   handler: (_req: Request, res: Response) => {
     ResponseUtil.error(
       res,
