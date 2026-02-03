@@ -1,0 +1,387 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum DeviceType {
+  MOBILE
+  WEB
+}
+
+enum FileType {
+  DOCUMENT
+  IMAGE
+  VIDEO
+  AUDIO
+  ARCHIVE
+  OTHER
+}
+
+enum FileStatus {
+  UPLOADING
+  ACTIVE
+  DELETED
+  ARCHIVED
+}
+
+enum StorageTier {
+  STANDARD
+  ARCHIVE
+}
+
+// User Model
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  passwordHash         String
+  firstName            String?
+  lastName             String?
+  avatarPath           String?   @db.VarChar(500) // OCI object path (not the full URL)
+  role                 UserRole  @default(USER)
+  emailVerified        Boolean   @default(true) // Admin creates verified users
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+  storageQuota         BigInt    @default(10737418240) // 10GB default
+  storageUsed          BigInt    @default(0)
+  isActive             Boolean   @default(true)
+  lastLoginAt          DateTime?
+
+  // TOTP (Two-Factor Authentication) - MANDATORY for all users
+  totpSecret   String? // Encrypted TOTP secret (if exists, TOTP is enabled)
+  totpVerified Boolean @default(false) // Whether TOTP setup is complete
+
+  // Token versioning - increment on password change to invalidate all tokens
+  tokenVersion Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  deviceSessions  DeviceSession[]
+  totpBackupCodes TotpBackupCode[]
+  auditLogs       AuditLog[]
+  files           File[]
+  folders         Folder[]
+  uploadSessions  UploadSession[]
+  sharedFiles     FileShare[] @relation("FileShareOwner")
+  receivedShares  FileShare[] @relation("FileShareSharedWith")
+  fileFavorites   FileFavorite[]
+  fileComments    FileComment[]
+  fileLinks       FileLink[]
+  folderTemplates FolderTemplate[]
+
+  @@index([email])
+  @@index([isActive])
+  @@index([role])
+  @@map("users")
+}
+
+// Device Session Model
+model DeviceSession {
+  id           String     @id @default(cuid())
+  userId       String
+  deviceType   DeviceType // MOBILE or WEB
+  deviceName   String // User-friendly device name
+  deviceId     String // Unique device identifier
+  userAgent    String? // Browser/App user agent
+  ipAddress    String? // IP address
+  location     String? // Approximate location (city, country)
+  accessToken  String     @unique @db.VarChar(500) // JWT tokens (typically 200-500 chars)
+  refreshToken String     @unique @db.VarChar(500) // JWT tokens (typically 200-500 chars)
+  expiresAt    DateTime
+  rememberMe   Boolean    @default(false) // Remember Me flag (30-day session, only on first mobile device)
+  lastActiveAt DateTime   @default(now())
+  isActive     Boolean    @default(true)
+  isRevoked    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([accessToken])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@map("device_sessions")
+}
+
+// TOTP Backup Codes Model
+model TotpBackupCode {
+  id        String    @id @default(cuid())
+  userId    String
+  code      String // Hashed backup code
+  isUsed    Boolean   @default(false)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isUsed])
+  @@map("totp_backup_codes")
+}
+
+// Audit Log Model - Security event logging
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?  // Null for system events
+  eventType String   // LOGIN, LOGOUT, LOGIN_FAILED, PASSWORD_CHANGE, TOKEN_REFRESH, etc.
+  eventData Json?    // Additional event data (IP, device, etc.)
+  ipAddress String?
+  userAgent String?
+  success   Boolean  @default(true)
+  errorMessage String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([success])
+  @@map("audit_logs")
+}
+
+// Folder Model - Hierarchical folder structure
+model Folder {
+  id          String    @id @default(cuid())
+  userId      String
+  parentId    String?   // Null for root folders
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  color       String?   @db.VarChar(7) // Hex color code for UI
+  isDeleted   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Folder[]  @relation("FolderHierarchy")
+  files    File[]
+  uploadSessions UploadSession[]
+  shares   FileShare[]
+  favorites FileFavorite[]
+  comments FileComment[]
+  links FileLink[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@index([isDeleted])
+  @@index([userId, parentId, name]) // For unique folder names per parent
+  @@map("folders")
+}
+
+// Upload Session Model - Tracks chunked uploads and resume capability
+model UploadSession {
+  id            String   @id @default(cuid())
+  userId        String
+  fileName      String   @db.VarChar(500)
+  fileSize      BigInt
+  mimeType      String   @db.VarChar(100)
+  folderId      String?
+  chunkSize    Int      @default(5242880) // 5MB default chunk size
+  totalChunks  Int
+  uploadedChunks Int    @default(0)
+  uploadedBytes BigInt   @default(0)
+  uploadMethod String   // 'DIRECT' (via PAR) or 'BACKEND' (through server)
+  parUrl        String?  @db.VarChar(1000) // Pre-Authenticated Request URL for direct upload
+  parId         String?  @db.VarChar(200) // PAR ID for cleanup
+  ociObjectName String?  @db.VarChar(500) // OCI object name (set when upload starts)
+  hash          String?  @db.VarChar(64) // SHA-256 hash (calculated during upload)
+  storageTier   StorageTier @default(STANDARD) // Storage tier for the file being uploaded
+  isCompleted   Boolean  @default(false)
+  expiresAt     DateTime // Session expiration (default 24 hours)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user   User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  file   File? // Link to file once upload completes
+
+  @@index([userId])
+  @@index([isCompleted])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("upload_sessions")
+}
+
+// File Model - File metadata and storage info
+model File {
+  id            String     @id @default(cuid())
+  userId        String
+  folderId      String?    // Null for files in root
+  name          String     @db.VarChar(255) // Display name
+  originalName  String     @db.VarChar(500) // Original uploaded filename
+  mimeType      String     @db.VarChar(100)
+  size          BigInt     // File size in bytes
+  type          FileType
+  status        FileStatus @default(UPLOADING)
+  storageTier   StorageTier @default(STANDARD) // Storage tier: STANDARD (frequent access) or ARCHIVE (rare access)
+  ociObjectName String     @unique @db.VarChar(500) // OCI Object Storage key
+  hash          String     @db.VarChar(64) // SHA-256 hash for deduplication
+  thumbnailObjectName String? @db.VarChar(500) // Thumbnail OCI Object Storage key
+  thumbnailGenerated Boolean @default(false) // Whether thumbnail has been generated
+  description   String?    @db.Text
+  tags          Json?      // Array of tags as JSON
+  metadata      Json?      // Additional metadata as JSON
+  uploadSessionId String?  @unique // Link to upload session if used
+  expiresAt     DateTime?  // Optional expiration date for auto-delete
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+
+  // Relations
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadSession UploadSession? @relation(fields: [uploadSessionId], references: [id], onDelete: SetNull)
+  shares FileShare[]
+  favorites FileFavorite[]
+  comments FileComment[]
+  links FileLink[]
+
+  @@index([userId])
+  @@index([folderId])
+  @@index([status])
+  @@index([type])
+  @@index([storageTier]) // For tier-based queries and operations
+  @@index([hash]) // For deduplication lookup
+  @@index([userId, folderId, name]) // For unique file names per folder
+  @@index([createdAt])
+  @@index([expiresAt]) // For expired file queries (auto-delete jobs)
+  @@index([deletedAt]) // For trash queries
+  @@map("files")
+}
+
+// File Share Model - Share files/folders with other users
+model FileShare {
+  id            String   @id @default(cuid())
+  fileId        String?  // Null for folder shares
+  folderId      String?  // Null for file shares
+  ownerId       String   // User who owns the file/folder
+  sharedWithId  String   // User who has access
+  permission    String   @default("READ") // READ, WRITE, VIEW_ONLY
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  owner      User   @relation("FileShareOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  sharedWith User   @relation("FileShareSharedWith", fields: [sharedWithId], references: [id], onDelete: Cascade)
+  file       File?  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  folder     Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([sharedWithId])
+  @@index([fileId])
+  @@index([folderId])
+  @@unique([fileId, sharedWithId]) // One share per file per user
+  @@unique([folderId, sharedWithId]) // One share per folder per user
+  @@map("file_shares")
+}
+
+
+
+// File Favorite Model - User favorites/bookmarks
+model FileFavorite {
+  id        String   @id @default(cuid())
+  userId    String
+  fileId    String?  // Null for folder favorites
+  folderId  String?  // Null for file favorites
+  createdAt DateTime @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file   File?  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([fileId])
+  @@index([folderId])
+  @@unique([userId, fileId]) // One favorite per file per user
+  @@unique([userId, folderId]) // One favorite per folder per user
+  @@map("file_favorites")
+}
+
+// File Comment Model - Comments/annotations on files
+model FileComment {
+  id        String   @id @default(cuid())
+  fileId    String?  // Null for folder comments
+  folderId  String?  // Null for file comments
+  userId    String
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file   File?  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@index([fileId])
+  @@index([folderId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("file_comments")
+}
+
+// File Link Model - Temporary download links (pre-signed URLs/PAR)
+model FileLink {
+  id            String   @id @default(cuid())
+  fileId        String?  // Null for folder links
+  folderId      String?  // Null for file links
+  userId        String
+  linkToken     String   @unique @db.VarChar(64) // Unique token for the link
+  parUrl        String?  @db.VarChar(1000) // Pre-Authenticated Request URL
+  parId         String?  @db.VarChar(200) // PAR ID for cleanup
+  expiresAt     DateTime
+  maxDownloads  Int?     // Optional download limit
+  downloadCount Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file   File?  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([fileId])
+  @@index([folderId])
+  @@index([linkToken])
+  @@index([expiresAt])
+  @@map("file_links")
+}
+
+// Folder Template Model - Folder templates
+model FolderTemplate {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  structure   Json     // Folder structure as JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("folder_templates")
+}

@@ -1,0 +1,19 @@
+# Build outputs
+build/
+*/build/
+.gradle/
+.cxx/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.navigation/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+bin/
+gen/
+out/

@@ -1,0 +1,158 @@
+/**
+ * Copy File Use Case
+ * 
+ * Copy a file to another folder or duplicate in the same folder.
+ */
+
+import { IFileRepository } from '../interfaces/file-repository.interface.js';
+import { IFolderRepository } from '../interfaces/folder-repository.interface.js';
+import { IStorageService } from '../interfaces/storage-service.interface.js';
+import { IUserRepository } from '../interfaces/user-repository.interface.js';
+import { FileResponseDTO } from '../dtos/file.dto.js';
+import { StorageCacheService } from '../../infrastructure/services/storage-cache.service.js';
+import { TierAwareStorageService } from '../../infrastructure/oci/tier-aware-storage.service.js';
+
+export interface CopyFileDTO {
+  targetFolderId?: string | null;
+  newName?: string;
+}
+
+export class CopyFileUseCase {
+  constructor(
+    private fileRepository: IFileRepository,
+    private folderRepository: IFolderRepository,
+    private storageService: IStorageService,
+    private userRepository: IUserRepository,
+    private storageCache?: StorageCacheService
+  ) {}
+
+  async execute(userId: string, fileId: string, dto: CopyFileDTO): Promise<FileResponseDTO> {
+    const sourceFile = await this.fileRepository.findById(fileId);
+    if (!sourceFile) {
+      throw new Error('File not found');
+    }
+
+    if (sourceFile.userId !== userId) {
+      throw new Error('Access denied');
+    }
+
+    if (!sourceFile.isActive()) {
+      throw new Error('Cannot copy deleted or archived files');
+    }
+
+    const targetFolderId = dto.targetFolderId !== undefined ? dto.targetFolderId : sourceFile.folderId;
+    if (targetFolderId) {
+      const folder = await this.folderRepository.findById(targetFolderId);
+      if (!folder || folder.userId !== userId || !folder.isActive()) {
+        throw new Error('Target folder not found or access denied');
+      }
+    }
+
+    const user = await this.userRepository.findById(userId);
+    if (!user || !user.isUserActive()) {
+      throw new Error('User not found or inactive');
+    }
+
+    const availableStorage = user.getAvailableStorage();
+    if (sourceFile.size > availableStorage) {
+      throw new Error('Insufficient storage to copy file');
+    }
+
+    let newName = dto.newName || sourceFile.name;
+    const nameExists = await this.fileRepository.nameExistsInFolder(userId, targetFolderId, newName);
+    if (nameExists) {
+      const ext = this.getFileExtension(sourceFile.name);
+      const baseName = ext ? newName.replace(new RegExp(`\\.${ext}$`, 'i'), '') : newName;
+      const timestamp = Date.now();
+      newName = ext ? `${baseName}-copy-${timestamp}.${ext}` : `${baseName}-copy-${timestamp}`;
+    }
+
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const newOciObjectName = `users/${userId}/files/${timestamp}-${randomString}-${newName}`;
+
+    // Use tier-aware storage service for copying
+    const isTierAware = this.storageService instanceof TierAwareStorageService;
+    const storageTier = sourceFile.storageTier || 'STANDARD' as any;
+
+    try {
+      if (isTierAware) {
+        // Copy within the same tier bucket
+        await (this.storageService as TierAwareStorageService).copyFile(
+          sourceFile.ociObjectName,
+          newOciObjectName,
+          storageTier
+        );
+      } else {
+        // Fallback for non-tier-aware storage service
+        await this.storageService.copyFile(sourceFile.ociObjectName, newOciObjectName);
+      }
+    } catch (error) {
+      throw new Error(`Failed to copy file in ${storageTier} tier storage: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    const newFile = await this.fileRepository.create({
+      userId,
+      folderId: targetFolderId,
+      name: newName,
+      originalName: sourceFile.originalName,
+      mimeType: sourceFile.mimeType,
+      size: sourceFile.size,
+      type: sourceFile.type,
+      status: sourceFile.status,
+      storageTier: sourceFile.storageTier, // Copy maintains same tier as source
+      ociObjectName: newOciObjectName,
+      hash: sourceFile.hash,
+      description: sourceFile.description,
+      tags: sourceFile.tags,
+      metadata: sourceFile.metadata,
+    });
+
+    // Update storage - use cache if available
+    let currentStorageUsed: bigint;
+    const cachedStorage = this.storageCache?.get(userId);
+    if (cachedStorage !== null && cachedStorage !== undefined) {
+      // Use cached value and add copied file size
+      currentStorageUsed = cachedStorage + sourceFile.size;
+    } else {
+      // Calculate from database
+      currentStorageUsed = await this.fileRepository.getStorageUsedByUser(userId);
+    }
+    
+    await this.userRepository.update(userId, {
+      storageUsed: currentStorageUsed,
+    });
+    
+    // Update cache
+    this.storageCache?.set(userId, currentStorageUsed);
+
+    return {
+      id: newFile.id,
+      userId: newFile.userId,
+      folderId: newFile.folderId,
+      name: newFile.name,
+      originalName: newFile.originalName,
+      mimeType: newFile.mimeType,
+      size: Number(newFile.size),
+      type: newFile.type,
+      status: newFile.status,
+      storageTier: newFile.storageTier, // Copied file inherits same tier as source
+      thumbnailGenerated: newFile.thumbnailGenerated,
+      description: newFile.description,
+      tags: newFile.tags,
+      metadata: newFile.metadata,
+      createdAt: newFile.createdAt.toISOString(),
+      updatedAt: newFile.updatedAt.toISOString(),
+      deletedAt: newFile.deletedAt?.toISOString(),
+    };
+  }
+
+  private getFileExtension(filename: string): string {
+    const parts = filename.split('.');
+    if (parts.length > 1) {
+      const extension = parts[parts.length - 1];
+      return extension || '';
+    }
+    return '';
+  }
+}
