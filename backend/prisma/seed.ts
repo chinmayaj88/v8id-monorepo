@@ -1,47 +1,63 @@
 import 'dotenv/config';
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { PrismaClient } from '../generated/prisma';
-import { PasswordService } from '../src/infrastructure/services/password.service';
-import { TotpService } from '../src/infrastructure/services/totp.service';
+import { PrismaClient } from '../generated/prisma/index.js';
+import { PasswordService } from '../src/infrastructure/services/auth/password.service.js';
+import { TotpService } from '../src/infrastructure/services/auth/totp.service.js';
 import fs from 'fs';
 import path from 'path';
 
 // Parse DATABASE_URL or use individual environment variables
-function getDatabaseConfig() {
-  if (process.env.DATABASE_URL) {
+function getDbAdapter() {
+  const env = process.env;
+  const databaseUrl = env.DATABASE_URL;
+  const isProduction = env.NODE_ENV === 'production';
+
+  let adapterOptions: any = {};
+
+  if (databaseUrl) {
     try {
-      // Parse mysql://user:password@host:port/database
-      const url = new URL(process.env.DATABASE_URL.replace(/^mysql:\/\//, 'http://'));
-      return {
-        host: process.env.DATABASE_HOST || url.hostname || 'localhost',
-        port: process.env.DATABASE_PORT
-          ? parseInt(process.env.DATABASE_PORT, 10)
-          : url.port
-            ? parseInt(url.port, 10)
-            : 3306,
-        user: process.env.DATABASE_USER || url.username || 'root',
-        password: process.env.DATABASE_PASSWORD || url.password || '',
-        database: process.env.DATABASE_NAME || url.pathname.replace(/^\//, '') || '',
+      // Must replace 'mysql://' with 'http://' to satisfy the strictly compliant URL parser if needed
+      const protocolFixedUrl = databaseUrl.replace(/^mysql:\/\//, 'http://');
+      const url = new URL(protocolFixedUrl);
+
+      adapterOptions = {
+        host: url.hostname || 'localhost',
+        port: url.port ? parseInt(url.port, 10) : 3306,
+        user: url.username || 'root',
+        // CRITICAL: Decode the password.
+        password: decodeURIComponent(url.password),
+        database: url.pathname.replace(/^\//, ''),
       };
-    } catch {
-      // Fallback to individual env vars if URL parsing fails
+    } catch (err) {
+      console.error('❌ Failed to parse DATABASE_URL:', err);
+      // Fallback
+      adapterOptions = { url: databaseUrl };
     }
+  } else {
+    adapterOptions = {
+      host: env.DATABASE_HOST || 'localhost',
+      port: env.DATABASE_PORT ? parseInt(env.DATABASE_PORT, 10) : 3306,
+      user: env.DATABASE_USER || 'root',
+      password: env.DATABASE_PASSWORD ? decodeURIComponent(env.DATABASE_PASSWORD) : '',
+      database: env.DATABASE_NAME || '',
+    };
   }
 
-  return {
-    host: process.env.DATABASE_HOST || 'localhost',
-    port: process.env.DATABASE_PORT ? parseInt(process.env.DATABASE_PORT, 10) : 3306,
-    user: process.env.DATABASE_USER || 'root',
-    password: process.env.DATABASE_PASSWORD || '',
-    database: process.env.DATABASE_NAME || '',
-  };
+  const useSsl = isProduction || (databaseUrl && databaseUrl.includes('ssl'));
+
+  return new PrismaMariaDb({
+    ...adapterOptions,
+    connectionLimit: 5,
+    allowPublicKeyRetrieval: true,
+    ssl: useSsl
+      ? {
+          rejectUnauthorized: false,
+        }
+      : undefined,
+  });
 }
 
-const dbConfig = getDatabaseConfig();
-const adapter = new PrismaMariaDb({
-  ...dbConfig,
-  connectionLimit: 5,
-});
+const adapter = getDbAdapter();
 
 const prisma = new PrismaClient({ adapter });
 
