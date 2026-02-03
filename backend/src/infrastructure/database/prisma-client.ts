@@ -1,62 +1,20 @@
 import { PrismaMariaDb } from '@prisma/adapter-mariadb';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const PrismaModule = require('../../../generated/prisma/index.js');
+import { PrismaClient } from '../../../generated/prisma/index.js';
 
-// Values
-export const {
-  PrismaClient,
-  UserRole,
-  DeviceType,
-  StorageTier,
-  SharePermission,
-  ShareType,
-  $Enums,
-} = PrismaModule;
-
-// Types
-export type * from '../../../generated/prisma/index.js';
-export type {
-  File,
-  Folder,
-  FileShare,
-  FolderShare,
-  VaultSecret,
-  User,
-  Prisma, // Explicitly re-export Prisma namespace
-} from '../../../generated/prisma/index.js';
-
-import type {
-  PrismaClient as PrismaClientType,
-  StorageTier as PrismaStorageTier,
-  UserRole as PrismaUserRole,
-  DeviceType as PrismaDeviceType,
-  SharePermission as PrismaSharePermission,
-  ShareType as PrismaShareType,
-} from '../../../generated/prisma/index.js';
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type StorageTier = PrismaStorageTier;
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type UserRole = PrismaUserRole;
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type DeviceType = PrismaDeviceType;
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type SharePermission = PrismaSharePermission;
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export type ShareType = PrismaShareType;
+// Export all generated types, enums, and utility classes
+export * from '../../../generated/prisma/index.js';
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClientType;
+  prisma: PrismaClient;
 };
 
-let prismaInstance: PrismaClientType;
+let prismaInstance: PrismaClient;
 
 /**
  * Enterprise Singleton for Prisma Client
  * Ensures that environment variables are fully loaded before the client is created.
  */
-function getPrismaClient(): PrismaClientType {
+function getPrismaClient(): PrismaClient {
   if (prismaInstance) return prismaInstance;
   if (globalForPrisma.prisma) return globalForPrisma.prisma;
 
@@ -121,7 +79,7 @@ function getPrismaClient(): PrismaClientType {
 }
 
 // Export the prisma instance via a Proxy or direct export
-export const prisma: PrismaClientType = new Proxy({} as any, {
+export const prisma: PrismaClient = new Proxy({} as any, {
   get: (_target, prop, receiver) => {
     const instance = getPrismaClient();
     return Reflect.get(instance, prop, receiver);

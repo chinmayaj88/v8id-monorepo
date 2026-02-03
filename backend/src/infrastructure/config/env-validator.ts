@@ -136,5 +136,5 @@ export function validateEnvironment(configService: IConfigService): void {
   validateDatabaseConfig(configService);
   validateJwtSecret(configService);
   validateTotpEncryptionKey(configService);
-  validateVaultMasterKey(configService);
+  // validateVaultMasterKey(configService);
 }

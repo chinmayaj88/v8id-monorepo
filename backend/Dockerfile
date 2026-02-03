@@ -19,7 +19,6 @@ COPY tsconfig.base.json ./
 # -------------------------
 COPY backend/package.json ./backend/
 COPY backend/tsconfig.json ./backend/
-COPY backend/.npmrc ./
 COPY backend/prisma.config.ts ./backend/
 
 # -------------------------
@@ -75,7 +74,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Copy backend manifests
 # -------------------------
 COPY backend/package.json ./backend/
-COPY backend/.npmrc ./
 COPY backend/prisma.config.ts ./backend/
 
 # -------------------------
