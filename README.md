@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Your Personal Cloud Storage Solution** | *Privacy-First • Self-Hosted • Enterprise-Grade*
+**Your Personal Cloud Storage Solution** | _Privacy-First • Self-Hosted • Enterprise-Grade_
 
 [![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -21,6 +21,7 @@
 ✨ **Perfect for** small teams, families, or individuals who want enterprise-grade file storage without the enterprise price tag.
 
 🎯 **Key Highlights:**
+
 - 🔒 **Privacy-First**: Your data, your control - no third-party access
 - 🏗️ **Clean Architecture**: Maintainable, scalable, and testable codebase
 - ☁️ **OCI-Powered**: Leverage Oracle Cloud Infrastructure for production deployment
@@ -55,6 +56,7 @@ v8id-monorepo/
 ## 🚀 Tech Stack
 
 ### Backend
+
 - **Runtime**: Node.js 22
 - **Framework**: Express.js
 - **Database**: MySQL 8.0 (via Docker, production: OCI MySQL HeatWave)
@@ -63,6 +65,7 @@ v8id-monorepo/
 - **Architecture**: Clean Architecture
 
 ### Infrastructure
+
 - **Local Development**: Docker Compose (MySQL + Adminer)
 - **Production**: Oracle Cloud Infrastructure (OCI)
   - **IaC**: Terraform for infrastructure provisioning
@@ -71,6 +74,7 @@ v8id-monorepo/
 - **Package Manager**: pnpm 9+
 
 ### Frontend (Planned)
+
 - **Web**: Next.js 15 (To be implemented)
 - **Mobile App**: Kotlin (Android) (To be implemented)
 
@@ -144,6 +148,7 @@ pnpm dev
 ```
 
 The backend API will be available at: http://localhost:4000
+
 - Health check: http://localhost:4000/health
 
 ## 📦 Workspaces
@@ -157,35 +162,30 @@ The backend API will be available at: http://localhost:4000
 
 ### ✅ Currently Implemented
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| 🏗️ Monorepo Setup | ✅ | pnpm workspaces with organized structure |
-| 🏛️ Clean Architecture | ✅ | Enterprise-grade code organization |
-| 🚀 Express.js API | ✅ | Fast and reliable REST API server |
-| 🗄️ Prisma ORM | ✅ | Type-safe database access with MySQL |
-| 🐳 Docker Compose | ✅ | One-command local development setup |
-| 📊 Database Migrations | ✅ | Version-controlled schema management |
-| ❤️ Health Check | ✅ | API health monitoring endpoint |
-
-### 🚧 Coming Soon
-
-| Feature | Priority | Description |
-|---------|----------|-------------|
-| 📤 File Upload & Storage | 🔥 High | OCI Object Storage integration |
-| 📁 File Organization | 🔥 High | Folders, tags, and metadata |
-| 👥 File Sharing | 🔥 High | Share files with team members (max 7 users) |
-| 🔄 Real-time Sync | ⚡ Medium | Live file synchronization |
-| 📜 Version Control | ⚡ Medium | File versioning and history |
-| 🔍 Search & Indexing | ⚡ Medium | Fast file search capabilities |
-| 🔐 Authentication | 🔥 High | JWT-based secure authentication |
-| 🌐 Web Frontend | 🔥 High | Modern React-based web interface |
-| ☁️ Terraform IaC | 🔥 | Infrastructure as Code for OCI |
-| 📱 Mobile App | 💡 Low | Native mobile applications |
-
+| Feature                  | Status    | Description                                 |
+| ------------------------ | --------- | ------------------------------------------- |
+| 🏗️ Monorepo Setup        | ✅        | pnpm workspaces with organized structure    |
+| 🏛️ Clean Architecture    | ✅        | Enterprise-grade code organization          |
+| 🚀 Express.js API        | ✅        | Fast and reliable REST API server           |
+| 🗄️ Prisma ORM            | ✅        | Type-safe database access with MySQL        |
+| 🐳 Docker Compose        | ✅        | One-command local development setup         |
+| 📊 Database Migrations   | ✅        | Version-controlled schema management        |
+| ❤️ Health Check          | ✅        | API health monitoring endpoint              |
+| 📤 File Upload & Storage | 🔥 High   | OCI Object Storage integration              |
+| 📁 File Organization     | 🔥 High   | Folders, tags, and metadata                 |
+| 👥 File Sharing          | 🔥 High   | Share files with team members (max 7 users) |
+| 🔄 Real-time Sync        | ⚡ Medium | Live file synchronization                   |
+| 📜 Version Control       | ⚡ Medium | File versioning and history                 |
+| 🔍 Search & Indexing     | ⚡ Medium | Fast file search capabilities               |
+| 🔐 Authentication        | 🔥 High   | JWT-based secure authentication             |
+| 🌐 Web Frontend          | 🔥 High   | Modern React-based web interface            |
+| ☁️ Terraform IaC         | 🔥        | Infrastructure as Code for OCI              |
+| 📱 Mobile App            | 💡 Low    | Native mobile applications                  |
 
 ## 📝 Available Scripts
 
 ### Root Level
+
 ```bash
 pnpm dev:backend      # Start backend development server
 pnpm dev:web          # Start web development server (when implemented)
@@ -196,6 +196,7 @@ pnpm lint             # Lint backend code
 ```
 
 ### Backend Specific
+
 ```bash
 cd backend
 pnpm dev              # Start dev server with hot reload
@@ -259,6 +260,7 @@ terraform destroy
 **Terraform manages:**
 
 ### 🆓 Always Free Resources
+
 - 🗄️ **MySQL HeatWave Database** (Always Free tier)
   - Database systems and configurations
   - Backup policies
@@ -269,6 +271,7 @@ terraform destroy
   - Pre-authenticated requests
 
 ### 💰 Paid Resources (Minimal Cost)
+
 - 🌐 **Compute Instances (EC2)**
   - Virtual machines for application hosting
   - Instance configurations optimized for small scale (7 users)
@@ -279,6 +282,7 @@ terraform destroy
   - Cost-effective cold storage
 
 ### 🔧 Infrastructure Components
+
 - 👤 **IAM (Identity and Access Management)**
   - Users, groups, and policies
   - Service accounts and API keys
@@ -305,16 +309,55 @@ terraform destroy
   - Security policies
 
 ### 🐳 Docker Services (Local & Production)
+
 - 🗄️ **MySQL** - Database (via Docker Compose)
 - 📊 **Adminer** - Database management UI (via Docker Compose)
-- ⚡ **Redis** - Caching service (via Docker Compose, not OCI managed)
-  - Session storage
-  - Cache layer for frequently accessed data
-  - Rate limiting and temporary data storage
 
-> **Note**: Optimized for small-scale deployment. No load balancer needed. Most resources use OCI Always Free tier to minimize costs. Redis runs in Docker container (not OCI managed cache service) for cost efficiency.
+> **Note**: Optimized for small-scale deployment. No load balancer needed. Most resources use OCI Always Free tier to minimize costs.
 
-> **Note**: Terraform configurations are in `infra/terraform/` and will be expanded as the project grows.
+## 📈 Scalability & Performance Decisions
+
+### Current Architecture (~7 Users)
+
+We intentionally omitted **Redis** and **Background Workers** to prioritize simplicity, cost-efficiency, and ease of maintenance for a personal/small-team deployment.
+
+- **Efficiency**: For a small user base, a single MySQL instance handles concurrent requests and session management effortlessly. The latency overhead of a separate caching layer outweighs the benefits at this scale.
+- **Simplicity**: Node.js's non-blocking event loop handles asynchronous tasks (like file uploads) without blocking the main thread. Complex queue systems (like RabbitMQ) introduce unnecessary operational complexity for < 10 users.
+- **Cost**: Eliminating extra services (Redis, Worker Nodes) keeps the infrastructure within the OCI Always Free tier or very low cost.
+
+### 🔮 Scaling to Millions of Users
+
+If v8id-cloud were to scale to 1 million+ users, the architecture would need to evolve significantly to handle the load, concurrency, and data volume.
+
+#### 1. Caching Strategy (Redis/Memcached)
+
+- **Session Management**: Move session storage from the database/memory to a distributed Redis cluster to handle millions of active sessions.
+- **Query Caching**: Cache result sets of frequent database queries (e.g., file listings, user profiles) to reduce database read pressure.
+- **Rate Limiting**: Implement distributed rate limiting using Redis to prevent abuse across multiple server instances.
+
+#### 2. Asynchronous Processing (Message Queues & Workers)
+
+- **Heavy Lifting**: Offload resource-intensive tasks (image thumbnail generation, video transcoding, file compression, virus scanning) to a background worker fleet.
+- **Message Broker**: Use **RabbitMQ**, **Apache Kafka**, or **Amazon SQS** (OCI Queue) to buffer tasks. This decoupled architecture ensures the main API remains responsive even during traffic spikes.
+- **Email/Notifications**: Process email delivery asynchronously to avoid API latency.
+
+#### 3. Database Scaling
+
+- **Read Replicas**: Deploy multiple read-only database replicas to distribute `SELECT` query load.
+- **Sharding**: Partition the database horizontally (sharding) based on User ID or Region to distribute write load and storage across multiple physical nodes.
+- **Connection Pooling**: Use advanced connection poolers (like PgBouncer for Postgres or ProxySQL for MySQL) to manage thousands of concurrent database connections.
+
+#### 4. Load Balancing & Horizontal Auto-Scaling
+
+- **Load Balancer**: Place a Load Balancer (OCI Load Balancer or NGINX) in front of the API servers to distribute incoming traffic evenly.
+- **Auto-Scaling Groups**: Configure the backend server fleet to automatically scale out (add instances) during peak hours and scale in (remove instances) during low traffic to save costs.
+
+#### 5. Content Delivery Network (CDN) & Storage
+
+- **CDN**: Serve static assets and public file shares through a global CDN (Cloudflare or OCI CDN) to reduce latency for users worldwide.
+- **Multi-Region Storage**: Replicate Object Storage buckets across different geographic regions for disaster recovery and faster access.
+
+> **Note**: This "Hypothetical Scale" section serves as a roadmap. The current implementation remains lean to perfectly fit the needs of a personal cloud.
 
 ## 🚀 CI/CD Pipeline (Cost-Effective)
 
@@ -349,6 +392,7 @@ The project uses free CI/CD services to minimize costs:
 ## 🔒 Environment Variables
 
 See `backend/.env.example` for all required environment variables:
+
 - Database configuration
 - Server settings
 - CORS configuration
@@ -372,4 +416,3 @@ ISC License - See LICENSE file for details
 [⬆ Back to Top](#-v8id-cloud)
 
 </div>
-

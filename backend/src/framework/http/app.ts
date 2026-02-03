@@ -18,10 +18,10 @@ export function createApp(): Express {
   // Configure trust proxy
   configureTrustProxy(app);
 
-  // Global Rate Limiting (Enterprise Protection)
+  // Global Rate Limiting
   app.use(generalRateLimiter);
 
-  // Security middleware (Hardened for Enterprise)
+  // Security middleware
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -80,7 +80,7 @@ export function createApp(): Express {
   // API routes
   app.use('/api', apiRoutes);
 
-  // Global error handler (must be last)
+  // Global error handler
   app.use(errorMiddleware);
 
   return app;
