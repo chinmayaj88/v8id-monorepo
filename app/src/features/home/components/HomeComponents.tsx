@@ -305,7 +305,7 @@ export const FileSummaryChip: React.FC<FileSummaryChipProps> = ({
   </View>
 );
 
-// --- Viewed Links Card --- (Inferred)
+// --- Viewed Links Card ---
 interface ViewedLinksCardProps {
   onSeeAllClick: () => void;
 }
@@ -314,12 +314,38 @@ export const ViewedLinksCard: React.FC<ViewedLinksCardProps> = ({
 }) => (
   <View style={styles.promoCard}>
     <View style={styles.promoContent}>
-      <Text style={styles.promoTitle}>Shared Links</Text>
-      <Text style={styles.promoSubtitle}>Manage your shared content</Text>
+      <View>
+        <Text style={styles.promoTitle}>Viewed Links</Text>
+        <Text style={styles.promoSubtitle}>
+          Links you&apos;ve previously{`\n`}viewed show up here.
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        style={styles.seeAllButtonContainer}
+        onPress={onSeeAllClick}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.seeAllText}>See All</Text>
+        <View style={styles.seeAllIconCircle}>
+          <MaterialIcons name="arrow-forward" size={14} color="#FFFFFF" />
+        </View>
+      </TouchableOpacity>
     </View>
-    <TouchableOpacity onPress={onSeeAllClick}>
-      <Text style={styles.promoAction}>See All</Text>
-    </TouchableOpacity>
+
+    {/* Illustration with cloud and plane */}
+    <View style={styles.illustrationContainer}>
+      <View style={styles.cloudIllustration}>
+        <View style={styles.cloudTop} />
+        <View style={styles.cloudBottom} />
+      </View>
+      <MaterialIcons
+        name="flight"
+        size={40}
+        color="#1F2937"
+        style={{ transform: [{ rotate: '-45deg' }], marginTop: -8, zIndex: 10 }}
+      />
+    </View>
   </View>
 );
 
@@ -482,30 +508,88 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     fontWeight: '500',
   },
+  // Updated Styles for ViewedLinksCard
   promoCard: {
-    backgroundColor: '#EEF2FF',
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: '#FFEF98', // Light yellow background
+    borderRadius: 24,
+    padding: 20,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginVertical: 8,
+    marginVertical: 12,
+    minHeight: 140, // Ensure enough height for the illustration
   },
   promoContent: {
     flex: 1,
+    paddingRight: 16,
+    justifyContent: 'space-between',
   },
   promoTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E1B4B',
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: 6,
   },
   promoSubtitle: {
     fontSize: 13,
-    color: '#4338CA',
+    color: '#4B5563',
+    lineHeight: 18,
   },
-  promoAction: {
+  seeAllButtonContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingLeft: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.purple.indigo,
+    color: '#000000',
+    marginRight: 10,
+  },
+  seeAllIconCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  illustrationContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    width: 100,
+    height: 100,
+  },
+  cloudIllustration: {
+    position: 'absolute',
+    top: 10,
+    right: 0,
+  },
+  cloudTop: {
+    width: 50,
+    height: 30,
+    backgroundColor: '#E5E7EB',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginBottom: -5,
+  },
+  cloudBottom: {
+    width: 70,
+    height: 25,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 15,
+    marginLeft: -10,
   },
 });

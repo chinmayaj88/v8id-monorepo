@@ -147,7 +147,7 @@ const HomeScreen = () => {
         }}
       />
 
-      <GradientHeading />
+      {/* <GradientHeading /> */}
 
       <View style={styles.searchContainer}>
         <SearchBar
