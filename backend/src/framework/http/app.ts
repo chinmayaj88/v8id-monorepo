@@ -5,6 +5,7 @@ import { envConfig } from '../../infrastructure/config/env.config.js';
 import { ResponseUtil } from '../../presentation/utils/response.util.js';
 import { errorMiddleware } from '../../presentation/middleware/error.middleware.js';
 import { generalRateLimiter } from '../../presentation/middleware/rate-limit.middleware.js';
+import { multipartHandler } from '../../presentation/middleware/parser/multipart.middleware.js';
 import apiRoutes from '../../presentation/routes/index.js';
 
 /**
@@ -57,6 +58,22 @@ export function createApp(): Express {
   // Body parsers
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Global Multipart Handler (Enterprise Pattern)
+  app.use(multipartHandler);
+
+  // Debug & Safety Middleware: Ensure req.body exists and log content-type issues
+  app.use((req, _res, next) => {
+    if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+      if (!req.body) {
+        console.warn(
+          `⚠️ [${req.method} ${req.url}] req.body is undefined. Content-Type: ${req.headers['content-type']}`
+        );
+        req.body = {};
+      }
+    }
+    next();
+  });
 
   // Health check route
   app.get('/health', (_req, res) => {
