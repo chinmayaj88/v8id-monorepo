@@ -1,10 +1,8 @@
 import { Router } from 'express';
-
 import { filesContainer } from '../../infrastructure/di/index.js';
 import { sharedContainer } from '../../infrastructure/di/index.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
 import { strictMutationRateLimiter } from '../middleware/rate-limit.middleware.js';
-// Removed unused schema imports
 
 // Setup Auth Middleware
 const authenticate = authMiddleware(
@@ -12,8 +10,6 @@ const authenticate = authMiddleware(
   sharedContainer.deviceSessionRepository,
   sharedContainer.jwtService
 );
-
-// Multer setup removed as we use JSON-only initiation for OCI Direct Upload
 
 const router: Router = Router();
 

@@ -1,7 +1,5 @@
 /**
  * Route Definitions
- *
- * Defines all API routes and maps them to controllers.
  */
 
 import { Router, type IRouter } from 'express';
