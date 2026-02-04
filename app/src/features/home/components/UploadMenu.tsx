@@ -11,6 +11,7 @@ import {
   Platform,
   TextInput,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // @ts-ignore
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../../../theme/colors';
@@ -38,6 +39,7 @@ const UploadMenu: React.FC<UploadMenuProps> = ({
   onClose,
   folderId,
 }) => {
+  const insets = useSafeAreaInsets();
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const handlePickMedia = async () => {
@@ -118,7 +120,12 @@ const UploadMenu: React.FC<UploadMenuProps> = ({
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
           <TouchableWithoutFeedback>
-            <View style={styles.menuContainer}>
+            <View
+              style={[
+                styles.menuContainer,
+                { paddingBottom: Math.max(insets.bottom, 24) },
+              ]}
+            >
               <Text style={styles.menuTitle}>Upload to Cloud</Text>
 
               <TouchableOpacity
@@ -225,7 +232,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
   menuTitle: {
     fontSize: 20,

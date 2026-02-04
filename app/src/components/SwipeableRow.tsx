@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     width: '100%',
     marginVertical: 6,
     position: 'relative',
-    backgroundColor: 'transparent', // Make sure container doesn't block background
+    backgroundColor: 'transparent',
   },
   actionsContainer: {
     position: 'absolute',

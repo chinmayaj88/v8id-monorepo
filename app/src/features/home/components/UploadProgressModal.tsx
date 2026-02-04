@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { Colors } from '../../../theme/colors';
 import AppModal from '../../../components/AppModal';
@@ -22,13 +23,19 @@ const UploadProgressModal: React.FC = () => {
     resumeTask,
     stopTask,
   } = useUploadProgress();
+  const insets = useSafeAreaInsets();
 
   if (tasks.length === 0) return null;
 
   const isAnyActive = activeTasks.length > 0;
 
   return (
-    <View style={styles.floatingContainer}>
+    <View
+      style={[
+        styles.floatingContainer,
+        { bottom: (insets.bottom > 0 ? insets.bottom + 12 : 24) + 84 },
+      ]}
+    >
       <View style={styles.card}>
         <View style={styles.header}>
           <Text style={styles.title}>
@@ -138,7 +145,6 @@ const UploadProgressModal: React.FC = () => {
 const styles = StyleSheet.create({
   floatingContainer: {
     position: 'absolute',
-    bottom: 90,
     right: 20,
     left: 20,
     zIndex: 1000,

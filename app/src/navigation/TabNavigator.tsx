@@ -4,6 +4,7 @@ import {
   createBottomTabNavigator,
   BottomTabBarProps,
 } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import HomeScreen from '../features/home/screens/HomeScreen';
 import ProfileScreen from '../features/user/screens/ProfileScreen';
 import FileScreen from '../features/home/screens/FileScreen';
@@ -66,8 +67,15 @@ const CustomTabBarV2 = ({
   navigation,
 }: BottomTabBarProps) => {
   const dispatch = useAppDispatch();
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.tabBarWrapper}>
+    <View
+      style={[
+        styles.tabBarWrapper,
+        { bottom: insets.bottom > 0 ? insets.bottom + 12 : 24 },
+      ]}
+    >
       <View style={styles.capsule}>
         <TabButton
           route={state.routes[0]}
@@ -144,7 +152,6 @@ const TabNavigator = () => {
 const styles = StyleSheet.create({
   tabBarWrapper: {
     position: 'absolute',
-    bottom: 20,
     left: 0,
     right: 0,
     alignItems: 'center',
