@@ -54,10 +54,6 @@ export class FileController {
 
   async handleUpload(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
-      // Debug logs to diagnose missing fields
-      console.log('Upload Request Headers:', req.headers);
-      console.log('Upload Request Body:', JSON.stringify(req.body, null, 2));
-
       if (!req.user) {
         ResponseUtil.unauthorized(res);
         return;
