@@ -1,218 +1,210 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
-import { gsap } from 'gsap';
-import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
 
+import AuthHeader from './AuthHeader';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { verifyCredentials, clearError } from '@/store/slices/authSlice';
+
 export default function LoginForm() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const logoRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { isLoading, error, isAuthenticated, requiresTotp } = useAppSelector(state => state.auth);
 
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [email, setEmail] = useState('jenachinmaya51@gmail.com'); // Pre-filled from image
+  const [email, setEmail] = useState('jenachinmaya51@gmail.com');
   const [password, setPassword] = useState('Chinmaya@6370');
 
+  // Handle redirects on auth state change
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Initial timeline
-      const tl = gsap.timeline();
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    } else if (requiresTotp) {
+      router.push('/verify-2fa');
+    }
+  }, [isAuthenticated, requiresTotp, router]);
 
-      // 1. Logo fades in and moves down
-      tl.from(logoRef.current, {
-        y: -50,
-        opacity: 0,
-        duration: 1,
-        ease: 'power3.out',
-      });
+  // Clear errors on mount
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
-      // 2. Card slides up from bottom (or fades in scale)
-      tl.from(
-        cardRef.current,
-        {
-          y: 100,
-          opacity: 0,
-          duration: 0.8,
-          ease: 'back.out(1.2)',
-        },
-        '-=0.5'
-      );
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
 
-      // 3. Stagger children of card
-      if (cardRef.current) {
-        const elements = cardRef.current.querySelectorAll('.animate-item');
-        tl.from(
-          elements,
-          {
-            y: 20,
-            opacity: 0,
-            duration: 0.5,
-            stagger: 0.1,
-            ease: 'power2.out',
-          },
-          '-=0.4'
-        );
-      }
-    }, containerRef);
-
-    return () => ctx.revert();
-  }, []);
+    await dispatch(verifyCredentials({ email, password }));
+  };
 
   return (
-    <div
-      ref={containerRef}
-      className="relative min-h-screen w-full overflow-hidden font-sans text-slate-900"
-    >
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <Image src="/images/bg1.jpg" alt="Background" fill priority className="object-cover" />
-        {/* Overlay for better readability if needed, though image seems dark/vibrant */}
-        {/* <div className="absolute inset-0 bg-black/20" /> */}
-      </div>
+    <>
+      <AuthHeader title="Welcome Back!" subtitle="Sign in to manage your files and folders." />
 
-      {/* Main Content */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
-        {/* Logo Section */}
-        <div ref={logoRef} className="mb-8 flex flex-col items-center text-center text-white">
-          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-white/20 backdrop-blur-md shadow-lg border border-white/30">
-            {/* Cloud Icon Placeholder - Replacing with simple SVG or Icon */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="h-10 w-10 text-white"
-            >
-              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" />
-            </svg>
+      <form className="space-y-6" onSubmit={handleSubmit}>
+        {/* Error Message */}
+        {error && (
+          <div className="animate-item rounded-2xl bg-red-50 p-4 text-sm text-red-600 border border-red-100 flex items-center gap-3 shadow-sm shadow-red-500/5">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <span className="font-medium">{error}</span>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white mb-1">V8id Cloud</h1>
-          <p className="text-white/80 text-sm font-medium">Secure Cloud Storage Platform</p>
+        )}
+
+        {/* Email Input */}
+        <div className="animate-item space-y-2.5">
+          <label htmlFor="email" className="block text-sm font-bold text-slate-800 ml-1">
+            Email Address
+          </label>
+          <div className="relative group">
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              disabled={isLoading}
+              className={clsx(
+                'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all duration-300',
+                'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              placeholder="name@example.com"
+            />
+          </div>
         </div>
 
-        {/* Login Card */}
-        <div
-          ref={cardRef}
-          className="w-full max-w-md rounded-[2.5rem] bg-white p-8 shadow-2xl sm:p-10"
-        >
-          <div className="animate-item mb-8">
-            <h2 className="text-3xl font-semibold text-slate-800">Welcome back</h2>
-            <p className="mt-2 text-slate-500 font-medium">Sign in to continue to your account</p>
+        {/* Password Input */}
+        <div className="animate-item space-y-2.5">
+          <label htmlFor="password" className="block text-sm font-bold text-slate-800 ml-1">
+            Password
+          </label>
+          <div className="relative group">
+            <input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              disabled={isLoading}
+              className={clsx(
+                'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all duration-300',
+                'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                'disabled:opacity-50 disabled:cursor-not-allowed'
+              )}
+              placeholder="Enter your password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-bold text-v8-primary hover:text-v8-indigo focus:outline-none bg-white/80 backdrop-blur-sm px-2 py-1 rounded-lg transition-colors"
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
           </div>
+        </div>
 
-          <form className="space-y-6" onSubmit={e => e.preventDefault()}>
-            {/* Email Input */}
-            <div className="animate-item space-y-2">
-              <label htmlFor="email" className="block text-sm font-medium text-purple-900">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+        {/* Remember Me & Forgot Password */}
+        <div className="animate-item flex items-center justify-between px-1">
+          <div
+            className="flex items-center gap-3 group cursor-pointer"
+            onClick={() => setRememberMe(!rememberMe)}
+          >
+            <div
+              className={clsx(
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
+                rememberMe ? 'bg-v8-primary' : 'bg-slate-200'
+              )}
+            >
+              <span
+                aria-hidden="true"
                 className={clsx(
-                  'w-full rounded-2xl border border-purple-100 bg-purple-50/50 px-4 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all',
-                  'focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/10'
+                  'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out',
+                  rememberMe ? 'translate-x-5' : 'translate-x-0'
                 )}
-                placeholder="name@example.com"
               />
             </div>
-
-            {/* Password Input */}
-            <div className="animate-item space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-purple-900">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className={clsx(
-                    'w-full rounded-2xl border border-purple-100 bg-purple-50/50 px-4 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all',
-                    'focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/10'
-                  )}
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-purple-600 hover:text-purple-700 focus:outline-none"
-                >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-            </div>
-
-            {/* Remember Me & Forgot Password */}
-            <div className="animate-item flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {/* Custom Toggle Switch */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={rememberMe}
-                  onClick={() => setRememberMe(!rememberMe)}
-                  className={clsx(
-                    'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2',
-                    rememberMe ? 'bg-purple-600' : 'bg-slate-200'
-                  )}
-                >
-                  <span className="sr-only">Use setting</span>
-                  <span
-                    aria-hidden="true"
-                    className={clsx(
-                      'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
-                      rememberMe ? 'translate-x-5' : 'translate-x-0'
-                    )}
-                  />
-                </button>
-                <span
-                  className="text-sm font-medium text-purple-900 cursor-pointer"
-                  onClick={() => setRememberMe(!rememberMe)}
-                >
-                  Remember me
-                </span>
-              </div>
-              <Link
-                href="/forgot-password"
-                className="text-sm font-medium text-purple-600 hover:text-purple-700 hover:underline"
-              >
-                Forgot Password?
-              </Link>
-            </div>
-
-            {/* Submit Button */}
-            <div className="animate-item pt-2">
-              <button
-                type="submit"
-                className="w-full rounded-2xl bg-purple-600 py-4 text-lg font-bold text-white shadow-lg shadow-purple-600/30 transition-all hover:bg-purple-700 hover:shadow-purple-600/40 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Log in
-              </button>
-            </div>
-          </form>
-
-          {/* Footer Text */}
-          <div className="animate-item mt-8 text-center">
-            <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed">
-              By logging in, you agree to our updated{' '}
-              <a href="#" className="text-purple-600 hover:underline">
-                terms and service
-              </a>{' '}
-              and{' '}
-              <a href="#" className="text-purple-600 hover:underline">
-                privacy policy
-              </a>
-            </p>
+            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
+              Remember me
+            </span>
           </div>
+          <Link
+            href="/forgot-password"
+            className="text-sm font-bold text-v8-primary hover:text-v8-indigo transition-colors"
+          >
+            Forgot Password?
+          </Link>
         </div>
+
+        {/* Submit Button */}
+        <div className="animate-item pt-4">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={clsx(
+              'w-full rounded-2xl bg-v8-primary py-[1.125rem] text-base font-black text-white shadow-xl shadow-v8-primary/25 transition-all duration-300',
+              'hover:bg-v8-indigo hover:shadow-v8-primary/40 hover:-translate-y-1 active:translate-y-0 active:scale-[0.98]',
+              'disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:scale-100'
+            )}
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-3">
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Verifying...
+              </span>
+            ) : (
+              'Sign In to Dashboard'
+            )}
+          </button>
+        </div>
+      </form>
+
+      {/* Footer Text */}
+      <div className="animate-item mt-10 text-center lg:text-left">
+        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+          By logging in, you agree to our{' '}
+          <a href="#" className="font-bold text-v8-primary hover:underline underline-offset-4">
+            Terms of Service
+          </a>{' '}
+          and{' '}
+          <a href="#" className="font-bold text-v8-primary hover:underline underline-offset-4">
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
-    </div>
+    </>
   );
 }

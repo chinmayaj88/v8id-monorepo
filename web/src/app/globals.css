@@ -1,26 +1,78 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYREGULAR.OTF') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYMEDIUM.OTF') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'SF Pro Display';
+  src: url('/fonts/SFPRODISPLAYBOLD.OTF') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Colors from App Theme */
+  --color-primary: #7c3aed;
+  --color-secondary: #6366f1;
+  --color-background: #ffffff; /* Web default white */
+  --color-foreground: #1a1a1a; /* Matches App 'black' */
+
+  /* Purple Palette */
+  --purple-vibrant: #7c3aed;
+  --purple-vibrant-alt: #8b5cf6;
+  --purple-indigo: #6366f1;
+  --purple-deep: #4c1d95;
+  --purple-dark-navy: #1e1b4b;
+  --purple-light: #a78bfa;
+  --purple-very-light: #ddd6fe;
+  --purple-subtle: #faf5ff;
+
+  /* Gradients */
+  --grad-lavender: #e0c5fc;
+  --grad-vibrant: #a855f7;
+  --grad-royal: #6366f1;
+  --grad-deep: #2d1b69;
+
+  /* Functional */
+  --color-error: #ba1a1a;
+  --color-success: #00ff4c;
+  --color-border: #ddd6fe;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --font-sans: 'SF Pro Display', var(--font-geist-sans), sans-serif;
+
+  /* Custom Colors Extension */
+  --color-v8-primary: var(--color-primary);
+  --color-v8-secondary: var(--color-secondary);
+  --color-v8-purple: var(--purple-vibrant);
+  --color-v8-indigo: var(--purple-indigo);
+  --color-v8-deep: var(--purple-deep);
+  --color-v8-bg: var(--color-background);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-background: #0a0a0a;
+    --color-foreground: #ededed;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
 }
