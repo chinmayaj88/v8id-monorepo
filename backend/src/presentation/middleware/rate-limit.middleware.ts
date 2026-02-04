@@ -1,7 +1,5 @@
 /**
  * Rate Limiting Middleware
- *
- * Protects endpoints from brute force attacks and abuse.
  */
 
 import rateLimit from 'express-rate-limit';

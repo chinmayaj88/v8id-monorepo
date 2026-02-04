@@ -99,10 +99,8 @@ const LoginScreen = ({ navigation }: any) => {
     state => state.auth,
   );
 
-  // const [email, setEmail] = useState('soumyashreesahoo25@gmail.com');
-  // const [password, setPassword] = useState('Soumyashree@6370');
-  const [email, setEmail] = useState('jenachinmaya51@gmail.com');
-  const [password, setPassword] = useState('Chinmaya@6370');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
