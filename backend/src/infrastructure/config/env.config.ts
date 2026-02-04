@@ -2,14 +2,13 @@ import { z } from 'zod';
 
 /**
  * Environment configuration schema with validation
- * Single Responsibility: Only handles environment variable parsing and validation
  */
 const envSchema = z.object({
   port: z.coerce.number().default(4000),
   nodeEnv: z.enum(['development', 'production', 'test']).default('development'),
   corsOrigin: z.string().min(1).default('http://localhost:3000,http://localhost:5173'),
   trustProxy: z.string().default('false'),
-  vaultMasterKey: z.string().default('v8id-vault-default-master-key-change-me'),
+  vaultMasterKey: z.string().default('5e3d8b3f4145292d344b5e368def1a54'),
 });
 
 type EnvConfig = z.infer<typeof envSchema>;
@@ -24,7 +23,7 @@ function loadEnvConfig(): EnvConfig {
   });
 
   if (!result.success) {
-    console.error('❌ Invalid environment variables:', result.error.flatten());
+    console.error('❌ Invalid environment variables:', result.error.issues);
     process.exit(1);
   }
 
