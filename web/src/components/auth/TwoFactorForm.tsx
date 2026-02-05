@@ -62,8 +62,8 @@ export default function TwoFactorForm() {
       <form className="space-y-10" onSubmit={handleSubmit}>
         {/* Error Message */}
         {error && (
-          <div className="animate-item rounded-2xl bg-red-50 p-4 text-sm text-red-600 border border-red-100 flex items-center gap-3">
-            <div className="shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+          <div className="animate-item rounded-2xl bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 flex items-center gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
@@ -87,11 +87,11 @@ export default function TwoFactorForm() {
             return (
               <input
                 className={clsx(
-                  'h-16 w-full rounded-2xl border-2 text-center text-2xl font-black bg-slate-50 outline-none transition-all duration-300',
-                  'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                  'h-16 w-full rounded-2xl border-2 text-center text-2xl font-black bg-slate-50 dark:bg-zinc-900/50 outline-none transition-all duration-300',
+                  'focus:border-v8-primary focus:bg-white dark:focus:bg-zinc-950 focus:ring-4 focus:ring-v8-primary/10',
                   data
-                    ? 'border-v8-primary bg-purple-50/50 text-v8-primary'
-                    : 'border-slate-200 text-slate-900',
+                    ? 'border-v8-primary bg-purple-50/50 dark:bg-purple-900/20 text-v8-primary'
+                    : 'border-slate-200 dark:border-zinc-800 text-slate-900 dark:text-white',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
                 type="text"
@@ -126,7 +126,7 @@ export default function TwoFactorForm() {
 
         <div className="animate-item space-y-6">
           <div className="text-center">
-            <p className="text-sm font-medium text-slate-500">
+            <p className="text-sm font-medium text-slate-500 dark:text-zinc-500">
               Problems with the code?{' '}
               <button
                 type="button"
@@ -140,7 +140,7 @@ export default function TwoFactorForm() {
           <div className="text-center">
             <Link
               href="/login"
-              className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-v8-primary transition-colors"
+              className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-zinc-500 hover:text-v8-primary transition-colors"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

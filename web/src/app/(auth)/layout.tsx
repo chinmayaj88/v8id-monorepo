@@ -72,7 +72,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div
       ref={containerRef}
-      className="flex min-h-screen w-full overflow-hidden bg-white font-sans text-slate-900"
+      className="flex min-h-screen w-full overflow-hidden bg-white dark:bg-zinc-950 font-sans text-slate-900 dark:text-white"
     >
       {/* LEFT SIDE: Visual Branding - Persistent */}
       <div
@@ -92,7 +92,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="relative z-10 flex flex-col items-center px-12 text-center drop-shadow-2xl">
           <div className="mb-10 flex flex-col items-center">
-            <div className="mb-8 flex h-28 w-28 items-center justify-center rounded-[2rem] bg-white/10 backdrop-blur-2xl shadow-2xl border border-white/20 transform hover:rotate-6 transition-transform duration-500">
+            <div className="mb-8 flex h-28 w-28 items-center justify-center rounded-4xl bg-white/10 backdrop-blur-2xl shadow-2xl border border-white/20 transform hover:rotate-6 transition-transform duration-500">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -127,7 +127,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       {/* RIGHT SIDE: Content Form - Animates on transition */}
       <main
         ref={rightPanelRef}
-        className="flex w-full items-center justify-center bg-white p-6 md:p-12 lg:w-1/2"
+        className="flex w-full items-center justify-center bg-white dark:bg-zinc-950 p-6 md:p-12 lg:w-1/2"
       >
         <div className="w-full max-w-md">{children}</div>
       </main>

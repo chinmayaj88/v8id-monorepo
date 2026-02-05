@@ -37,8 +37,8 @@ export default function ForgotPasswordForm() {
           title="Check your email"
           subtitle={`We sent a password reset link to ${email}`}
         />
-        <div className="animate-item flex flex-col items-center space-y-8 text-center bg-slate-50/50 p-8 rounded-4xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
-          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-green-50 text-green-600 shadow-lg shadow-green-500/10 border border-green-100 transform hover:rotate-12 transition-transform">
+        <div className="animate-item flex flex-col items-center space-y-8 text-center bg-slate-50/50 dark:bg-zinc-900/50 p-8 rounded-4xl border border-slate-100 dark:border-zinc-800 shadow-sm transition-all hover:shadow-md">
+          <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 shadow-lg shadow-green-500/10 border border-green-100 dark:border-green-900/20 transform hover:rotate-12 transition-transform">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -55,9 +55,10 @@ export default function ForgotPasswordForm() {
             </svg>
           </div>
 
-          <p className="text-slate-500 font-medium text-lg leading-relaxed">
+          <p className="text-slate-500 dark:text-zinc-400 font-medium text-lg leading-relaxed">
             Didn't receive the email? Check your{' '}
-            <span className="text-slate-900 font-bold">spam folder</span> or try another address.
+            <span className="text-slate-900 dark:text-white font-bold">spam folder</span> or try
+            another address.
           </p>
 
           <div className="w-full space-y-4">
@@ -91,8 +92,8 @@ export default function ForgotPasswordForm() {
       <form className="space-y-8" onSubmit={handleSubmit}>
         {/* Error Message */}
         {error && (
-          <div className="animate-item rounded-2xl bg-red-50 p-4 text-sm text-red-600 border border-red-100 flex items-center gap-3">
-            <div className="shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+          <div className="animate-item rounded-2xl bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 flex items-center gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
@@ -112,7 +113,10 @@ export default function ForgotPasswordForm() {
 
         {/* Email Input */}
         <div className="animate-item space-y-2.5">
-          <label htmlFor="email" className="block text-sm font-bold text-slate-800 ml-1">
+          <label
+            htmlFor="email"
+            className="block text-sm font-bold text-slate-800 dark:text-white ml-1"
+          >
             Email Address
           </label>
           <div className="relative group">
@@ -124,8 +128,8 @@ export default function ForgotPasswordForm() {
               required
               disabled={isLoading}
               className={clsx(
-                'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all duration-300',
-                'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                'w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 px-5 py-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-600 outline-none transition-all duration-300',
+                'focus:border-v8-primary focus:bg-white dark:focus:bg-zinc-950 focus:ring-4 focus:ring-v8-primary/10',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
               placeholder="name@example.com"
@@ -148,7 +152,7 @@ export default function ForgotPasswordForm() {
         <div className="animate-item text-center">
           <Link
             href="/login"
-            className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-v8-primary transition-colors"
+            className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-zinc-500 hover:text-v8-primary transition-colors"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

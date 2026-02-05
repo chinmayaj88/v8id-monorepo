@@ -48,8 +48,8 @@ export default function LoginForm() {
       <form className="space-y-6" onSubmit={handleSubmit}>
         {/* Error Message */}
         {error && (
-          <div className="animate-item rounded-2xl bg-red-50 p-4 text-sm text-red-600 border border-red-100 flex items-center gap-3 shadow-sm shadow-red-500/5">
-            <div className="shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+          <div className="animate-item rounded-2xl bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30 flex items-center gap-3 shadow-sm shadow-red-500/5">
+            <div className="shrink-0 w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
@@ -69,7 +69,10 @@ export default function LoginForm() {
 
         {/* Email Input */}
         <div className="animate-item space-y-2.5">
-          <label htmlFor="email" className="block text-sm font-bold text-slate-800 ml-1">
+          <label
+            htmlFor="email"
+            className="block text-sm font-bold text-slate-800 dark:text-white ml-1"
+          >
             Email Address
           </label>
           <div className="relative group">
@@ -80,8 +83,8 @@ export default function LoginForm() {
               onChange={e => setEmail(e.target.value)}
               disabled={isLoading}
               className={clsx(
-                'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all duration-300',
-                'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                'w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 px-5 py-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-600 outline-none transition-all duration-300',
+                'focus:border-v8-primary focus:bg-white dark:focus:bg-zinc-950 focus:ring-4 focus:ring-v8-primary/10',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
               placeholder="name@example.com"
@@ -91,7 +94,10 @@ export default function LoginForm() {
 
         {/* Password Input */}
         <div className="animate-item space-y-2.5">
-          <label htmlFor="password" className="block text-sm font-bold text-slate-800 ml-1">
+          <label
+            htmlFor="password"
+            className="block text-sm font-bold text-slate-800 dark:text-white ml-1"
+          >
             Password
           </label>
           <div className="relative group">
@@ -102,8 +108,8 @@ export default function LoginForm() {
               onChange={e => setPassword(e.target.value)}
               disabled={isLoading}
               className={clsx(
-                'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all duration-300',
-                'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                'w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 px-5 py-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-600 outline-none transition-all duration-300',
+                'focus:border-v8-primary focus:bg-white dark:focus:bg-zinc-950 focus:ring-4 focus:ring-v8-primary/10',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
               placeholder="Enter your password"
@@ -111,7 +117,7 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-bold text-v8-primary hover:text-v8-indigo focus:outline-none bg-white/80 backdrop-blur-sm px-2 py-1 rounded-lg transition-colors"
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-bold text-v8-primary hover:text-v8-indigo focus:outline-none bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm px-2 py-1 rounded-lg transition-colors"
             >
               {showPassword ? 'Hide' : 'Show'}
             </button>
@@ -127,7 +133,7 @@ export default function LoginForm() {
             <div
               className={clsx(
                 'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                rememberMe ? 'bg-v8-primary' : 'bg-slate-200'
+                rememberMe ? 'bg-v8-primary' : 'bg-slate-200 dark:bg-zinc-700'
               )}
             >
               <span
@@ -138,7 +144,7 @@ export default function LoginForm() {
                 )}
               />
             </div>
-            <span className="text-sm font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
+            <span className="text-sm font-bold text-slate-600 dark:text-zinc-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
               Remember me
             </span>
           </div>
@@ -165,7 +171,7 @@ export default function LoginForm() {
 
       {/* Footer Text */}
       <div className="animate-item mt-10 text-center lg:text-left">
-        <p className="text-sm text-slate-500 font-medium leading-relaxed">
+        <p className="text-sm text-slate-500 dark:text-zinc-500 font-medium leading-relaxed">
           By logging in, you agree to our{' '}
           <a href="#" className="font-bold text-v8-primary hover:underline underline-offset-4">
             Terms of Service
