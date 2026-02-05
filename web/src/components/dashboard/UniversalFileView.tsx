@@ -1,11 +1,10 @@
-'use client';
-
-import React from 'react';
+import React, { useState } from 'react';
 import {
   HiOutlineFolder,
   HiOutlineDocumentText,
   HiOutlineDotsVertical,
   HiChevronRight,
+  HiOutlinePhotograph,
 } from 'react-icons/hi';
 import { formatFileSize } from '@/utils/format';
 
@@ -29,6 +28,55 @@ const getThumbnailUrl = (path: string | null | undefined) => {
     ? API_BASE_URL.substring(0, API_BASE_URL.length - 4)
     : API_BASE_URL;
   return `${baseUrl}/api/${cleanPath}`;
+};
+
+const isImageFile = (item: any) => {
+  const mime = (item.mimeType || '').toLowerCase();
+  const ext = (item.extension || '').toLowerCase();
+  return (
+    mime.includes('image') ||
+    mime.includes('svg') ||
+    ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)
+  );
+};
+
+interface FileIconProps {
+  item: any;
+  isFolder: boolean;
+  thumbUrl: string | null;
+  iconStyle: string;
+  viewMode: 'list' | 'grid';
+}
+
+const FileIcon = ({ item, isFolder, thumbUrl, iconStyle, viewMode }: FileIconProps) => {
+  const [imgError, setImgError] = useState(false);
+  const showImage = thumbUrl && !imgError;
+
+  const gridContainerClass = `h-24 w-full rounded-2xl flex items-center justify-center border border-black/5 dark:border-white/5 relative overflow-hidden group-hover:scale-105 transition-all duration-500 shadow-xl shadow-black/5 ${showImage ? '' : iconStyle}`;
+  const listContainerClass = `h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border border-black/5 dark:border-white/5 ${showImage ? '' : iconStyle}`;
+
+  const containerClass = viewMode === 'grid' ? gridContainerClass : listContainerClass;
+  const imgClass =
+    viewMode === 'grid' ? 'h-full w-full object-contain' : 'h-full w-full object-cover rounded-xl';
+  const iconSize = viewMode === 'grid' ? 'h-10 w-10' : 'h-5 w-5';
+
+  return (
+    <div className={containerClass}>
+      {showImage ? (
+        <img src={thumbUrl!} alt="" className={imgClass} onError={() => setImgError(true)} />
+      ) : isFolder ? (
+        <HiOutlineFolder
+          className={`${iconSize} ${viewMode === 'grid' ? 'text-emerald-600' : ''}`}
+        />
+      ) : isImageFile(item) ? (
+        <HiOutlinePhotograph className={`${iconSize} text-orange-500`} />
+      ) : (
+        <HiOutlineDocumentText
+          className={`${iconSize} ${viewMode === 'grid' ? 'opacity-40' : ''}`}
+        />
+      )}
+    </div>
+  );
 };
 
 interface UniversalFileViewProps {
@@ -65,17 +113,13 @@ export default function UniversalFileView({
             >
               {/* Top Section: Icon/Thumbnail */}
               <div className="flex items-start justify-between mb-8 relative z-10">
-                <div
-                  className={`h-24 w-full rounded-2xl flex items-center justify-center border border-black/5 dark:border-white/5 relative overflow-hidden group-hover:scale-105 transition-all duration-500 shadow-xl shadow-black/5 ${thumb ? '' : iconStyle}`}
-                >
-                  {thumb ? (
-                    <img src={thumb} alt="" className="h-full w-full object-contain" />
-                  ) : isFolder ? (
-                    <HiOutlineFolder className="h-10 w-10 text-emerald-600" />
-                  ) : (
-                    <HiOutlineDocumentText className="h-10 w-10 opacity-40" />
-                  )}
-                </div>
+                <FileIcon
+                  item={item}
+                  isFolder={isFolder}
+                  thumbUrl={thumb}
+                  iconStyle={iconStyle}
+                  viewMode="grid"
+                />
               </div>
 
               {/* Middle Section: Name and Meta */}
@@ -128,6 +172,7 @@ export default function UniversalFileView({
                       {new Date(item.updatedAt).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
+                        year: 'numeric', // Added year for consistency
                       })}
                     </span>
                   </div>
@@ -145,7 +190,7 @@ export default function UniversalFileView({
     <div className="space-y-3">
       {/* Table Header */}
       <div
-        className="grid grid-cols-[1fr_200px_150px_150px_40px] px-6 py-2 text-[13px] font-medium"
+        className="grid grid-cols-[1fr_40px] md:grid-cols-[1fr_180px_40px] lg:grid-cols-[1fr_180px_120px_40px] xl:grid-cols-[1fr_180px_120px_120px_40px] items-center px-4 py-2 text-[13px] font-medium"
         style={{ color: 'var(--text-tertiary)' }}
       >
         <div className="flex items-center gap-1 cursor-pointer hover:text-v8-primary transition-colors">
@@ -179,17 +224,13 @@ export default function UniversalFileView({
           >
             {/* Document Name */}
             <div className="flex items-center gap-3 min-w-0">
-              <div
-                className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border border-black/5 dark:border-white/5 ${thumb ? '' : iconStyle}`}
-              >
-                {thumb ? (
-                  <img src={thumb} alt="" className="h-full w-full object-cover rounded-xl" />
-                ) : isFolder ? (
-                  <HiOutlineFolder className="h-5 w-5" />
-                ) : (
-                  <HiOutlineDocumentText className="h-5 w-5" />
-                )}
-              </div>
+              <FileIcon
+                item={item}
+                isFolder={isFolder}
+                thumbUrl={thumb}
+                iconStyle={iconStyle}
+                viewMode="list"
+              />
               <div className="flex flex-col min-w-0">
                 <span
                   className="font-bold text-[14px] truncate"

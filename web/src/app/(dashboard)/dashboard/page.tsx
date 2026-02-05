@@ -1,27 +1,21 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import UniversalFileView from '@/components/dashboard/UniversalFileView';
+import Button from '@/components/ui/Button';
+import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchSyncData } from '@/store/slices/fileSlice';
-import { formatFileSize, formatRelativeDate } from '@/utils/format';
-import { API_BASE_URL } from '@/lib/constants';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import {
-  HiOutlineFolder,
-  HiOutlineDocumentText,
-  HiOutlineDotsVertical,
   HiChevronRight,
-  HiPlus,
-  HiOutlineShare,
+  HiOutlineAdjustments,
   HiOutlineDeviceMobile,
+  HiOutlineFolder,
   HiOutlineUserAdd,
   HiOutlineViewGrid,
   HiOutlineViewList,
-  HiOutlineAdjustments,
 } from 'react-icons/hi';
-import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
-import Button from '@/components/ui/Button';
-import Link from 'next/link';
-import UniversalFileView from '@/components/dashboard/UniversalFileView';
 
 const dummyPinnedFolders = [
   {
@@ -177,7 +171,7 @@ export default function DashboardPage() {
                   }}
                 >
                   <div
-                    className={`absolute top-0 right-0 h-32 w-32 bg-linear-to-br ${folder.color} opacity-10 blur-3xl -mr-12 -mt-12 group-hover:opacity-20 transition-opacity`}
+                    className={`absolute top-0 right-0 h-32 w-32 bg-linear-to-br ${folder.color} opacity-20 blur-3xl -mr-12 -mt-12 group-hover:opacity-60 transition-opacity`}
                   />
 
                   <div className="flex items-start justify-between mb-8 relative z-10">
