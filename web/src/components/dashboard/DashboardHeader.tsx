@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   HiOutlineSearch,
   HiOutlinePlus,
@@ -9,12 +9,21 @@ import {
   HiOutlineViewGrid,
   HiOutlineViewList,
   HiOutlineFilter,
+  HiOutlineLogout,
+  HiOutlineUser,
 } from 'react-icons/hi';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { logout } from '@/store/slices/authSlice';
+import { apiClient } from '@/lib/api';
+import { ENDPOINTS } from '@/lib/constants';
 
 export default function DashboardHeader() {
+  const dispatch = useAppDispatch();
+  const user = useAppSelector(state => state.auth.user);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -28,6 +37,16 @@ export default function DashboardHeader() {
     setTheme(newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiClient.post(ENDPOINTS.AUTH.LOGOUT);
+      dispatch(logout());
+    } catch (error) {
+      console.error('Logout failed', error);
+      dispatch(logout());
+    }
   };
 
   if (!mounted) return null;
@@ -118,6 +137,71 @@ export default function DashboardHeader() {
           <HiOutlinePlus className="h-5 w-5" />
           <span>Upload</span>
         </button>
+
+        <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800 mx-2"></div>
+
+        <div className="relative">
+          <button
+            onClick={() => setShowProfileMenu(!showProfileMenu)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 hover:ring-2 hover:ring-[#7c3aed]/20"
+            style={{
+              backgroundColor: 'var(--bg-tertiary)',
+              border: `1px solid var(--border-primary)`,
+            }}
+          >
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-black"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
+            >
+              {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+            </div>
+          </button>
+
+          {showProfileMenu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowProfileMenu(false)}></div>
+              <div
+                className="absolute right-0 mt-2 w-56 rounded-2xl border shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                style={{
+                  backgroundColor: 'var(--card-bg)',
+                  borderColor: 'var(--card-border)',
+                }}
+              >
+                <div className="p-4 border-b" style={{ borderColor: 'var(--border-primary)' }}>
+                  <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                    {user?.firstName
+                      ? `${user.firstName} ${user.lastName || ''}`
+                      : user?.email?.split('@')[0]}
+                  </p>
+                  <p
+                    className="text-[10px] font-bold uppercase tracking-tighter mt-0.5"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  >
+                    {user?.email}
+                  </p>
+                </div>
+                <div className="p-2">
+                  <button
+                    className="flex w-full items-center gap-3 px-3 py-2 text-sm font-semibold rounded-xl transition-colors hover:bg-zinc-500/10"
+                    style={{ color: 'var(--text-secondary)' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+                  >
+                    <HiOutlineUser className="h-4 w-4" />
+                    Profile Settings
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 px-3 py-2 text-sm font-semibold rounded-xl transition-colors text-red-500 hover:bg-red-500/10"
+                  >
+                    <HiOutlineLogout className="h-4 w-4" />
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

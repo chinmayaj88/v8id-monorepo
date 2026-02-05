@@ -64,7 +64,7 @@ export default function TwoFactorForm() {
         {/* Error Message */}
         {error && (
           <div className="animate-item rounded-2xl bg-red-50 p-4 text-sm text-red-600 border border-red-100 flex items-center gap-3">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+            <div className="shrink-0 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 20 20"
@@ -89,9 +89,9 @@ export default function TwoFactorForm() {
               <input
                 className={clsx(
                   'h-16 w-full rounded-2xl border-2 text-center text-2xl font-black bg-slate-50 outline-none transition-all duration-300',
-                  'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                  'focus:border-(--color-v8-primary) focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
                   data
-                    ? 'border-v8-primary bg-purple-50/50 text-v8-primary'
+                    ? 'border-(--color-v8-primary) bg-purple-50/50 text-(--color-v8-primary)'
                     : 'border-slate-200 text-slate-900',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
@@ -118,8 +118,8 @@ export default function TwoFactorForm() {
             type="submit"
             disabled={isLoading || otp.join('').length !== 6}
             className={clsx(
-              'w-full rounded-2xl bg-v8-primary py-[1.125rem] text-base font-black text-white shadow-xl shadow-v8-primary/25 transition-all duration-300',
-              'hover:bg-v8-indigo hover:shadow-v8-primary/40 hover:-translate-y-1 active:translate-y-0 active:scale-[0.98]',
+              'w-full rounded-2xl bg-(--color-v8-primary) py-4.5 text-base font-black text-white shadow-xl shadow-(--color-v8-primary)/25 transition-all duration-300',
+              'hover:bg-(--color-v8-indigo) hover:shadow-(--color-v8-primary)/40 hover:-translate-y-1 active:translate-y-0 active:scale-[0.98]',
               'disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:scale-100'
             )}
           >
@@ -159,7 +159,7 @@ export default function TwoFactorForm() {
               Problems with the code?{' '}
               <button
                 type="button"
-                className="font-bold text-v8-primary hover:text-v8-indigo hover:underline underline-offset-4"
+                className="font-bold text-(--color-v8-primary) hover:text-(--color-v8-indigo) hover:underline underline-offset-4"
               >
                 Try an alternative method
               </button>
@@ -169,7 +169,7 @@ export default function TwoFactorForm() {
           <div className="text-center">
             <Link
               href="/login"
-              className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-v8-primary transition-colors"
+              className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-(--color-v8-primary) transition-colors"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

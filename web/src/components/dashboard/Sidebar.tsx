@@ -16,6 +16,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
 import { apiClient } from '@/lib/api';
+import { ENDPOINTS } from '@/lib/constants';
 
 const navItems = [
   { name: 'Home', href: '/dashboard', icon: HiOutlineHome },
@@ -38,7 +39,7 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      await apiClient.post('/auth/logout');
+      await apiClient.post(ENDPOINTS.AUTH.LOGOUT);
       dispatch(logout());
     } catch (error) {
       console.error('Logout failed', error);
