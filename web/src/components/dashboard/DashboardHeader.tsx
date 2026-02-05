@@ -6,21 +6,22 @@ import {
   HiOutlinePlus,
   HiOutlineSun,
   HiOutlineMoon,
-  HiOutlineViewGrid,
-  HiOutlineViewList,
-  HiOutlineFilter,
   HiOutlineLogout,
   HiOutlineUser,
+  HiOutlineBell,
 } from 'react-icons/hi';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
+import { setSearchQuery } from '@/store/slices/fileSlice';
 import { apiClient } from '@/lib/api';
 import { ENDPOINTS } from '@/lib/constants';
+
+import Button from '@/components/ui/Button';
 
 export default function DashboardHeader() {
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.auth.user);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const searchQuery = useAppSelector(state => state.files.searchQuery);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -56,7 +57,7 @@ export default function DashboardHeader() {
       className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b px-6 transition-colors duration-300"
       style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-primary)' }}
     >
-      <div className="flex items-center gap-4 flex-1 max-w-2xl px-6">
+      <div className="flex items-center gap-4 flex-1 max-w-2xl">
         <div className="relative w-full max-w-md">
           <HiOutlineSearch
             className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2"
@@ -65,7 +66,9 @@ export default function DashboardHeader() {
           <input
             type="text"
             placeholder="Search files, folders, and more..."
-            className="w-full rounded-xl border py-2 pl-10 pr-4 text-sm font-medium outline-none transition-all duration-150 focus:ring-2 focus:ring-[#7c3aed]/20"
+            value={searchQuery}
+            onChange={e => dispatch(setSearchQuery(e.target.value))}
+            className="w-full rounded-xl border py-2 pl-10 pr-4 text-sm font-medium outline-none transition-all duration-150 focus:ring-2 focus:ring-v8-primary/20"
             style={{
               backgroundColor: 'var(--bg-tertiary)',
               borderColor: 'var(--border-primary)',
@@ -77,29 +80,9 @@ export default function DashboardHeader() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 px-6">
-        <div
-          className="flex items-center rounded-lg border p-0.5"
-          style={{ borderColor: 'var(--border-primary)', backgroundColor: 'var(--bg-primary)' }}
-        >
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`rounded-md p-1.5 transition-all duration-150 ${viewMode === 'grid' ? 'bg-[#7c3aed] text-white shadow-sm' : ''}`}
-            style={{ color: viewMode !== 'grid' ? 'var(--text-tertiary)' : undefined }}
-          >
-            <HiOutlineViewGrid className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`rounded-md p-1.5 transition-all duration-150 ${viewMode === 'list' ? 'bg-[#7c3aed] text-white shadow-sm' : ''}`}
-            style={{ color: viewMode !== 'list' ? 'var(--text-tertiary)' : undefined }}
-          >
-            <HiOutlineViewList className="h-4 w-4" />
-          </button>
-        </div>
-
+      <div className="flex items-center gap-3">
         <button
-          className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-semibold transition-all duration-200"
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-200"
           style={{
             borderColor: 'var(--border-primary)',
             color: 'var(--text-secondary)',
@@ -108,8 +91,8 @@ export default function DashboardHeader() {
           onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)')}
           onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'var(--bg-primary)')}
         >
-          <HiOutlineFilter className="h-4 w-4" />
-          <span>Filter</span>
+          <HiOutlineBell className="h-5 w-5" />
+          <span className="absolute top-1 right-1 flex h-2 w-2 rounded-full bg-red-500"></span>
         </button>
 
         <button
@@ -130,31 +113,35 @@ export default function DashboardHeader() {
           )}
         </button>
 
-        <button
-          className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold text-white transition-all duration-150 hover:bg-[#6d28d9] active:scale-95 shadow-lg shadow-[#7c3aed]/20"
-          style={{ backgroundColor: 'var(--brand-primary)' }}
+        <Button
+          variant="primary"
+          icon={<HiOutlinePlus className="h-5 w-5" />}
+          className="shadow-lg shadow-v8-primary/20"
         >
-          <HiOutlinePlus className="h-5 w-5" />
-          <span>Upload</span>
-        </button>
+          Upload
+        </Button>
 
-        <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800 mx-2"></div>
+        <div className="h-8 w-px bg-(--border-primary) mx-2"></div>
 
         <div className="relative">
           <button
             onClick={() => setShowProfileMenu(!showProfileMenu)}
-            className="flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 hover:ring-2 hover:ring-[#7c3aed]/20"
+            className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden transition-all duration-200 hover:ring-2 hover:ring-v8-primary/20"
             style={{
               backgroundColor: 'var(--bg-tertiary)',
               border: `1px solid var(--border-primary)`,
             }}
           >
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-black"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
-            >
-              {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
-            </div>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+            ) : (
+              <div
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-white text-xs font-black"
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
+              >
+                {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+              </div>
+            )}
           </button>
 
           {showProfileMenu && (
@@ -168,24 +155,42 @@ export default function DashboardHeader() {
                 }}
               >
                 <div className="p-4 border-b" style={{ borderColor: 'var(--border-primary)' }}>
-                  <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {user?.firstName
-                      ? `${user.firstName} ${user.lastName || ''}`
-                      : user?.email?.split('@')[0]}
-                  </p>
-                  <p
-                    className="text-[10px] font-bold uppercase tracking-tighter mt-0.5"
-                    style={{ color: 'var(--text-tertiary)' }}
-                  >
-                    {user?.email}
-                  </p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="h-10 w-10 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
+                      {user?.avatarUrl ? (
+                        <img
+                          src={user.avatarUrl}
+                          alt="Avatar"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-full w-full items-center justify-center text-white text-xs font-black"
+                          style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
+                        >
+                          {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                        {user?.firstName
+                          ? `${user.firstName} ${user.lastName || ''}`
+                          : user?.email?.split('@')[0]}
+                      </p>
+                      <p
+                        className="text-[10px] font-bold uppercase tracking-tighter"
+                        style={{ color: 'var(--text-tertiary)' }}
+                      >
+                        {user?.email}
+                      </p>
+                    </div>
+                  </div>
                 </div>
                 <div className="p-2">
                   <button
                     className="flex w-full items-center gap-3 px-3 py-2 text-sm font-semibold rounded-xl transition-colors hover:bg-zinc-500/10"
                     style={{ color: 'var(--text-secondary)' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
                   >
                     <HiOutlineUser className="h-4 w-4" />
                     Profile Settings

@@ -84,6 +84,27 @@
   --color-v8-primary: #7c3aed;
   --color-v8-indigo: #6d28d9;
   --color-v8-deep: #0f172a;
+
+  --animate-spin-slow: spin 3s linear infinite;
+  --animate-shimmer: shimmer 2.5s linear infinite;
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
 }
 
 body {

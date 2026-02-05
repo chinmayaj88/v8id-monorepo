@@ -93,8 +93,27 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setAuthenticatedUser: (state: AuthState, action: PayloadAction<User | null>) => {
-      state.user = action.payload;
-      state.isAuthenticated = !!action.payload;
+      const user = action.payload;
+      if (user) {
+        // Calculate formatted strings if they aren't provided by backend
+        const quota = parseFloat(user.storageQuota);
+        const used = parseFloat(user.storageUsed);
+
+        const formatSize = (bytes: number): string => {
+          if (isNaN(bytes) || bytes === 0) return '0 B';
+          const k = 1024;
+          const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(k));
+          return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        };
+
+        user.storageUsedFormatted = formatSize(used);
+        user.storageQuotaFormatted = formatSize(quota);
+        user.storagePercentage = quota > 0 ? Math.round((used / quota) * 100) : 0;
+      }
+
+      state.user = user;
+      state.isAuthenticated = !!user;
       state.isLoading = false;
       state.isInitialized = true;
     },

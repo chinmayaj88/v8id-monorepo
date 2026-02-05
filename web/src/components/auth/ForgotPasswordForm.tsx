@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import AuthHeader from './AuthHeader';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { forgotPassword, clearError } from '@/store/slices/authSlice';
+import Button from '@/components/ui/Button';
 
 export default function ForgotPasswordForm() {
   const dispatch = useAppDispatch();
@@ -60,16 +61,17 @@ export default function ForgotPasswordForm() {
           </p>
 
           <div className="w-full space-y-4">
-            <button
+            <Button
+              variant="outline"
               onClick={() => setIsSubmitted(false)}
-              className="w-full rounded-2xl border-2 border-slate-200 py-4 text-base font-bold text-slate-700 transition-all hover:bg-white hover:border-(--color-v8-primary) hover:text-(--color-v8-primary) active:scale-[0.98]"
+              className="w-full py-4 text-base"
             >
               Try different email
-            </button>
+            </Button>
 
             <Link
               href="/login"
-              className="block text-sm font-bold text-(--color-v8-primary) hover:text-(--color-v8-indigo) transition-colors"
+              className="block text-sm font-bold text-v8-primary hover:text-v8-indigo transition-colors"
             >
               Back to Sign in
             </Link>
@@ -123,7 +125,7 @@ export default function ForgotPasswordForm() {
               disabled={isLoading}
               className={clsx(
                 'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all duration-300',
-                'focus:border-(--color-v8-primary) focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
               placeholder="name@example.com"
@@ -133,49 +135,20 @@ export default function ForgotPasswordForm() {
 
         {/* Submit Button */}
         <div className="animate-item pt-2">
-          <button
+          <Button
             type="submit"
-            disabled={isLoading}
-            className={clsx(
-              'w-full rounded-2xl bg-(--color-v8-primary) py-4.5 text-base font-black text-white shadow-xl shadow-(--color-v8-primary)/25 transition-all duration-300',
-              'hover:bg-(--color-v8-indigo) hover:shadow-(--color-v8-primary)/40 hover:-translate-y-1 active:translate-y-0 active:scale-[0.98]',
-              'disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:scale-100'
-            )}
+            isLoading={isLoading}
+            size="lg"
+            className="w-full py-4.5 text-base font-black shadow-xl shadow-v8-primary/25 hover:shadow-v8-primary/40 translate-y-0 hover:-translate-y-1 active:translate-y-0"
           >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-3">
-                <svg
-                  className="animate-spin h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Sending Link...
-              </span>
-            ) : (
-              'Send Password Reset Link'
-            )}
-          </button>
+            Send Password Reset Link
+          </Button>
         </div>
 
         <div className="animate-item text-center">
           <Link
             href="/login"
-            className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-(--color-v8-primary) transition-colors"
+            className="group inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-v8-primary transition-colors"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

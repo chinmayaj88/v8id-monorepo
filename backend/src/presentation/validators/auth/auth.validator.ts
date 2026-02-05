@@ -86,7 +86,7 @@ export const verifyTotpSchema = z.object({
  * POST /api/auth/refresh
  */
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
+  refreshToken: z.string().min(1, 'Refresh token is required').optional(),
 });
 
 /**
@@ -154,6 +154,3 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type RegenerateBackupCodesInput = z.infer<typeof regenerateBackupCodesSchema>;
 export type ResetupTotpInput = z.infer<typeof resetupTotpSchema>;
 export type LogoutInput = z.infer<typeof logoutSchema>;
-
-
-

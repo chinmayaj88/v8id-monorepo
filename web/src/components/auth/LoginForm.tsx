@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import AuthHeader from './AuthHeader';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { verifyCredentials, clearError } from '@/store/slices/authSlice';
+import Button from '@/components/ui/Button';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -80,7 +81,7 @@ export default function LoginForm() {
               disabled={isLoading}
               className={clsx(
                 'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all duration-300',
-                'focus:border-(--color-v8-primary) focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
               placeholder="name@example.com"
@@ -102,7 +103,7 @@ export default function LoginForm() {
               disabled={isLoading}
               className={clsx(
                 'w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-5 py-4 text-slate-900 placeholder-slate-400 outline-none transition-all duration-300',
-                'focus:border-(--color-v8-primary) focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
+                'focus:border-v8-primary focus:bg-white focus:ring-4 focus:ring-v8-primary/10',
                 'disabled:opacity-50 disabled:cursor-not-allowed'
               )}
               placeholder="Enter your password"
@@ -110,7 +111,7 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-bold text-(--color-v8-primary) hover:text-(--color-v8-indigo) focus:outline-none bg-white/80 backdrop-blur-sm px-2 py-1 rounded-lg transition-colors"
+              className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-bold text-v8-primary hover:text-v8-indigo focus:outline-none bg-white/80 backdrop-blur-sm px-2 py-1 rounded-lg transition-colors"
             >
               {showPassword ? 'Hide' : 'Show'}
             </button>
@@ -126,7 +127,7 @@ export default function LoginForm() {
             <div
               className={clsx(
                 'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                rememberMe ? 'bg-(--color-v8-primary)' : 'bg-slate-200'
+                rememberMe ? 'bg-v8-primary' : 'bg-slate-200'
               )}
             >
               <span
@@ -143,7 +144,7 @@ export default function LoginForm() {
           </div>
           <Link
             href="/forgot-password"
-            className="text-sm font-bold text-(--color-v8-primary) hover:text-(--color-v8-indigo) transition-colors"
+            className="text-sm font-bold text-v8-primary hover:text-v8-indigo transition-colors"
           >
             Forgot Password?
           </Link>
@@ -151,43 +152,14 @@ export default function LoginForm() {
 
         {/* Submit Button */}
         <div className="animate-item pt-4">
-          <button
+          <Button
             type="submit"
-            disabled={isLoading}
-            className={clsx(
-              'w-full rounded-2xl bg-(--color-v8-primary) py-4.5 text-base font-black text-white shadow-xl shadow-(--color-v8-primary)/25 transition-all duration-300',
-              'hover:bg-(--color-v8-indigo) hover:shadow-(--color-v8-primary)/40 hover:-translate-y-1 active:translate-y-0 active:scale-[0.98]',
-              'disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:scale-100'
-            )}
+            isLoading={isLoading}
+            size="lg"
+            className="w-full py-4.5 text-base font-black shadow-xl shadow-v8-primary/25 hover:shadow-v8-primary/40 translate-y-0 hover:-translate-y-1 active:translate-y-0"
           >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-3">
-                <svg
-                  className="animate-spin h-5 w-5 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Verifying...
-              </span>
-            ) : (
-              'Sign In to Dashboard'
-            )}
-          </button>
+            Sign In to Dashboard
+          </Button>
         </div>
       </form>
 
@@ -195,17 +167,11 @@ export default function LoginForm() {
       <div className="animate-item mt-10 text-center lg:text-left">
         <p className="text-sm text-slate-500 font-medium leading-relaxed">
           By logging in, you agree to our{' '}
-          <a
-            href="#"
-            className="font-bold text-(--color-v8-primary) hover:underline underline-offset-4"
-          >
+          <a href="#" className="font-bold text-v8-primary hover:underline underline-offset-4">
             Terms of Service
           </a>{' '}
           and{' '}
-          <a
-            href="#"
-            className="font-bold text-(--color-v8-primary) hover:underline underline-offset-4"
-          >
+          <a href="#" className="font-bold text-v8-primary hover:underline underline-offset-4">
             Privacy Policy
           </a>
           .
