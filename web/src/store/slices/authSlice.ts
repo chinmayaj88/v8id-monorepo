@@ -24,6 +24,7 @@ interface AuthState {
   isAuthenticated: boolean;
   requiresTotp: boolean;
   isLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
 }
 
@@ -32,7 +33,8 @@ const initialState: AuthState = {
   tempToken: null,
   isAuthenticated: false,
   requiresTotp: false,
-  isLoading: false,
+  isLoading: true, // Default to true to prevent flicker
+  isInitialized: false,
   error: null,
 };
 
@@ -94,14 +96,19 @@ const authSlice = createSlice({
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
       state.isLoading = false;
+      state.isInitialized = true;
     },
     setLoading: (state: AuthState, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
+    },
+    setInitialized: (state: AuthState, action: PayloadAction<boolean>) => {
+      state.isInitialized = action.payload;
     },
     logout: (state: AuthState) => {
       state.user = null;
       state.isAuthenticated = false;
       state.requiresTotp = false;
+      state.isInitialized = true;
       state.tempToken = null;
     },
     clearError: (state: AuthState) => {
@@ -166,5 +173,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuthenticatedUser, setLoading, logout, clearError } = authSlice.actions;
+export const { setAuthenticatedUser, setLoading, setInitialized, logout, clearError } =
+  authSlice.actions;
 export default authSlice.reducer;

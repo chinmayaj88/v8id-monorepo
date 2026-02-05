@@ -6,6 +6,8 @@ import { useAppSelector } from '@/store/hooks';
 import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 
+import PremiumLoader from '@/components/ui/PremiumLoader';
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAppSelector(state => state.auth);
@@ -17,25 +19,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div
-        className="flex h-screen items-center justify-center transition-colors duration-300"
-        style={{ backgroundColor: 'var(--bg-primary)' }}
-      >
-        <div className="flex flex-col items-center gap-4">
-          <div
-            className="h-12 w-12 animate-spin rounded-full border-4 border-t-brand-primary"
-            style={{
-              borderColor: 'var(--border-secondary)',
-              borderTopColor: 'var(--brand-primary)',
-            }}
-          ></div>
-          <p className="text-sm font-bold animate-pulse" style={{ color: 'var(--text-tertiary)' }}>
-            Initializing V8id...
-          </p>
-        </div>
-      </div>
-    );
+    return <PremiumLoader />;
   }
 
   if (!isAuthenticated) return null;

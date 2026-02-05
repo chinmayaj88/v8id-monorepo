@@ -6,16 +6,18 @@ import { useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import { useAppDispatch } from '@/store/hooks';
 import { type User } from '@/store/slices/authSlice';
-import { setAuthenticatedUser, setLoading } from '@/store/slices/authSlice';
+import { setAuthenticatedUser, setLoading, setInitialized } from '@/store/slices/authSlice';
+import { useAppSelector } from '@/store/hooks';
+import PremiumLoader from '@/components/ui/PremiumLoader';
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
+  const isInitialized = useAppSelector(state => state.auth.isInitialized);
 
   useEffect(() => {
     let cancelled = false;
 
     const bootstrapAuth = async () => {
-      dispatch(setLoading(true));
       try {
         const response = await apiClient.get('/users/me/profile');
         const user = (response.data?.data ?? null) as User | null;
@@ -23,11 +25,13 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
           dispatch(setAuthenticatedUser(user));
         } else {
           dispatch(setLoading(false));
+          dispatch(setInitialized(true));
         }
       } catch {
         // Not authenticated or call failed
         if (!cancelled) {
           dispatch(setLoading(false));
+          dispatch(setInitialized(true));
         }
       }
     };
@@ -38,6 +42,10 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, [dispatch]);
+
+  if (!isInitialized) {
+    return <PremiumLoader />;
+  }
 
   return <>{children}</>;
 }
