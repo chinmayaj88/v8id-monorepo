@@ -8,9 +8,11 @@ import clsx from 'clsx';
 export default function DynamicHeader() {
   const pathname = usePathname();
 
-  // Hide header on auth pages
-  const authRoutes = ['/login', '/', '/forgot-password', '/verify-2fa'];
-  if (authRoutes.includes(pathname)) return null;
+  // Hide header on auth and dashboard pages (dashboard has its own header)
+  const isAuthPage = ['/login', '/', '/forgot-password', '/verify-2fa'].includes(pathname);
+  const isDashboardPage = pathname.startsWith('/dashboard');
+
+  if (isAuthPage || isDashboardPage) return null;
 
   const getPageTitle = (path: string) => {
     if (path.startsWith('/dashboard')) return 'Dashboard';

@@ -9,6 +9,13 @@ export interface User {
   email: string;
   firstName?: string;
   lastName?: string;
+  avatarUrl?: string;
+  role: string;
+  storageQuota: string;
+  storageUsed: string;
+  storagePercentage: number;
+  storageUsedFormatted: string;
+  storageQuotaFormatted: string;
 }
 
 interface AuthState {
@@ -86,6 +93,10 @@ const authSlice = createSlice({
     setAuthenticatedUser: (state: AuthState, action: PayloadAction<User | null>) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
+      state.isLoading = false;
+    },
+    setLoading: (state: AuthState, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
     },
     logout: (state: AuthState) => {
       state.user = null;
@@ -155,5 +166,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuthenticatedUser, logout, clearError } = authSlice.actions;
+export const { setAuthenticatedUser, setLoading, logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { apiClient } from '@/lib/api';
 import { useAppDispatch } from '@/store/hooks';
 import { type User } from '@/store/slices/authSlice';
-import { setAuthenticatedUser } from '@/store/slices/authSlice';
+import { setAuthenticatedUser, setLoading } from '@/store/slices/authSlice';
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -15,14 +15,20 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     const bootstrapAuth = async () => {
+      dispatch(setLoading(true));
       try {
         const response = await apiClient.get('/users/me/profile');
         const user = (response.data?.data ?? null) as User | null;
         if (!cancelled && user) {
           dispatch(setAuthenticatedUser(user));
+        } else {
+          dispatch(setLoading(false));
         }
       } catch {
-        // Not authenticated or call failed – leave state as unauthenticated
+        // Not authenticated or call failed
+        if (!cancelled) {
+          dispatch(setLoading(false));
+        }
       }
     };
 
