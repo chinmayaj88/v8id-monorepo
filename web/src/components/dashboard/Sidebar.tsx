@@ -148,7 +148,7 @@ export default function Sidebar() {
           >
             <div className="relative">
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-white text-sm font-black shadow-lg shadow-[#7c3aed]/20"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-white text-sm font-black shadow-lg shadow-v8-primary/20"
                 style={{ background: 'linear-gradient(135deg, #7c3aed, #6d28d9)' }}
               >
                 {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}

@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppSelector } from '@/store/hooks';
 import { apiClient } from '@/lib/api';
-import { API_BASE_URL } from '@/lib/constants';
 import { formatFileSize } from '@/utils/format';
 import {
   HiOutlineFolder,
@@ -19,6 +18,7 @@ import {
 import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
+import UniversalFileView from '@/components/dashboard/UniversalFileView';
 
 interface SharedFile {
   id: string;
@@ -56,17 +56,6 @@ interface SharedFolder {
   };
 }
 
-const getFileIconStyle = (mimeType: string) => {
-  if (mimeType?.includes('pdf')) return 'bg-rose-50 dark:bg-rose-900/20 text-rose-500';
-  if (mimeType?.includes('word') || mimeType?.includes('document'))
-    return 'bg-blue-50 dark:bg-blue-900/20 text-blue-600';
-  if (mimeType?.includes('sheet') || mimeType?.includes('excel'))
-    return 'bg-amber-50 dark:bg-amber-900/20 text-amber-500';
-  if (mimeType?.includes('image') || mimeType?.includes('svg'))
-    return 'bg-orange-50 dark:bg-orange-900/20 text-orange-500';
-  return 'bg-purple-50 dark:bg-purple-900/20 text-purple-600';
-};
-
 export default function SharedPage() {
   const { searchQuery } = useAppSelector(state => state.files);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,15 +84,6 @@ export default function SharedPage() {
 
     fetchSharedData();
   }, []);
-
-  const getThumbnailUrl = (path: string | null | undefined) => {
-    if (!path) return null;
-    const cleanPath = path.startsWith('api/') ? path.substring(4) : path;
-    const baseUrl = API_BASE_URL.endsWith('/api')
-      ? API_BASE_URL.substring(0, API_BASE_URL.length - 4)
-      : API_BASE_URL;
-    return `${baseUrl}/api/${cleanPath}`;
-  };
 
   const filterBySearch = (item: { name: string }) => {
     if (!searchQuery) return true;
@@ -189,92 +169,11 @@ export default function SharedPage() {
                 {filteredFolders.length} Shared Folders
               </span>
             </div>
-            <div
-              className={
-                viewMode === 'grid'
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4'
-                  : 'space-y-3'
-              }
-            >
-              {filteredFolders.map(folder => {
-                if (viewMode === 'grid') {
-                  return (
-                    <div
-                      key={folder.id}
-                      className="p-5 rounded-3xl border shadow-sm hover:shadow-xl transition-all cursor-pointer group"
-                      style={{
-                        backgroundColor: 'var(--card-bg)',
-                        borderColor: 'var(--border-primary)',
-                      }}
-                    >
-                      <div className="flex items-start justify-between mb-6">
-                        <div className="h-14 w-14 rounded-2xl flex items-center justify-center bg-linear-to-br from-emerald-400 to-teal-600 shadow-inner">
-                          <HiOutlineFolder className="h-7 w-7 text-white" />
-                        </div>
-                        {folder.sharedBy && (
-                          <div
-                            className="h-8 w-8 rounded-full border-2 border-white dark:border-zinc-900 bg-linear-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-[10px] font-black text-white shadow-xl"
-                            title={`Shared by ${folder.sharedBy.firstName}`}
-                          >
-                            {folder.sharedBy.firstName[0]}
-                          </div>
-                        )}
-                      </div>
-                      <h3
-                        className="text-base font-black truncate mb-1"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {folder.name}
-                      </h3>
-                      <div
-                        className="flex items-center justify-between mt-4 pt-4 border-t"
-                        style={{ borderColor: 'var(--border-primary)' }}
-                      >
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                          {folder.fileCount || 0} Files
-                        </span>
-                        <span className="text-[10px] font-black text-v8-primary uppercase">
-                          Collaborator
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-                return (
-                  <div
-                    key={folder.id}
-                    className="flex items-center justify-between p-4 rounded-2xl border shadow-xs hover:shadow-md transition-all group"
-                    style={{
-                      backgroundColor: 'var(--card-bg)',
-                      borderColor: 'var(--border-primary)',
-                    }}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-900/20">
-                        <HiOutlineFolder className="h-5 w-5 text-emerald-600" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span
-                          className="font-bold text-sm"
-                          style={{ color: 'var(--text-primary)' }}
-                        >
-                          {folder.name}
-                        </span>
-                        <span className="text-[10px] font-bold text-zinc-400">
-                          by {folder.sharedBy?.firstName}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-8">
-                      <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                        {folder.fileCount} Files
-                      </span>
-                      <HiOutlineDotsVertical className="h-5 w-5 text-zinc-400 opacity-0 group-hover:opacity-100" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <UniversalFileView
+              items={filteredFolders}
+              viewMode={viewMode}
+              user={null} // Or pass real user if available
+            />
           </section>
         )}
 
@@ -289,103 +188,7 @@ export default function SharedPage() {
                 {filteredFiles.length} Shared Files
               </span>
             </div>
-            <div
-              className={
-                viewMode === 'grid' ? 'grid grid-cols-2 lg:grid-cols-6 gap-4' : 'space-y-3'
-              }
-            >
-              {filteredFiles.map(file => {
-                const thumb = getThumbnailUrl(file.thumbnailUrl);
-                const iconStyle = getFileIconStyle(file.mimeType);
-                if (viewMode === 'grid') {
-                  return (
-                    <div
-                      key={file.id}
-                      className="p-3 rounded-2xl border flex flex-col items-center gap-3 text-center shadow-xs hover:shadow-md transition-all group"
-                      style={{
-                        backgroundColor: 'var(--card-bg)',
-                        borderColor: 'var(--border-primary)',
-                      }}
-                    >
-                      <div
-                        className={`h-24 w-full rounded-xl flex items-center justify-center border border-black/5 dark:border-white/5 relative overflow-hidden ${thumb ? '' : iconStyle}`}
-                      >
-                        {thumb ? (
-                          <img src={thumb} className="h-full w-full object-cover" />
-                        ) : (
-                          <HiOutlineDocumentText className="h-10 w-10 opacity-30" />
-                        )}
-                      </div>
-                      <span
-                        className="font-bold text-xs truncate w-full"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {file.name}
-                      </span>
-                    </div>
-                  );
-                }
-                return (
-                  <div
-                    key={file.id}
-                    className="grid grid-cols-[1fr_200px_100px_40px] items-center px-4 py-3 rounded-2xl border shadow-xs hover:shadow-md transition-all group"
-                    style={{
-                      backgroundColor: 'var(--card-bg)',
-                      borderColor: 'var(--border-primary)',
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border border-black/5 dark:border-white/5 ${thumb ? '' : iconStyle}`}
-                      >
-                        {thumb ? (
-                          <img src={thumb} className="h-full w-full object-cover rounded-xl" />
-                        ) : (
-                          <HiOutlineDocumentText className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="flex flex-col">
-                        <span
-                          className="font-bold text-sm truncate"
-                          style={{ color: 'var(--text-primary)' }}
-                        >
-                          {file.name}
-                        </span>
-                        <span className="text-[9px] font-black uppercase tracking-widest text-v8-primary">
-                          Shared by {file.sharedBy?.firstName}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center -space-x-2">
-                      {file.collaborators?.slice(0, 3).map((u, i) => (
-                        <div
-                          key={i}
-                          className="h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-100 flex items-center justify-center text-[10px] font-black shadow-sm overflow-hidden"
-                          title={u.firstName}
-                        >
-                          {u.avatarUrl ? (
-                            <img src={u.avatarUrl} className="h-full w-full object-cover" />
-                          ) : (
-                            <span>{u.firstName[0]}</span>
-                          )}
-                        </div>
-                      ))}
-                      {file.collaborators && file.collaborators.length > 3 && (
-                        <div className="h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[8px] font-black">
-                          +{file.collaborators.length - 3}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-xs font-black text-zinc-400 uppercase">
-                      {formatFileSize(file.size)}
-                    </span>
-                    <div className="flex justify-end">
-                      <HiOutlineDotsVertical className="h-4 w-4 text-zinc-400 opacity-0 group-hover:opacity-100" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <UniversalFileView items={filteredFiles} viewMode={viewMode} user={null} />
           </section>
         )}
       </div>
