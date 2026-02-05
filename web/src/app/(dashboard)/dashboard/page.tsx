@@ -54,123 +54,205 @@ export default function DashboardPage() {
   const user = useAppSelector(state => state.auth.user);
 
   return (
-    <div className="space-y-6 bg-black min-h-screen">
-      {/* Page Header */}
+    <div className="space-y-8 transition-colors duration-300">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">All files</h1>
-          <p className="text-sm mt-0.5 text-zinc-500">
-            {user?.storageUsedFormatted || '0 B'} of {user?.storageQuotaFormatted || '5 GB'} used
+          <h1
+            className="text-3xl font-bold tracking-tight"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Home
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>
+            Welcome back, {user?.firstName || 'User'}! You've used {user?.storagePercentage || 0}%
+            of your storage.
           </p>
         </div>
       </div>
 
-      {/* Suggested for you */}
-      <div>
-        <h2 className="text-sm font-semibold mb-3 text-zinc-400">Suggested for you</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {recentFiles.slice(0, 4).map(file => (
+      <section>
+        <h2
+          className="text-[10px] font-black mb-4 uppercase tracking-[0.25em]"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
+          Suggested for you
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {recentFiles.map(file => (
             <button
               key={file.name}
-              className="group flex flex-col items-center gap-2 rounded-xl border border-zinc-800 p-4 transition-all duration-150 bg-zinc-950 hover:bg-zinc-900"
+              className="group flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all duration-300 hover:scale-[1.02]"
+              style={{ borderColor: 'var(--card-border)', backgroundColor: 'var(--card-bg)' }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'var(--brand-primary)';
+                e.currentTarget.style.backgroundColor = 'var(--card-hover)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--card-border)';
+                e.currentTarget.style.backgroundColor = 'var(--card-bg)';
+              }}
             >
               <div
-                className="flex h-16 w-16 items-center justify-center rounded-lg bg-zinc-900 group-hover:bg-zinc-800 transition-colors"
-                style={{ color: file.type === 'Folder' ? '#7c3aed' : '#94a3b8' }}
+                className="flex h-12 w-12 items-center justify-center rounded-xl transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: file.type === 'Folder' ? 'var(--brand-primary)' : 'var(--text-tertiary)',
+                }}
               >
                 {file.type === 'Folder' ? (
-                  <HiOutlineFolderOpen className="h-8 w-8" />
+                  <HiOutlineFolderOpen className="h-7 w-7" />
                 ) : (
-                  <HiOutlineDocumentText className="h-8 w-8" />
+                  <HiOutlineDocumentText className="h-7 w-7" />
                 )}
               </div>
               <div className="w-full text-center">
-                <p className="text-xs font-medium truncate text-zinc-200">{file.name}</p>
-                <p className="text-[10px] mt-0.5 text-zinc-500">{file.size}</p>
+                <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                  {file.name}
+                </p>
+                <p
+                  className="text-[10px] mt-1 font-semibold"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
+                  {file.size}
+                </p>
               </div>
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Folders */}
-      <div>
-        <h2 className="text-sm font-semibold mb-3 text-zinc-400">Folders</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <section>
+        <h2
+          className="text-[10px] font-black mb-4 uppercase tracking-[0.25em]"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
+          Folders
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {folderItems.map(folder => (
             <button
               key={folder.name}
-              className="group flex items-center gap-4 rounded-xl border border-zinc-800 p-4 transition-all duration-150 bg-zinc-950 hover:bg-zinc-900"
+              className="group flex items-center gap-3 rounded-2xl border p-3 transition-all duration-300 hover:scale-[1.01]"
+              style={{ borderColor: 'var(--card-border)', backgroundColor: 'var(--card-bg)' }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'var(--brand-primary)';
+                e.currentTarget.style.backgroundColor = 'var(--card-hover)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--card-border)';
+                e.currentTarget.style.backgroundColor = 'var(--card-bg)';
+              }}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-900 group-hover:bg-zinc-800 transition-colors">
-                <HiOutlineFolder className="h-6 w-6 text-[#7c3aed]" />
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors"
+                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--brand-primary)' }}
+              >
+                <HiOutlineFolder className="h-5 w-5" />
               </div>
               <div className="flex-1 text-left min-w-0">
-                <p className="text-sm font-medium truncate text-zinc-200">{folder.name}</p>
-                <p className="text-xs mt-0.5 text-zinc-500">
+                <p className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                  {folder.name}
+                </p>
+                <p className="text-xs mt-1 font-medium" style={{ color: 'var(--text-tertiary)' }}>
                   {folder.items} items · {folder.modified}
                 </p>
               </div>
-              <HiOutlineDotsVertical className="h-5 w-5 text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <HiOutlineDotsVertical
+                className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ color: 'var(--text-tertiary)' }}
+              />
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Files List */}
-      <div>
-        <h2 className="text-sm font-semibold mb-3 text-zinc-400">Name</h2>
-        <div className="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-950">
-          <table className="w-full">
+      <section>
+        <h2
+          className="text-[10px] font-black mb-4 uppercase tracking-[0.25em]"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
+          Recent Files
+        </h2>
+        <div
+          className="rounded-2xl border overflow-hidden"
+          style={{ borderColor: 'var(--card-border)', backgroundColor: 'var(--card-bg)' }}
+        >
+          <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-zinc-900 text-left text-xs font-semibold text-zinc-500">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3 hidden md:table-cell">Modified</th>
-                <th className="px-4 py-3 hidden lg:table-cell">Size</th>
-                <th className="px-4 py-3 w-10"></th>
+              <tr
+                className="border-b text-[10px] font-black uppercase tracking-widest"
+                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-tertiary)' }}
+              >
+                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3 hidden md:table-cell">Modified</th>
+                <th className="px-5 py-3 hidden lg:table-cell">Size</th>
+                <th className="px-5 py-3 w-10"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-900">
+            <tbody>
               {recentFiles.map(file => (
                 <tr
                   key={file.name}
-                  className="group transition-colors duration-150 cursor-pointer hover:bg-zinc-900/50"
+                  className="group transition-colors duration-200 cursor-pointer border-b last:border-0"
+                  style={{ borderColor: 'var(--border-secondary)' }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.backgroundColor = 'var(--card-hover)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-5 py-2">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded bg-zinc-900">
+                      <div
+                        className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+                        style={{
+                          backgroundColor: 'var(--bg-tertiary)',
+                          color:
+                            file.type === 'Folder'
+                              ? 'var(--brand-primary)'
+                              : 'var(--text-tertiary)',
+                        }}
+                      >
                         {file.type === 'Folder' ? (
-                          <HiOutlineFolder className="h-5 w-5 text-[#7c3aed]" />
+                          <HiOutlineFolder className="h-4 w-4" />
                         ) : (
-                          <HiOutlineDocumentText className="h-5 w-5 text-zinc-500" />
+                          <HiOutlineDocumentText className="h-4 w-4" />
                         )}
                       </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-medium truncate text-zinc-200">
-                          {file.name}
-                        </span>
-                        {file.starred && (
-                          <HiOutlineStar className="h-4 w-4 fill-yellow-500/50 text-yellow-500" />
-                        )}
-                      </div>
+                      <span
+                        className="text-sm font-bold truncate"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {file.name}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm hidden md:table-cell text-zinc-500">
+                  <td
+                    className="px-5 py-2 text-xs font-medium hidden md:table-cell"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  >
                     {file.modified}
                   </td>
-                  <td className="px-4 py-3 text-sm hidden lg:table-cell text-zinc-500">
+                  <td
+                    className="px-5 py-2 text-xs font-medium hidden lg:table-cell"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  >
                     {file.size}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">
+                  <td className="px-5 py-2">
+                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        className="p-2 rounded-xl transition-colors hover:bg-zinc-500/10"
+                        style={{ color: 'var(--text-tertiary)' }}
+                      >
                         <HiOutlineShare className="h-4 w-4" />
                       </button>
-                      <button className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">
+                      <button
+                        className="p-2 rounded-xl transition-colors hover:bg-zinc-500/10"
+                        style={{ color: 'var(--text-tertiary)' }}
+                      >
                         <HiOutlineDownload className="h-4 w-4" />
-                      </button>
-                      <button className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors">
-                        <HiOutlineTrash className="h-4 w-4 text-red-500/70 hover:text-red-500" />
                       </button>
                     </div>
                   </td>
@@ -179,7 +261,7 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

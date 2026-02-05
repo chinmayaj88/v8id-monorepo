@@ -21,91 +21,88 @@
   font-style: normal;
 }
 
-/* Base styles */
 :root {
+  /* V8id Brand Colors */
   --brand-primary: #7c3aed;
+  --brand-primary-hover: #6d28d9;
+  --brand-secondary: #6366f1;
+
+  /* Light Theme - Clearly Distinguishable Elements */
   --bg-primary: #ffffff;
-  --text-primary: #1a1a1a;
-  --border-primary: #e5e7eb;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #94a3b8;
+
+  --border-primary: #e2e8f0;
+  --border-secondary: #f1f5f9;
+
+  --sidebar-bg: #ffffff;
+  --sidebar-item-active: #7c3aed;
+  --sidebar-text-active: #ffffff;
+
+  --card-bg: #f8fafc; /* Clearly different from white background */
+  --card-border: #e2e8f0;
+  --card-hover: #f1f5f9;
+
+  --header-bg: rgba(255, 255, 255, 0.85);
+  --header-border: #e2e8f0;
 }
 
-/* STUPID BLACK DARK MODE */
 :root[data-theme='dark'] {
-  --bg-primary: #000000 !important;
-  --bg-secondary: #000000 !important;
-  --bg-tertiary: #000000 !important;
-  --text-primary: #ffffff !important;
-  --text-secondary: #a1a1aa !important;
-  --border-primary: #1a1a1a !important;
-  --header-bg: #000000 !important;
-  --sidebar-bg: #000000 !important;
-  --card-bg: #000000 !important;
-  --brand-primary: #7c3aed !important;
+  /* Dark Theme - OLED BLACK with Distinguished Elements */
+  --bg-primary: #000000;
+  --bg-secondary: #050505;
+  --bg-tertiary: #111111;
+
+  --text-primary: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+
+  --border-primary: #1a1a1a;
+  --border-secondary: #0f0f0f;
+
+  --sidebar-bg: #000000;
+  --sidebar-item-active: #7c3aed;
+  --sidebar-text-active: #ffffff;
+
+  --card-bg: #0c0c0c; /* Noticeably different from pure black background */
+  --card-border: #1a1a1a;
+  --card-hover: #141414;
+
+  --header-bg: rgba(0, 0, 0, 0.85);
+  --header-border: #1a1a1a;
 }
 
-/* Body Overrides */
+@theme inline {
+  --font-sans:
+    'SF Pro Display', 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+}
+
 body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease;
   margin: 0;
-  padding: 0;
-  background-color: #ffffff;
-  color: #1a1a1a;
-  font-family: 'SF Pro Display', sans-serif;
-  transition: background-color 0s;
 }
 
-:root[data-theme='dark'] body {
-  background-color: #000000 !important;
-  color: #ffffff !important;
+/* Scrollbar refinement */
+::-webkit-scrollbar {
+  width: 6px;
 }
-
-/* Aggressive black background overrides for all containers */
-[data-theme='dark'] .min-h-screen,
-[data-theme='dark'] .h-screen,
-[data-theme='dark'] .flex,
-[data-theme='dark'] .grid,
-[data-theme='dark'] aside,
-[data-theme='dark'] main,
-[data-theme='dark'] header,
-[data-theme='dark'] nav {
-  background-color: transparent; /* Inherit from parent which should be black */
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
 }
-
-/* Force black on specific tailwind background classes */
-[data-theme='dark'] .bg-white,
-[data-theme='dark'] .bg-slate-50,
-[data-theme='dark'] .bg-slate-100,
-[data-theme='dark'] .bg-slate-200,
-[data-theme='dark'] .bg-slate-300,
-[data-theme='dark'] .bg-slate-400,
-[data-theme='dark'] .bg-slate-500,
-[data-theme='dark'] .bg-slate-600,
-[data-theme='dark'] .bg-slate-700,
-[data-theme='dark'] .bg-slate-800,
-[data-theme='dark'] .bg-slate-900,
-[data-theme='dark'] .bg-slate-950,
-[data-theme='dark'] .bg-zinc-50,
-[data-theme='dark'] .bg-zinc-100,
-[data-theme='dark'] .bg-zinc-200,
-[data-theme='dark'] .bg-zinc-300,
-[data-theme='dark'] .bg-zinc-400,
-[data-theme='dark'] .bg-zinc-500,
-[data-theme='dark'] .bg-zinc-600,
-[data-theme='dark'] .bg-zinc-700,
-[data-theme='dark'] .bg-zinc-800,
-[data-theme='dark'] .bg-zinc-900,
-[data-theme='dark'] .bg-zinc-950,
-[data-theme='dark'] .bg-gray-50,
-[data-theme='dark'] .bg-gray-100,
-[data-theme='dark'] .bg-gray-900,
-[data-theme='dark'] .bg-gray-950,
-[data-theme='dark'] .bg-neutral-50,
-[data-theme='dark'] .bg-neutral-100,
-[data-theme='dark'] .bg-neutral-900,
-[data-theme='dark'] .bg-neutral-950 {
-  background-color: #000000 !important;
+::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 10px;
 }
-
-/* Smooth background transitions ONLY for root elements to prevent flicker */
-body {
-  transition: background-color 0.3s ease;
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
 }
