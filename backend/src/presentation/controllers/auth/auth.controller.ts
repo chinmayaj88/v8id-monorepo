@@ -21,6 +21,11 @@ import {
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 import { extractIpAddress } from '../../utils/ip-address.util.js';
 import { ResponseUtil } from '../../utils/response.util.js';
+import {
+  COOKIE_NAMES,
+  accessTokenCookieOptions,
+  refreshTokenCookieOptions,
+} from '../../../infrastructure/config/cookie.config.js';
 
 export class AuthController {
   constructor(
@@ -82,7 +87,21 @@ export class AuthController {
         userAgent,
       });
 
-      ResponseUtil.success(res, result, 'Login successful');
+      // For web clients, store tokens in secure HttpOnly cookies.
+      // For automation/mobile clients that expect JSON tokens, they can still read them from the body if provided.
+      res.cookie(COOKIE_NAMES.accessToken, result.accessToken, accessTokenCookieOptions);
+      res.cookie(COOKIE_NAMES.refreshToken, result.refreshToken, refreshTokenCookieOptions);
+
+      // Enterprise Approach: Only expose tokens in response body for non-web clients.
+      // This prevents XSS-based token theft on web by keeping tokens in HttpOnly cookies.
+      // We check the deviceType provided in the body or a custom header.
+      const isWebClient = dto.deviceType === 'WEB' || req.headers['x-client-type'] === 'web';
+
+      const responseData = isWebClient
+        ? (({ accessToken, refreshToken, ...rest }) => rest)(result)
+        : result;
+
+      ResponseUtil.success(res, responseData, 'Login successful');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'TOTP verification failed';
       // Check if error is due to expired temporary token
@@ -104,11 +123,35 @@ export class AuthController {
    */
   async refresh(req: Request, res: Response): Promise<void> {
     try {
-      const dto: RefreshTokenDTO = req.body;
+      // Prefer refresh token from cookie for web clients
+      const cookieRefreshToken = req.cookies?.[COOKIE_NAMES.refreshToken] as string | undefined;
 
-      const result = await this.refreshTokenUseCase.execute(dto);
+      let refreshToken: string | undefined = cookieRefreshToken;
 
-      ResponseUtil.success(res, result);
+      // Backward-compatible: allow body-based refresh token for non-web clients
+      if (!refreshToken && req.body && (req.body as RefreshTokenDTO).refreshToken) {
+        refreshToken = (req.body as RefreshTokenDTO).refreshToken;
+      }
+
+      if (!refreshToken) {
+        ResponseUtil.unauthorized(res, 'Refresh token is required');
+        return;
+      }
+
+      const result = await this.refreshTokenUseCase.execute({ refreshToken });
+
+      // Rotate cookies for web clients
+      if (cookieRefreshToken) {
+        res.cookie(COOKIE_NAMES.accessToken, result.accessToken, accessTokenCookieOptions);
+        res.cookie(COOKIE_NAMES.refreshToken, result.refreshToken, refreshTokenCookieOptions);
+      }
+
+      ResponseUtil.success(res, {
+        expiresIn: result.expiresIn,
+        // Keep tokens in response for explicit non-cookie clients
+        accessToken: cookieRefreshToken ? undefined : result.accessToken,
+        refreshToken: cookieRefreshToken ? undefined : result.refreshToken,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Token refresh failed';
       ResponseUtil.error(res, 'REFRESH_ERROR', message, 401);
@@ -135,6 +178,10 @@ export class AuthController {
       }
 
       await this.logoutUseCase.execute(sessionId, req.user.id);
+
+      // Clear auth cookies for web clients
+      res.clearCookie(COOKIE_NAMES.accessToken, { path: '/' });
+      res.clearCookie(COOKIE_NAMES.refreshToken, { path: '/' });
 
       ResponseUtil.success(res, undefined, 'Logged out successfully');
     } catch (error) {

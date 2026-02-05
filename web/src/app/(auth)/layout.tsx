@@ -87,7 +87,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             priority
             className="object-cover brightness-75 transition-transform duration-[20s] hover:scale-110"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-v8-deep/40 to-black/60 z-1" />
+          {/* <div className="absolute inset-0 bg-gradient-to-br from-v8-deep/40 to-black/60 z-1" /> */}
         </div>
 
         <div className="relative z-10 flex flex-col items-center px-12 text-center drop-shadow-2xl">

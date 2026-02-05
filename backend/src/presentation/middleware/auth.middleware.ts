@@ -5,6 +5,7 @@ import {
   IDeviceSessionRepository,
 } from '../../application/interfaces/index.js';
 import { ResponseUtil } from '../utils/response.util.js';
+import { COOKIE_NAMES } from '../../infrastructure/config/cookie.config.js';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -23,13 +24,23 @@ export function authMiddleware(
 ) {
   return async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        ResponseUtil.unauthorized(res, 'Missing or invalid authorization header');
-        return;
+      // Prefer access token from cookie for web clients
+      let token: string | undefined;
+
+      const cookieToken = req.cookies?.[COOKIE_NAMES.accessToken] as string | undefined;
+      if (cookieToken) {
+        token = cookieToken;
+      } else {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+          token = authHeader.substring(7);
+        }
       }
 
-      const token = authHeader.substring(7);
+      if (!token) {
+        ResponseUtil.unauthorized(res, 'Missing or invalid authorization');
+        return;
+      }
 
       const payload = jwtService.verifyToken(token);
 

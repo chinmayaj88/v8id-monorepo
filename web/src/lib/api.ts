@@ -1,45 +1,39 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/constants';
 
-// Create Axios Instance
+// Create Axios Instance – rely on HttpOnly cookies for auth
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
 
-// Request Interceptor to add Token
-apiClient.interceptors.request.use(
-  config => {
-    // In a real app, you might read this from HttpOnly cookies (handled by browser)
-    // or from local storage if security requirements allow (e.g., shorter lived tokens).
-    // For this implementation, we'll assume we store the Access Token in memory/storage
-    // for simplicity, but acknowledge HttpOnly cookies are better.
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  error => Promise.reject(error)
-);
+// Request interceptor to add CSRF token (Synchronizer Token Pattern)
+apiClient.interceptors.request.use(config => {
+  // Only add for non-GET requests if possible, or just add to all
+  if (typeof document !== 'undefined') {
+    const csrfToken = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('v8id_csrf_token='))
+      ?.split('=')[1];
 
-// Response Interceptor for Error Handling and potential Refresh
+    if (csrfToken) {
+      config.headers['x-csrf-token'] = csrfToken;
+    }
+  }
+
+  // Also add client type for backend detection
+  config.headers['x-client-type'] = 'web';
+
+  return config;
+});
+
+// Basic response interceptor (kept for future enhancements like refresh logic)
 apiClient.interceptors.response.use(
   response => response,
   async error => {
-    const originalRequest = error.config;
-
-    // Handle 401 Unauthorized (Token Expiry)
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-
-      // Attempt refresh token logic here if implemented
-      // const refreshToken = localStorage.getItem('refreshToken');
-      // ... call refresh endpoint
-    }
-
     return Promise.reject(error);
   }
 );

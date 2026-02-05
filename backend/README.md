@@ -29,13 +29,30 @@ src/
 └── framework/       # Express server setup
 ```
 
-## Endpoints
+## Authentication & Sessions
 
-| Method | Path    | Description     |
-| ------ | ------- | --------------- |
-| GET    | /       | Welcome message |
-| GET    | /health | Health check    |
-| GET    | /api    | API information |
+The backend uses JWTs with device sessions and **secure HttpOnly cookies** for the web, plus bearer tokens for non-browser clients.
+
+- **Web clients (browser / Next.js app)**:
+  - On successful login (`POST /api/auth/verify-totp`), the API issues:
+    - `v8id_access_token` – short-lived access token in an HttpOnly, `Secure`, `SameSite=Lax` cookie.
+    - `v8id_refresh_token` – longer-lived refresh token in an HttpOnly, `Secure`, `SameSite=Lax` cookie.
+  - Tokens are **not returned in the JSON body** for the default web flow.
+  - The browser automatically sends cookies; protected routes read the access token from cookies via `authMiddleware`.
+  - `POST /api/auth/refresh` rotates both tokens and updates the cookies.
+  - `POST /api/auth/logout` revokes the current device session and clears both cookies.
+
+- **Mobile / non-browser clients**:
+  - Continue to use **Authorization: Bearer \<accessToken\>** with tokens returned in JSON.
+  - `POST /api/auth/refresh` accepts a refresh token in the request body when no refresh cookie is present.
+
+### CSRF Protection
+
+For cookie-based web flows, state-changing requests are protected with a **double-submit CSRF token**:
+
+- A non-HttpOnly cookie `v8id_csrf_token` is issued (and refreshed) on `/api` responses.
+- The frontend must send a matching `X-CSRF-Token` header on `POST/PUT/PATCH/DELETE` requests.
+- If the cookie and header don’t match, the request is rejected with `403 CSRF_TOKEN_INVALID`.
 
 ## SOLID Principles Applied
 

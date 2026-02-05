@@ -4,7 +4,7 @@ import { ENDPOINTS } from '@/lib/constants';
 import { getDeviceId, getDeviceName } from '@/utils/device';
 
 // Types
-interface User {
+export interface User {
   id: string;
   email: string;
   firstName?: string;
@@ -13,7 +13,6 @@ interface User {
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
   tempToken: string | null;
   isAuthenticated: boolean;
   requiresTotp: boolean;
@@ -23,7 +22,6 @@ interface AuthState {
 
 const initialState: AuthState = {
   user: null,
-  accessToken: typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null,
   tempToken: null,
   isAuthenticated: false,
   requiresTotp: false,
@@ -85,16 +83,15 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    setAuthenticatedUser: (state: AuthState, action: PayloadAction<User | null>) => {
+      state.user = action.payload;
+      state.isAuthenticated = !!action.payload;
+    },
     logout: (state: AuthState) => {
       state.user = null;
-      state.accessToken = null;
       state.isAuthenticated = false;
       state.requiresTotp = false;
       state.tempToken = null;
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-      }
     },
     clearError: (state: AuthState) => {
       state.error = null;
@@ -116,11 +113,7 @@ const authSlice = createSlice({
       } else {
         // Direct Login Success
         state.isAuthenticated = true;
-        state.accessToken = data.accessToken;
         state.user = data.user;
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('accessToken', data.accessToken);
-        }
       }
     });
     builder.addCase(verifyCredentials.rejected, (state: AuthState, action: any) => {
@@ -139,12 +132,7 @@ const authSlice = createSlice({
       state.isAuthenticated = true;
       state.requiresTotp = false;
       state.tempToken = null;
-      state.accessToken = data.accessToken;
       state.user = data.user;
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-      }
     });
     builder.addCase(verifyTotp.rejected, (state: AuthState, action: any) => {
       state.isLoading = false;
@@ -167,5 +155,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { setAuthenticatedUser, logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

@@ -6,6 +6,8 @@ import { ResponseUtil } from '../../presentation/utils/response.util.js';
 import { errorMiddleware } from '../../presentation/middleware/error.middleware.js';
 import { generalRateLimiter } from '../../presentation/middleware/rate-limit.middleware.js';
 import { multipartHandler } from '../../presentation/middleware/parser/multipart.middleware.js';
+import cookieParser from 'cookie-parser';
+import { attachCsrfToken, csrfProtection } from '../../presentation/middleware/csrf.middleware.js';
 import apiRoutes from '../../presentation/routes/index.js';
 
 /**
@@ -51,13 +53,16 @@ export function createApp(): Express {
       origin: envConfig.corsOrigin === '*' ? '*' : envConfig.corsOrigin.split(','),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-client-type'],
     })
   );
 
   // Body parsers
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Cookie parser
+  app.use(cookieParser());
 
   // Global Multipart Handler (Enterprise Pattern)
   app.use(multipartHandler);
@@ -93,8 +98,8 @@ export function createApp(): Express {
     });
   });
 
-  // API routes
-  app.use('/api', apiRoutes);
+  // Attach CSRF token and protect mutating API routes
+  app.use('/api', attachCsrfToken, csrfProtection, apiRoutes);
 
   // Global error handler
   app.use(errorMiddleware);
