@@ -1,21 +1,44 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import { fetchSyncData } from '@/store/slices/fileSlice';
-import { formatFileSize, formatRelativeDate } from '@/utils/format';
+import { formatFileSize } from '@/utils/format';
 import { API_BASE_URL } from '@/lib/constants';
 import {
   HiOutlineFolder,
   HiOutlineDocumentText,
   HiOutlineDotsVertical,
-  HiOutlineDownload,
+  HiChevronRight,
+  HiPlus,
+  HiOutlineShare,
+  HiOutlineViewList,
+  HiOutlineViewGrid,
+  HiOutlineAdjustments,
+  HiOutlineArrowLeft,
 } from 'react-icons/hi';
 import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
+import Button from '@/components/ui/Button';
+import Link from 'next/link';
+
+const getFileIconStyle = (mimeType: string) => {
+  if (mimeType?.includes('pdf')) return 'bg-rose-50 dark:bg-rose-900/20 text-rose-500';
+  if (mimeType?.includes('word') || mimeType?.includes('document'))
+    return 'bg-blue-50 dark:bg-blue-900/20 text-blue-600';
+  if (mimeType?.includes('sheet') || mimeType?.includes('excel'))
+    return 'bg-amber-50 dark:bg-amber-900/20 text-amber-500';
+  if (mimeType?.includes('image') || mimeType?.includes('svg'))
+    return 'bg-orange-50 dark:bg-orange-900/20 text-orange-500';
+  return 'bg-purple-50 dark:bg-purple-900/20 text-purple-600';
+};
 
 export default function FilesPage() {
   const dispatch = useAppDispatch();
   const { files, folders, isLoading, searchQuery } = useAppSelector(state => state.files);
+
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'files' | 'folders'>('folders');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
     dispatch(fetchSyncData());
@@ -30,169 +53,311 @@ export default function FilesPage() {
     return `${baseUrl}/api/${cleanPath}`;
   };
 
-  const filterBySearch = (item: { name: string }) => {
-    if (!searchQuery) return true;
-    return item.name.toLowerCase().includes(searchQuery.toLowerCase());
+  const currentFolder = folders.find(f => f.id === currentFolderId);
+
+  const filterBySearch = (item: {
+    name: string;
+    folderId?: string | null;
+    parentId?: string | null;
+  }) => {
+    // Search override: if searching, show all matches regardless of folder
+    if (searchQuery) {
+      return item.name.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    // Default root/folder view: show only direct children
+    if ('folderId' in item) {
+      // FileItem
+      return item.folderId === currentFolderId;
+    } else {
+      // FolderItem
+      return (item as any).parentId === currentFolderId;
+    }
   };
 
   const filteredFiles = files.filter(filterBySearch);
   const filteredFolders = folders.filter(filterBySearch);
+
+  const getBreadcrumbs = () => {
+    const crumbs: { id: string | null; name: string }[] = [{ id: null, name: 'All Files' }];
+    if (!currentFolderId) return crumbs;
+
+    // Simplified path: for now just root -> current
+    // In a real app we'd recurse up parentId
+    if (currentFolder) {
+      crumbs.push({ id: currentFolder.id, name: currentFolder.name });
+    }
+    return crumbs;
+  };
 
   if (isLoading && files.length === 0) {
     return <DashboardSkeleton />;
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 pb-8">
+      {/* Breadcrumbs */}
+      <div
+        className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+        style={{ color: 'var(--text-tertiary)' }}
+      >
+        {getBreadcrumbs().map((crumb, idx) => (
+          <React.Fragment key={crumb.id || 'root'}>
+            {idx > 0 && <HiChevronRight className="w-3 h-3 mx-1" />}
+            <button
+              onClick={() => setCurrentFolderId(crumb.id)}
+              className={`hover:text-v8-primary transition-colors ${idx === getBreadcrumbs().length - 1 ? 'text-v8-primary' : ''}`}
+            >
+              {crumb.name}
+            </button>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1
-            className="text-3xl font-black tracking-tight"
+            className="text-5xl font-black tracking-tighter"
             style={{ color: 'var(--text-primary)' }}
           >
-            All Files
+            {currentFolder ? currentFolder.name : 'All Files'}
           </h1>
-          <p className="text-sm font-medium mt-1" style={{ color: 'var(--text-tertiary)' }}>
-            {searchQuery
-              ? `Found ${filteredFiles.length} files and ${filteredFolders.length} folders`
-              : 'Browse and manage your entire cloud storage collection'}
-          </p>
+          <div className="flex items-center gap-4 mt-3">
+            <div
+              className="flex p-1 rounded-2xl bg-zinc-100 dark:bg-zinc-800/50 border"
+              style={{ borderColor: 'var(--border-primary)' }}
+            >
+              <button
+                onClick={() => setActiveTab('folders')}
+                className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeTab === 'folders' ? 'bg-white dark:bg-zinc-700 shadow-sm text-v8-primary' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+              >
+                Folders ({filteredFolders.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('files')}
+                className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeTab === 'files' ? 'bg-white dark:bg-zinc-700 shadow-sm text-v8-primary' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+              >
+                Files ({filteredFiles.length})
+              </button>
+            </div>
+            {currentFolderId && (
+              <button
+                onClick={() => setCurrentFolderId(null)}
+                className="flex items-center gap-2 px-4 py-2 rounded-2xl border text-xs font-bold text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                style={{ borderColor: 'var(--border-primary)' }}
+              >
+                <HiOutlineArrowLeft className="w-4 h-4" />
+                Go Back
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div
+            className="flex items-center gap-2 p-1 rounded-2xl border bg-zinc-50/50 dark:bg-zinc-800/20 shadow-xs"
+            style={{ borderColor: 'var(--border-primary)' }}
+          >
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-v8-primary' : 'text-zinc-400'}`}
+            >
+              <HiOutlineViewList className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-sm text-v8-primary' : 'text-zinc-400'}`}
+            >
+              <HiOutlineViewGrid className="w-4 h-4" />
+            </button>
+          </div>
+          <Button
+            variant="primary"
+            size="md"
+            className="gap-2 rounded-2xl px-6 font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-500/20"
+            style={{ backgroundColor: '#8b5cf6', color: 'white' }}
+            icon={<HiPlus className="w-4 h-4" />}
+          >
+            Create
+          </Button>
         </div>
       </div>
 
-      {/* Folders Section */}
-      {filteredFolders.length > 0 && (
-        <section>
-          <h2
-            className="text-[10px] font-black mb-4 uppercase tracking-[0.25em]"
-            style={{ color: 'var(--text-tertiary)' }}
+      <div className="mt-8">
+        {activeTab === 'folders' ? (
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4'
+                : 'space-y-3'
+            }
           >
-            Folders
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredFolders.map(folder => (
-              <button
-                key={folder.id}
-                className="group flex items-center gap-3 rounded-2xl border p-4 transition-all duration-300 hover:scale-[1.02]"
-                style={{ borderColor: 'var(--card-border)', backgroundColor: 'var(--card-bg)' }}
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-v8-primary/10 text-v8-primary">
-                  <HiOutlineFolder className="h-6 w-6" />
-                </div>
-                <div className="text-left overflow-hidden">
-                  <p
-                    className="truncate text-sm font-bold"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {folder.name}
-                  </p>
-                  <p className="text-[10px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
-                    Modified {formatRelativeDate(folder.updatedAt)}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Files Table Section */}
-      <section>
-        <h2
-          className="text-[10px] font-black mb-4 uppercase tracking-[0.25em]"
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          Files
-        </h2>
-        <div
-          className="rounded-3xl border overflow-hidden shadow-sm"
-          style={{ borderColor: 'var(--card-border)', backgroundColor: 'var(--card-bg)' }}
-        >
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr
-                className="border-b text-[10px] font-black uppercase tracking-widest"
-                style={{ borderColor: 'var(--border-primary)', color: 'var(--text-tertiary)' }}
-              >
-                <th className="px-6 py-4">Name</th>
-                <th className="px-6 py-4 hidden md:table-cell">Size</th>
-                <th className="px-6 py-4 hidden lg:table-cell">Modified</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFiles.map(file => {
-                const thumb = getThumbnailUrl(file.thumbnailUrl);
+            {filteredFolders.map(folder => {
+              const fileCount = files.filter(f => f.folderId === folder.id).length;
+              if (viewMode === 'grid') {
                 return (
-                  <tr
-                    key={file.id}
-                    className="group border-b last:border-0 transition-colors hover:bg-zinc-500/5"
-                    style={{ borderColor: 'var(--border-primary)' }}
+                  <div
+                    key={folder.id}
+                    onClick={() => setCurrentFolderId(folder.id)}
+                    className="p-5 rounded-3xl border shadow-sm hover:shadow-xl hover:scale-[1.02] transition-all cursor-pointer group"
+                    style={{
+                      backgroundColor: 'var(--card-bg)',
+                      borderColor: 'var(--border-primary)',
+                    }}
                   >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                          {thumb ? (
-                            <img
-                              src={thumb}
-                              alt={file.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <HiOutlineDocumentText className="h-5 w-5 text-zinc-400" />
-                          )}
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="h-14 w-14 rounded-2xl flex items-center justify-center bg-linear-to-br from-purple-500 to-indigo-600 shadow-inner">
+                        <HiOutlineFolder className="h-7 w-7 text-white" />
+                      </div>
+                      <div className="flex -space-x-2">
+                        <div className="h-6 w-6 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-800" />
+                        <div className="h-6 w-6 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-300 dark:bg-zinc-700 flex items-center justify-center text-[8px] font-black">
+                          +
                         </div>
-                        <span
-                          className="truncate text-sm font-bold"
-                          style={{ color: 'var(--text-primary)' }}
-                        >
-                          {file.name}
-                        </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 hidden md:table-cell">
-                      <span
-                        className="text-xs font-medium"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        {formatFileSize(Number(file.size))}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 hidden lg:table-cell">
-                      <span
-                        className="text-xs font-medium"
-                        style={{ color: 'var(--text-secondary)' }}
-                      >
-                        {formatRelativeDate(file.updatedAt)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 rounded-lg hover:bg-v8-primary/10 text-zinc-400 hover:text-v8-primary transition-colors">
-                          <HiOutlineDownload className="h-5 w-5" />
-                        </button>
-                        <button className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400 transition-colors">
-                          <HiOutlineDotsVertical className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredFiles.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <HiOutlineDocumentText className="h-10 w-10 text-zinc-300" />
-                      <p className="text-sm font-medium text-zinc-400">No files found</p>
                     </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                    <h3
+                      className="text-base font-black truncate mb-1"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {folder.name}
+                    </h3>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        {fileCount} Files
+                      </span>
+                      <span className="text-[10px] font-bold text-zinc-400">
+                        {new Date(folder.updatedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={folder.id}
+                  onClick={() => setCurrentFolderId(folder.id)}
+                  className="flex items-center justify-between p-4 rounded-2xl border shadow-xs hover:shadow-md transition-all cursor-pointer group"
+                  style={{
+                    backgroundColor: 'var(--card-bg)',
+                    borderColor: 'var(--border-primary)',
+                  }}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-900/20">
+                      <HiOutlineFolder className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <span className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {folder.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-8">
+                    <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                      {fileCount} Files
+                    </span>
+                    <HiOutlineDotsVertical className="h-5 w-5 text-zinc-400 opacity-0 group-hover:opacity-100 transition-all" />
+                  </div>
+                </div>
+              );
+            })}
+            {filteredFolders.length === 0 && (
+              <div className="col-span-full py-20 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl opacity-40">
+                <HiOutlineFolder className="w-12 h-12 mb-4" />
+                <p className="font-black text-sm uppercase tracking-widest">No folders here</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4'
+                : 'space-y-3'
+            }
+          >
+            {filteredFiles.map(file => {
+              const thumb = getThumbnailUrl(file.thumbnailUrl);
+              const iconStyle = getFileIconStyle(file.mimeType);
+              if (viewMode === 'grid') {
+                return (
+                  <div
+                    key={file.id}
+                    className="p-3 rounded-2xl border flex flex-col items-center gap-3 text-center shadow-xs hover:shadow-md transition-all cursor-pointer group"
+                    style={{
+                      backgroundColor: 'var(--card-bg)',
+                      borderColor: 'var(--border-primary)',
+                    }}
+                  >
+                    <div
+                      className={`h-24 w-full rounded-xl flex items-center justify-center border border-black/5 dark:border-white/5 relative overflow-hidden ${thumb ? '' : iconStyle}`}
+                    >
+                      {thumb ? (
+                        <img src={thumb} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <HiOutlineDocumentText className="h-10 w-10 opacity-30" />
+                      )}
+                    </div>
+                    <span
+                      className="font-bold text-xs truncate w-full px-1"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {file.name}
+                    </span>
+                  </div>
+                );
+              }
+              return (
+                <div
+                  key={file.id}
+                  className="grid grid-cols-[1fr_150px_100px_40px] items-center px-4 py-3 rounded-2xl border shadow-xs hover:shadow-md transition-all cursor-pointer group"
+                  style={{
+                    backgroundColor: 'var(--card-bg)',
+                    borderColor: 'var(--border-primary)',
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 border border-black/5 dark:border-white/5 ${thumb ? '' : iconStyle}`}
+                    >
+                      {thumb ? (
+                        <img src={thumb} alt="" className="h-full w-full object-cover rounded-xl" />
+                      ) : (
+                        <HiOutlineDocumentText className="h-5 w-5" />
+                      )}
+                    </div>
+                    <span
+                      className="font-bold text-sm truncate"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {file.name}
+                    </span>
+                  </div>
+                  <span className="text-xs text-zinc-500 font-bold uppercase tracking-tighter">
+                    {new Date(file.updatedAt).toLocaleDateString('en-US', {
+                      day: 'numeric',
+                      month: 'short',
+                    })}
+                  </span>
+                  <span className="text-xs font-black text-zinc-400">
+                    {formatFileSize(file.size)}
+                  </span>
+                  <div className="flex justify-end">
+                    <HiOutlineDotsVertical className="h-4 w-4 text-zinc-400 opacity-0 group-hover:opacity-100" />
+                  </div>
+                </div>
+              );
+            })}
+            {filteredFiles.length === 0 && (
+              <div className="col-span-full py-20 flex flex-col items-center justify-center border-2 border-dashed rounded-3xl opacity-40">
+                <HiOutlineDocumentText className="w-12 h-12 mb-4" />
+                <p className="font-black text-sm uppercase tracking-widest">No files here</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

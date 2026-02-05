@@ -1,27 +1,80 @@
-'use client';
-
-import React from 'react';
-import { HiOutlineShieldCheck } from 'react-icons/hi';
+import Link from 'next/link';
+import { HiOutlineShieldCheck, HiChevronRight, HiOutlineLockClosed } from 'react-icons/hi';
 
 export default function VaultPage() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4">
+    <div className="space-y-6 pb-8 h-full flex flex-col">
+      {/* Breadcrumbs */}
       <div
-        className="p-8 rounded-3xl border"
-        style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-primary)' }}
+        className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+        style={{ color: 'var(--text-tertiary)' }}
       >
-        <HiOutlineShieldCheck className="h-16 w-16 text-[#7c3aed]" />
+        <Link href="/dashboard" className="hover:text-v8-primary transition-colors">
+          Home
+        </Link>
+        <HiChevronRight className="w-3 h-3" />
+        <span className="text-v8-primary">Personal Vault</span>
       </div>
-      <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
-        Personal Vault
-      </h1>
-      <p className="max-w-md text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>
-        Protect your most sensitive documents with end-to-end encryption and two-factor
-        authentication.
-      </p>
-      <button className="px-8 py-3 rounded-2xl bg-[#7c3aed] text-white font-bold hover:bg-[#6d28d9] transition-all shadow-lg shadow-[#7c3aed]/20">
-        Unlock Vault
-      </button>
+
+      <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8 py-12">
+        <div className="relative">
+          <div
+            className="p-10 rounded-[40px] border relative z-10 shadow-2xl overflow-hidden"
+            style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-primary)' }}
+          >
+            <div className="absolute inset-0 bg-linear-to-br from-purple-500/10 to-transparent opacity-50" />
+            <HiOutlineShieldCheck className="h-20 w-20 text-v8-primary relative z-10" />
+          </div>
+          <div className="absolute -bottom-2 -right-2 h-10 w-10 rounded-2xl bg-white dark:bg-zinc-800 border-4 border-zinc-50 dark:border-zinc-950 flex items-center justify-center shadow-lg z-20">
+            <HiOutlineLockClosed className="h-5 w-5 text-v8-primary" />
+          </div>
+        </div>
+
+        <div className="max-w-md space-y-4">
+          <h1
+            className="text-5xl font-black tracking-tighter"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Your Digital Safe
+          </h1>
+          <p
+            className="text-sm font-medium leading-relaxed"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            The Personal Vault is a protected area in V8id where you can store your most important
+            or sensitive documents without compromising on accessibility.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-4 w-full max-w-sm">
+          <button className="px-8 py-4 rounded-3xl bg-v8-primary text-white font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-purple-500/25">
+            Unlock with Biometrics
+          </button>
+          <button
+            className="px-8 py-4 rounded-3xl border font-black uppercase tracking-widest text-xs transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-primary)' }}
+          >
+            Use Recovery Key
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-8 pt-8">
+          {[
+            { label: 'AES-256', sub: 'Encryption' },
+            { label: '2FA', sub: 'Required' },
+            { label: 'Zero', sub: 'Knowledge' },
+          ].map((stat, i) => (
+            <div key={i} className="flex flex-col items-center">
+              <span className="text-[10px] font-black uppercase tracking-widest text-v8-primary">
+                {stat.label}
+              </span>
+              <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">
+                {stat.sub}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

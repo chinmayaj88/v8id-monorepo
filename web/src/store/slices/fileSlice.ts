@@ -32,6 +32,7 @@ export interface FolderItem {
   isShared: boolean;
   sharePermission?: string;
   sharedBy?: string;
+  fileCount?: number;
   owner?: {
     firstName?: string;
     lastName?: string;

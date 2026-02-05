@@ -24,7 +24,7 @@ const navItems = [
   { name: 'Shared', href: '/dashboard/shared', icon: HiOutlineUserGroup },
   { name: 'Vault', href: '/dashboard/vault', icon: HiOutlineShieldCheck },
   { name: 'Recent', href: '/dashboard/recent', icon: HiOutlineClock },
-  { name: 'Deleted', href: '/dashboard/trash', icon: HiOutlineTrash },
+  { name: 'Trash', href: '/dashboard/trash', icon: HiOutlineTrash },
 ];
 
 export default function Sidebar() {
