@@ -73,6 +73,58 @@ export const fetchSyncData = createAsyncThunk<
   }
 });
 
+export const createFolder = createAsyncThunk<
+  FolderItem,
+  { name: string; parentId: string | null },
+  { rejectValue: string }
+>('files/createFolder', async (data, { rejectWithValue }) => {
+  try {
+    const response = await apiClient.post('/folders', data);
+    return response.data.data;
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to create folder');
+  }
+});
+
+export const moveItems = createAsyncThunk<
+  void,
+  { fileIds: string[]; folderIds: string[]; targetFolderId: string | null },
+  { rejectValue: string }
+>('files/moveItems', async (data, { rejectWithValue, dispatch }) => {
+  try {
+    await apiClient.post('/files/move', data);
+    dispatch(fetchSyncData());
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to move items');
+  }
+});
+
+export const copyItems = createAsyncThunk<
+  void,
+  { fileIds: string[]; folderIds: string[]; targetFolderId: string | null },
+  { rejectValue: string }
+>('files/copyItems', async (data, { rejectWithValue, dispatch }) => {
+  try {
+    await apiClient.post('/files/copy', data);
+    dispatch(fetchSyncData());
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to copy items');
+  }
+});
+
+export const bulkDeleteItems = createAsyncThunk<
+  void,
+  { fileIds: string[]; folderIds: string[]; permanent?: boolean },
+  { rejectValue: string }
+>('files/bulkDeleteItems', async (data, { rejectWithValue, dispatch }) => {
+  try {
+    await apiClient.delete('/files', { data });
+    dispatch(fetchSyncData());
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to delete items');
+  }
+});
+
 const fileSlice = createSlice({
   name: 'files',
   initialState,
@@ -108,6 +160,9 @@ const fileSlice = createSlice({
     builder.addCase(fetchSyncData.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload as string;
+    });
+    builder.addCase(createFolder.fulfilled, (state, action) => {
+      state.folders.push(action.payload);
     });
     // Clear data on logout
     builder.addCase('auth/logout', state => {

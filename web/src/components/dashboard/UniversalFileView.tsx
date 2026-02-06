@@ -13,6 +13,7 @@ import {
   HiOutlineExternalLink,
   HiOutlinePhotograph,
   HiChevronRight,
+  HiOutlineFolderOpen,
 } from 'react-icons/hi';
 import { formatFileSize } from '@/utils/format';
 
@@ -97,6 +98,11 @@ interface UniversalFileViewProps {
   enableSelection?: boolean;
   selectedIds?: Set<string>;
   onSelectionChange?: (ids: Set<string>) => void;
+  onMove?: (item: any) => void;
+  onCopy?: (item: any) => void;
+  onDelete?: (item: any) => void;
+  onDownload?: (item: any) => void;
+  onShare?: (item: any) => void;
 }
 
 const Checkbox = ({
@@ -126,7 +132,14 @@ export default function UniversalFileView({
   enableSelection,
   selectedIds,
   onSelectionChange,
+  onMove,
+  onCopy,
+  onDelete,
+  onDownload,
+  onShare,
 }: UniversalFileViewProps) {
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+
   const handleToggle = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (!onSelectionChange || !selectedIds) return;
@@ -149,6 +162,93 @@ export default function UniversalFileView({
     }
   };
 
+  const toggleMenu = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setActiveMenuId(activeMenuId === id ? null : id);
+  };
+
+  const renderActionMenu = (item: any) => {
+    const isFolder = 'fileCount' in item || !('mimeType' in item);
+
+    return (
+      <>
+        <div
+          className="fixed inset-0 z-40"
+          onClick={e => {
+            e.stopPropagation();
+            setActiveMenuId(null);
+          }}
+        />
+        <div
+          className="absolute right-0 top-10 w-48 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden py-2 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5"
+          onClick={e => e.stopPropagation()}
+        >
+          {!isFolder && onDownload && (
+            <button
+              onClick={() => {
+                onDownload(item);
+                setActiveMenuId(null);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
+            >
+              <HiOutlineDownload className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
+              Download
+            </button>
+          )}
+          {onShare && (
+            <button
+              onClick={() => {
+                onShare(item);
+                setActiveMenuId(null);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
+            >
+              <HiOutlineShare className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
+              Share
+            </button>
+          )}
+          {onCopy && (
+            <button
+              onClick={() => {
+                onCopy(item);
+                setActiveMenuId(null);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
+            >
+              <HiOutlineDuplicate className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
+              Copy to...
+            </button>
+          )}
+          {onMove && (
+            <button
+              onClick={() => {
+                onMove(item);
+                setActiveMenuId(null);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
+            >
+              <HiOutlineFolderOpen className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
+              Move to...
+            </button>
+          )}
+          <div className="h-px bg-black/5 dark:bg-white/5 my-1.5 mx-2" />
+          {onDelete && (
+            <button
+              onClick={() => {
+                onDelete(item);
+                setActiveMenuId(null);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-extrabold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all hover:pl-5 group/btn"
+            >
+              <HiOutlineTrash className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+              Delete
+            </button>
+          )}
+        </div>
+      </>
+    );
+  };
+
   if (viewMode === 'grid') {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mt-4">
@@ -165,10 +265,10 @@ export default function UniversalFileView({
             <Card
               key={item.id}
               onClick={() => onItemClick?.(item)}
-              className="cursor-pointer group relative bg-card-bg hover:shadow-2xl hover:-translate-y-2 p-6 rounded-[32px]"
+              className="cursor-pointer group relative bg-card-bg hover:shadow-2xl hover:-translate-y-2 p-6 rounded-[32px] overflow-visible"
             >
               {/* Top Section: Icon/Thumbnail */}
-              <div className="flex items-start justify-between mb-8 relative z-10">
+              <div className="relative mb-8 z-10">
                 {enableSelection && (
                   <div className="absolute top-[-10px] left-[-10px] z-20 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Checkbox
@@ -177,6 +277,7 @@ export default function UniversalFileView({
                     />
                   </div>
                 )}
+
                 <FileIcon
                   item={item}
                   isFolder={isFolder}
@@ -184,6 +285,16 @@ export default function UniversalFileView({
                   iconStyle={iconStyle}
                   viewMode="grid"
                 />
+
+                <div className="absolute top-0 right-0 z-30">
+                  <button
+                    onClick={e => toggleMenu(e, item.id)}
+                    className="p-1.5 rounded-xl bg-white/10 dark:bg-black/10 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all hover:bg-white dark:hover:bg-zinc-800 hover:text-v8-primary shadow-lg"
+                  >
+                    <HiOutlineDotsVertical className="w-5 h-5" />
+                  </button>
+                  {activeMenuId === item.id && renderActionMenu(item)}
+                </div>
               </div>
 
               {/* Middle Section: Name and Meta */}
@@ -299,7 +410,7 @@ export default function UniversalFileView({
               enableSelection
                 ? 'grid-cols-[40px_1fr_40px] md:grid-cols-[40px_1fr_180px_40px] lg:grid-cols-[40px_1fr_180px_120px_40px] xl:grid-cols-[40px_1fr_180px_120px_120px_40px]'
                 : 'grid-cols-[1fr_40px] md:grid-cols-[1fr_180px_40px] lg:grid-cols-[1fr_180px_120px_40px] xl:grid-cols-[1fr_180px_120px_120px_40px]'
-            } items-center px-4 py-3 rounded-2xl border shadow-xs hover:shadow-md hover:scale-[1.002] transition-all cursor-pointer group bg-card-bg`}
+            } items-center px-4 py-3 rounded-2xl border shadow-xs hover:shadow-md hover:scale-[1.002] transition-all cursor-pointer group bg-card-bg relative overflow-visible`}
             style={{ borderColor: 'var(--border-primary)' }}
           >
             {enableSelection && (
@@ -360,13 +471,17 @@ export default function UniversalFileView({
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end">
-              <button className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100">
+            <div className="flex justify-end relative">
+              <button
+                onClick={e => toggleMenu(e, item.id)}
+                className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
+              >
                 <HiOutlineDotsVertical
                   className="h-4 w-4"
                   style={{ color: 'var(--text-tertiary)' }}
                 />
               </button>
+              {activeMenuId === item.id && renderActionMenu(item)}
             </div>
           </div>
         );

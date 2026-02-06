@@ -8,6 +8,9 @@ import {
   CompleteUploadUseCase,
   GetFileThumbnailUseCase,
   GetMediaAlbumsUseCase,
+  MoveItemsUseCase,
+  CopyItemsUseCase,
+  BulkDeleteUseCase,
 } from '../../../application/use-cases/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
@@ -23,7 +26,10 @@ export class FileController {
     private initiateUploadUseCase: InitiateUploadUseCase,
     private completeUploadUseCase: CompleteUploadUseCase,
     private getFileThumbnailUseCase: GetFileThumbnailUseCase,
-    private getMediaAlbumsUseCase: GetMediaAlbumsUseCase
+    private getMediaAlbumsUseCase: GetMediaAlbumsUseCase,
+    private moveItemsUseCase: MoveItemsUseCase,
+    private copyItemsUseCase: CopyItemsUseCase,
+    private bulkDeleteUseCase: BulkDeleteUseCase
   ) {}
 
   // Methods...
@@ -328,6 +334,74 @@ export class FileController {
       } else {
         ResponseUtil.error(res, 'THUMBNAIL_ERROR', message);
       }
+    }
+  }
+
+  async moveItems(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { fileIds, folderIds, targetFolderId } = req.body;
+      await this.moveItemsUseCase.execute(req.user.id, {
+        fileIds: fileIds || [],
+        folderIds: folderIds || [],
+        targetFolderId,
+      });
+
+      ResponseUtil.success(res, { success: true, message: 'Items moved successfully' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to move items';
+      ResponseUtil.error(res, 'MOVE_ERROR', message);
+    }
+  }
+
+  async copyItems(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { fileIds, folderIds, targetFolderId } = req.body;
+      await this.copyItemsUseCase.execute(req.user.id, {
+        fileIds: fileIds || [],
+        folderIds: folderIds || [],
+        targetFolderId,
+      });
+
+      ResponseUtil.success(res, { success: true, message: 'Items copied successfully' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to copy items';
+      ResponseUtil.error(res, 'COPY_ERROR', message);
+    }
+  }
+
+  async bulkDelete(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { fileIds, folderIds, permanent } = req.body;
+      const isPermanent = permanent === true || String(permanent).toLowerCase() === 'true';
+
+      await this.bulkDeleteUseCase.execute(req.user.id, {
+        fileIds: fileIds || [],
+        folderIds: folderIds || [],
+        permanent: isPermanent,
+      });
+
+      ResponseUtil.success(res, {
+        success: true,
+        message: isPermanent ? 'Items permanently deleted' : 'Items moved to trash',
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete items';
+      ResponseUtil.error(res, 'BULK_DELETE_ERROR', message);
     }
   }
 }

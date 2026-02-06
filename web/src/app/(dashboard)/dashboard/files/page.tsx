@@ -2,7 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
-import { fetchSyncData } from '@/store/slices/fileSlice';
+import {
+  fetchSyncData,
+  createFolder,
+  bulkDeleteItems,
+  moveItems,
+  copyItems,
+} from '@/store/slices/fileSlice';
 import { formatFileSize } from '@/utils/format';
 import {
   HiOutlineFolder,
@@ -24,16 +30,22 @@ import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import UniversalFileView from '@/components/dashboard/UniversalFileView';
+import MoveCopyModal from '@/components/dashboard/MoveCopyModal';
 
 export default function FilesPage() {
   const dispatch = useAppDispatch();
   const { files, folders, isLoading, searchQuery } = useAppSelector(state => state.files);
-  const { user } = useAppSelector(state => state.auth); // Assuming user is available in auth slice
+  const { user } = useAppSelector(state => state.auth);
 
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'files' | 'folders'>('folders');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+
+  const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
+  const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy'>('move');
 
   // Clear selection when changing folders or tabs
   useEffect(() => {
@@ -44,6 +56,51 @@ export default function FilesPage() {
     dispatch(fetchSyncData());
   }, [dispatch]);
 
+  const handleCreateFolder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFolderName.trim()) return;
+    try {
+      await dispatch(createFolder({ name: newFolderName, parentId: currentFolderId })).unwrap();
+      setNewFolderName('');
+      setIsCreateModalOpen(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteSelected = async (targetIds?: Set<string>) => {
+    const ids = targetIds || selectedIds;
+    if (ids.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${ids.size} items?`)) return;
+
+    const fileIds = files.filter(f => ids.has(f.id)).map(f => f.id);
+    const folderIds = folders.filter(f => ids.has(f.id)).map(f => f.id);
+
+    try {
+      await dispatch(bulkDeleteItems({ fileIds, folderIds })).unwrap();
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMoveCopyConfirm = async (targetId: string | null) => {
+    const fileIds = files.filter(f => selectedIds.has(f.id)).map(f => f.id);
+    const folderIds = folders.filter(f => selectedIds.has(f.id)).map(f => f.id);
+
+    try {
+      if (moveCopyMode === 'move') {
+        await dispatch(moveItems({ fileIds, folderIds, targetFolderId: targetId })).unwrap();
+      } else {
+        await dispatch(copyItems({ fileIds, folderIds, targetFolderId: targetId })).unwrap();
+      }
+      setSelectedIds(new Set());
+      setIsMoveCopyModalOpen(false);
+    } catch (err: any) {
+      alert(err || 'Failed to complete operation');
+    }
+  };
+
   const currentFolder = folders.find(f => f.id === currentFolderId);
 
   const filterBySearch = (item: {
@@ -51,16 +108,12 @@ export default function FilesPage() {
     folderId?: string | null;
     parentId?: string | null;
   }) => {
-    // Search override: if searching, show all matches regardless of folder
     if (searchQuery) {
       return item.name.toLowerCase().includes(searchQuery.toLowerCase());
     }
-    // Default root/folder view: show only direct children
     if ('folderId' in item) {
-      // FileItem
       return item.folderId === currentFolderId;
     } else {
-      // FolderItem
       return (item as any).parentId === currentFolderId;
     }
   };
@@ -72,25 +125,84 @@ export default function FilesPage() {
     const crumbs: { id: string | null; name: string }[] = [{ id: null, name: 'All Files' }];
     if (!currentFolderId) return crumbs;
 
-    // Simplified path: for now just root -> current
-    // In a real app we'd recurse up parentId
-    if (currentFolder) {
-      crumbs.push({ id: currentFolder.id, name: currentFolder.name });
-    }
-    return crumbs;
+    // Recursive breadcrumbs
+    const buildPath = (folderId: string): { id: string; name: string }[] => {
+      const folder = folders.find(f => f.id === folderId);
+      if (!folder) return [];
+      const parentCrumbs = folder.parentId ? buildPath(folder.parentId) : [];
+      return [...parentCrumbs, { id: folder.id, name: folder.name }];
+    };
+
+    return [{ id: null, name: 'All Files' }, ...buildPath(currentFolderId)];
   };
 
   if (isLoading && files.length === 0) {
     return <DashboardSkeleton />;
   }
 
+  const isEmpty = filteredFiles.length === 0 && filteredFolders.length === 0;
+
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8 relative min-h-[600px]">
+      {/* Create Folder Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div
+            className="bg-white dark:bg-zinc-900 p-8 rounded-[32px] border shadow-2xl w-full max-w-sm"
+            style={{ borderColor: 'var(--border-primary)' }}
+          >
+            <h2 className="text-xl font-black mb-6 tracking-tight">Create New Folder</h2>
+            <form onSubmit={handleCreateFolder}>
+              <input
+                autoFocus
+                type="text"
+                placeholder="Folder Name"
+                className="w-full px-5 py-4 rounded-2xl bg-zinc-100 dark:bg-zinc-800 border-none focus:ring-2 focus:ring-v8-primary transition-all mb-6 font-bold"
+                value={newFolderName}
+                onChange={e => setNewFolderName(e.target.value)}
+              />
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1 rounded-2xl h-12 font-black"
+                  onClick={() => setIsCreateModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="flex-1 rounded-2xl h-12 font-black"
+                  style={{ backgroundColor: '#8b5cf6', color: 'white' }}
+                >
+                  Create
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isMoveCopyModalOpen && (
+        <MoveCopyModal
+          isOpen={isMoveCopyModalOpen}
+          onClose={() => setIsMoveCopyModalOpen(false)}
+          onConfirm={handleMoveCopyConfirm}
+          folders={folders}
+          title={moveCopyMode === 'move' ? 'Move to Folder' : 'Copy to Folder'}
+        />
+      )}
+
       {/* Breadcrumbs */}
       <div
         className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60"
         style={{ color: 'var(--text-tertiary)' }}
       >
+        <Link href="/dashboard" className="hover:text-v8-primary transition-colors">
+          Home
+        </Link>
+        <HiChevronRight className="w-2.5 h-2.5" />
         {getBreadcrumbs().map((crumb, idx) => (
           <React.Fragment key={crumb.id || 'root'}>
             {idx > 0 && <HiChevronRight className="w-2.5 h-2.5 mx-1" />}
@@ -133,7 +245,10 @@ export default function FilesPage() {
             </div>
             {currentFolderId && (
               <button
-                onClick={() => setCurrentFolderId(null)}
+                onClick={() => {
+                  const parent = folders.find(f => f.id === currentFolderId)?.parentId;
+                  setCurrentFolderId(parent || null);
+                }}
                 className="flex items-center gap-2 px-4 py-2 rounded-2xl border text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all opacity-60 hover:opacity-100"
                 style={{ borderColor: 'var(--border-primary)' }}
               >
@@ -150,8 +265,8 @@ export default function FilesPage() {
           >
             {/* Bulk Actions Toolbar */}
             {selectedIds.size > 0 && (
-              <div className="flex items-center gap-1 pr-2 border-r border-zinc-200 dark:border-zinc-700 mr-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mr-2">
+              <div className="flex items-center gap-1 pr-2 border-r border-zinc-200 dark:border-zinc-700 mr-2 animate-in fade-in slide-in-from-right-4">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mx-2">
                   {selectedIds.size} selected
                 </span>
 
@@ -164,6 +279,10 @@ export default function FilesPage() {
                 </button>
 
                 <button
+                  onClick={() => {
+                    setMoveCopyMode('move');
+                    setIsMoveCopyModalOpen(true);
+                  }}
                   className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-v8-primary transition-colors"
                   title="Move"
                 >
@@ -171,6 +290,10 @@ export default function FilesPage() {
                 </button>
 
                 <button
+                  onClick={() => {
+                    setMoveCopyMode('copy');
+                    setIsMoveCopyModalOpen(true);
+                  }}
                   className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-v8-primary transition-colors"
                   title="Copy"
                 >
@@ -178,6 +301,7 @@ export default function FilesPage() {
                 </button>
 
                 <button
+                  onClick={() => handleDeleteSelected()}
                   className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                   title="Delete"
                 >
@@ -205,6 +329,7 @@ export default function FilesPage() {
             className="gap-2 rounded-full px-5 font-bold h-10"
             style={{ backgroundColor: '#8b5cf6', color: 'white' }}
             icon={<HiPlus className="w-4 h-4" />}
+            onClick={() => setIsCreateModalOpen(true)}
           >
             Create
           </Button>
@@ -212,7 +337,34 @@ export default function FilesPage() {
       </div>
 
       <div className="mt-8">
-        {activeTab === 'folders' ? (
+        {isEmpty ? (
+          <div className="flex flex-col items-center justify-center py-32 rounded-[40px] border-2 border-dashed border-zinc-200 dark:border-zinc-800 animate-in fade-in zoom-in-95 duration-700">
+            <div className="w-24 h-24 rounded-full bg-linear-to-br from-v8-primary/20 to-purple-500/20 flex items-center justify-center mb-6 shadow-2xl shadow-v8-primary/10">
+              <HiOutlineFolder className="w-10 h-10 text-v8-primary animate-pulse" />
+            </div>
+            <h3
+              className="text-xl font-black mb-2 tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              This folder is empty
+            </h3>
+            <p
+              className="text-[13px] font-bold opacity-40 max-w-[280px] text-center"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              Get started by creating a new folder or uploading your files here.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-8 gap-2 rounded-2xl px-6 font-black h-12 border-2"
+              icon={<HiPlus className="w-4 h-4" />}
+              onClick={() => setIsCreateModalOpen(true)}
+            >
+              New Folder
+            </Button>
+          </div>
+        ) : activeTab === 'folders' ? (
           <UniversalFileView
             items={filteredFolders}
             viewMode={viewMode}
@@ -221,6 +373,19 @@ export default function FilesPage() {
             enableSelection={true} // Enable selection for folders
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
+            onDelete={item => {
+              handleDeleteSelected(new Set([item.id]));
+            }}
+            onMove={item => {
+              setSelectedIds(new Set([item.id]));
+              setMoveCopyMode('move');
+              setIsMoveCopyModalOpen(true);
+            }}
+            onCopy={item => {
+              setSelectedIds(new Set([item.id]));
+              setMoveCopyMode('copy');
+              setIsMoveCopyModalOpen(true);
+            }}
           />
         ) : (
           <UniversalFileView
@@ -230,6 +395,19 @@ export default function FilesPage() {
             enableSelection={true} // Enable selection for files
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
+            onDelete={item => {
+              handleDeleteSelected(new Set([item.id]));
+            }}
+            onMove={item => {
+              setSelectedIds(new Set([item.id]));
+              setMoveCopyMode('move');
+              setIsMoveCopyModalOpen(true);
+            }}
+            onCopy={item => {
+              setSelectedIds(new Set([item.id]));
+              setMoveCopyMode('copy');
+              setIsMoveCopyModalOpen(true);
+            }}
           />
         )}
       </div>

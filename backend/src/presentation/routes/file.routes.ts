@@ -45,4 +45,15 @@ router.post('/:id/restore', strictMutationRateLimiter, (req, res) =>
   filesContainer.fileController.restore(req, res)
 );
 
+// Bulk/Batch Operations
+router.post('/move', strictMutationRateLimiter, (req, res) =>
+  filesContainer.fileController.moveItems(req, res)
+);
+router.post('/copy', strictMutationRateLimiter, (req, res) =>
+  filesContainer.fileController.copyItems(req, res)
+);
+router.delete('/', strictMutationRateLimiter, (req, res) =>
+  filesContainer.fileController.bulkDelete(req, res)
+);
+
 export default router;

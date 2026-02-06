@@ -22,6 +22,9 @@ import {
   CompleteUploadUseCase,
   GetFileThumbnailUseCase,
   GetMediaAlbumsUseCase,
+  MoveItemsUseCase,
+  CopyItemsUseCase,
+  BulkDeleteUseCase,
 } from '../../../application/use-cases/index.js';
 import { FileController } from '../../../presentation/controllers/files/file.controller.js';
 import { FolderController } from '../../../presentation/controllers/files/folder.controller.js';
@@ -63,6 +66,9 @@ export class FilesContainer {
   public readonly getFileThumbnailUseCase: GetFileThumbnailUseCase;
   public readonly getMediaAlbumsUseCase: GetMediaAlbumsUseCase;
   public readonly revokeShareUseCase: RevokeShareUseCase;
+  public readonly moveItemsUseCase: MoveItemsUseCase;
+  public readonly copyItemsUseCase: CopyItemsUseCase;
+  public readonly bulkDeleteUseCase: BulkDeleteUseCase;
 
   // Controllers
   public readonly fileController: FileController;
@@ -183,6 +189,18 @@ export class FilesContainer {
 
     this.getMediaAlbumsUseCase = new GetMediaAlbumsUseCase(this.fileRepository);
 
+    this.moveItemsUseCase = new MoveItemsUseCase(this.fileRepository, this.folderRepository);
+    this.copyItemsUseCase = new CopyItemsUseCase(
+      this.fileRepository,
+      this.folderRepository,
+      sharedContainer.storageService,
+      sharedContainer.userRepository
+    );
+    this.bulkDeleteUseCase = new BulkDeleteUseCase(
+      this.deleteFileUseCase,
+      this.deleteFolderUseCase
+    );
+
     // Controllers implementation
     this.fileController = new FileController(
       this.fileRepository,
@@ -193,7 +211,10 @@ export class FilesContainer {
       this.initiateUploadUseCase,
       this.completeUploadUseCase,
       this.getFileThumbnailUseCase,
-      this.getMediaAlbumsUseCase
+      this.getMediaAlbumsUseCase,
+      this.moveItemsUseCase,
+      this.copyItemsUseCase,
+      this.bulkDeleteUseCase
     );
 
     this.folderController = new FolderController(

@@ -4,7 +4,7 @@ import UniversalFileView from '@/components/dashboard/UniversalFileView';
 import Button from '@/components/ui/Button';
 import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchSyncData } from '@/store/slices/fileSlice';
+import { fetchSyncData, bulkDeleteItems, moveItems, copyItems } from '@/store/slices/fileSlice';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
@@ -21,6 +21,7 @@ import {
   HiX,
 } from 'react-icons/hi';
 import AddUserModal from '@/components/dashboard/AddUserModal';
+import MoveCopyModal from '@/components/dashboard/MoveCopyModal';
 
 const dummyPinnedFolders = [
   {
@@ -71,6 +72,41 @@ export default function DashboardPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
+  const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy'>('move');
+
+  const handleDeleteSelected = async (targetIds?: Set<string>) => {
+    const ids = targetIds || selectedIds;
+    if (ids.size === 0) return;
+    if (!confirm(`Are you sure you want to delete ${ids.size} items?`)) return;
+
+    const fileIds = files.filter(f => ids.has(f.id)).map(f => f.id);
+    const folderIds = folders.filter(f => ids.has(f.id)).map(f => f.id);
+
+    try {
+      await dispatch(bulkDeleteItems({ fileIds, folderIds })).unwrap();
+      setSelectedIds(new Set());
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMoveCopyConfirm = async (targetId: string | null) => {
+    const fileIds = files.filter(f => selectedIds.has(f.id)).map(f => f.id);
+    const folderIds = folders.filter(f => selectedIds.has(f.id)).map(f => f.id);
+
+    try {
+      if (moveCopyMode === 'move') {
+        await dispatch(moveItems({ fileIds, folderIds, targetFolderId: targetId })).unwrap();
+      } else {
+        await dispatch(copyItems({ fileIds, folderIds, targetFolderId: targetId })).unwrap();
+      }
+      setSelectedIds(new Set());
+      setIsMoveCopyModalOpen(false);
+    } catch (err: any) {
+      alert(err || 'Failed to complete operation');
+    }
+  };
 
   const filterBySearch = (item: { name: string; mimeType?: string; extension?: string }) => {
     const matchesSearch = searchQuery
@@ -272,6 +308,10 @@ export default function DashboardPage() {
                   </button>
 
                   <button
+                    onClick={() => {
+                      setMoveCopyMode('move');
+                      setIsMoveCopyModalOpen(true);
+                    }}
                     className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-v8-primary transition-colors"
                     title="Move"
                   >
@@ -279,6 +319,10 @@ export default function DashboardPage() {
                   </button>
 
                   <button
+                    onClick={() => {
+                      setMoveCopyMode('copy');
+                      setIsMoveCopyModalOpen(true);
+                    }}
                     className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-v8-primary transition-colors"
                     title="Copy"
                   >
@@ -286,6 +330,7 @@ export default function DashboardPage() {
                   </button>
 
                   <button
+                    onClick={() => handleDeleteSelected()}
                     className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                     title="Delete"
                   >
@@ -366,6 +411,19 @@ export default function DashboardPage() {
               enableSelection={true}
               selectedIds={selectedIds}
               onSelectionChange={setSelectedIds}
+              onDelete={item => {
+                handleDeleteSelected(new Set([item.id]));
+              }}
+              onMove={item => {
+                setSelectedIds(new Set([item.id]));
+                setMoveCopyMode('move');
+                setIsMoveCopyModalOpen(true);
+              }}
+              onCopy={item => {
+                setSelectedIds(new Set([item.id]));
+                setMoveCopyMode('copy');
+                setIsMoveCopyModalOpen(true);
+              }}
             />
           </div>
           {/* Creative Pagination */}
@@ -414,6 +472,16 @@ export default function DashboardPage() {
           dispatch(fetchSyncData());
         }}
       />
+
+      {isMoveCopyModalOpen && (
+        <MoveCopyModal
+          isOpen={isMoveCopyModalOpen}
+          onClose={() => setIsMoveCopyModalOpen(false)}
+          onConfirm={handleMoveCopyConfirm}
+          folders={folders}
+          title={moveCopyMode === 'move' ? 'Move to Folder' : 'Copy to Folder'}
+        />
+      )}
     </div>
   );
 }
