@@ -6,13 +6,13 @@ export default function VaultPage() {
     <div className="space-y-6 pb-8 h-full flex flex-col">
       {/* Breadcrumbs */}
       <div
-        className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60"
         style={{ color: 'var(--text-tertiary)' }}
       >
         <Link href="/dashboard" className="hover:text-v8-primary transition-colors">
           Home
         </Link>
-        <HiChevronRight className="w-3 h-3" />
+        <HiChevronRight className="w-2.5 h-2.5" />
         <span className="text-v8-primary">Personal Vault</span>
       </div>
 
@@ -32,7 +32,7 @@ export default function VaultPage() {
 
         <div className="max-w-md space-y-4">
           <h1
-            className="text-5xl font-black tracking-tighter"
+            className="text-2xl font-black tracking-tight"
             style={{ color: 'var(--text-primary)' }}
           >
             Your Digital Safe
@@ -46,12 +46,12 @@ export default function VaultPage() {
           </p>
         </div>
 
-        <div className="flex flex-col gap-4 w-full max-w-sm">
-          <button className="px-8 py-4 rounded-3xl bg-v8-primary text-white font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-xl shadow-purple-500/25">
+        <div className="flex flex-col gap-3 w-full max-w-sm">
+          <button className="px-8 py-3 rounded-full bg-v8-primary text-white font-black uppercase tracking-widest text-[10px] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-purple-500/25">
             Unlock with Biometrics
           </button>
           <button
-            className="px-8 py-4 rounded-3xl border font-black uppercase tracking-widest text-xs transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            className="px-8 py-3 rounded-full border font-black uppercase tracking-widest text-[10px] transition-all hover:bg-zinc-50 dark:hover:bg-zinc-800"
             style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-primary)' }}
           >
             Use Recovery Key

@@ -88,12 +88,12 @@ export default function FilesPage() {
     <div className="space-y-6 pb-8">
       {/* Breadcrumbs */}
       <div
-        className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60"
         style={{ color: 'var(--text-tertiary)' }}
       >
         {getBreadcrumbs().map((crumb, idx) => (
           <React.Fragment key={crumb.id || 'root'}>
-            {idx > 0 && <HiChevronRight className="w-3 h-3 mx-1" />}
+            {idx > 0 && <HiChevronRight className="w-2.5 h-2.5 mx-1" />}
             <button
               onClick={() => setCurrentFolderId(crumb.id)}
               className={`hover:text-v8-primary transition-colors ${idx === getBreadcrumbs().length - 1 ? 'text-v8-primary' : ''}`}
@@ -108,7 +108,7 @@ export default function FilesPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1
-            className="text-5xl font-black tracking-tighter"
+            className="text-2xl font-black tracking-tight"
             style={{ color: 'var(--text-primary)' }}
           >
             {currentFolder ? currentFolder.name : 'All Files'}
@@ -120,13 +120,13 @@ export default function FilesPage() {
             >
               <button
                 onClick={() => setActiveTab('folders')}
-                className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeTab === 'folders' ? 'bg-white dark:bg-zinc-700 shadow-sm text-v8-primary' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'folders' ? 'bg-white dark:bg-zinc-700 shadow-xs text-v8-primary' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 opacity-60'}`}
               >
                 Folders ({filteredFolders.length})
               </button>
               <button
                 onClick={() => setActiveTab('files')}
-                className={`px-6 py-2 rounded-xl text-xs font-black transition-all ${activeTab === 'files' ? 'bg-white dark:bg-zinc-700 shadow-sm text-v8-primary' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'}`}
+                className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'files' ? 'bg-white dark:bg-zinc-700 shadow-xs text-v8-primary' : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 opacity-60'}`}
               >
                 Files ({filteredFiles.length})
               </button>
@@ -134,11 +134,11 @@ export default function FilesPage() {
             {currentFolderId && (
               <button
                 onClick={() => setCurrentFolderId(null)}
-                className="flex items-center gap-2 px-4 py-2 rounded-2xl border text-xs font-bold text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-2xl border text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all opacity-60 hover:opacity-100"
                 style={{ borderColor: 'var(--border-primary)' }}
               >
-                <HiOutlineArrowLeft className="w-4 h-4" />
-                Go Back
+                <HiOutlineArrowLeft className="w-3.5 h-3.5" />
+                Back
               </button>
             )}
           </div>
@@ -201,8 +201,8 @@ export default function FilesPage() {
           </div>
           <Button
             variant="primary"
-            size="md"
-            className="gap-2 rounded-2xl px-6 font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-500/20"
+            size="sm"
+            className="gap-2 rounded-full px-5 font-bold h-10"
             style={{ backgroundColor: '#8b5cf6', color: 'white' }}
             icon={<HiPlus className="w-4 h-4" />}
           >

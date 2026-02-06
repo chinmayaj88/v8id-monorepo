@@ -101,13 +101,13 @@ export default function SharedPage() {
     <div className="space-y-6 pb-8">
       {/* Breadcrumbs */}
       <div
-        className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider"
+        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60"
         style={{ color: 'var(--text-tertiary)' }}
       >
         <Link href="/dashboard" className="hover:text-v8-primary transition-colors">
           Home
         </Link>
-        <HiChevronRight className="w-3 h-3" />
+        <HiChevronRight className="w-2.5 h-2.5" />
         <span className="text-v8-primary">Shared With Me</span>
       </div>
 
@@ -115,7 +115,7 @@ export default function SharedPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1
-            className="text-5xl font-black tracking-tighter"
+            className="text-2xl font-black tracking-tight"
             style={{ color: 'var(--text-primary)' }}
           >
             Shared
@@ -147,8 +147,8 @@ export default function SharedPage() {
           </div>
           <Button
             variant="primary"
-            size="md"
-            className="gap-2 rounded-2xl px-6 font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-500/20"
+            size="sm"
+            className="gap-2 rounded-full px-5 font-bold h-10"
             style={{ backgroundColor: '#8b5cf6', color: 'white' }}
             icon={<HiPlus className="w-4 h-4" />}
           >
@@ -161,8 +161,11 @@ export default function SharedPage() {
         {/* Folders */}
         {filteredFolders.length > 0 && (
           <section>
-            <div className="flex items-end justify-between mb-6">
-              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
+            <div className="flex items-end justify-between mb-4">
+              <h2
+                className="text-base font-black tracking-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
                 Folders
               </h2>
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
@@ -180,8 +183,11 @@ export default function SharedPage() {
         {/* Files */}
         {filteredFiles.length > 0 && (
           <section>
-            <div className="flex items-end justify-between mb-6">
-              <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>
+            <div className="flex items-end justify-between mb-4">
+              <h2
+                className="text-base font-black tracking-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
                 Files
               </h2>
               <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">

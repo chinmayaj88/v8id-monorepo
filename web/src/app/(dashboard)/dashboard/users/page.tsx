@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   HiOutlinePlus,
   HiOutlineMail,
@@ -17,6 +18,8 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import PremiumLoader from '@/components/ui/PremiumLoader';
+import Link from 'next/link';
+import { HiChevronRight } from 'react-icons/hi';
 
 interface UserItem {
   id: string;
@@ -32,6 +35,8 @@ interface UserItem {
 
 export default function UsersPage() {
   const { user: currentUser } = useAppSelector(state => state.auth);
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [users, setUsers] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -57,6 +62,13 @@ export default function UsersPage() {
       backupCodes: string[];
     };
   } | null>(null);
+
+  useEffect(() => {
+    if (searchParams.get('add') === 'true') {
+      setShowAddModal(true);
+      router.replace('/dashboard/users');
+    }
+  }, [searchParams, router]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -103,7 +115,7 @@ export default function UsersPage() {
         role: 'USER',
         storageQuota: 5368709120,
       });
-      // fetchUsers(); // Removed, as the modal now shows success details instead of immediately closing and refetching
+      fetchUsers();
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to create user');
     } finally {
@@ -127,12 +139,15 @@ export default function UsersPage() {
 
   if (currentUser?.role !== 'ADMIN') {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Card variant="outline" className="p-12 text-center max-w-md">
-          <HiOutlineTrash className="w-12 h-12 text-red-500 mx-auto mb-4 opacity-50" />
-          <h2 className="text-xl font-black mb-2">Access Denied</h2>
-          <p className="text-zinc-500 font-bold">
-            You don't have permission to view this page. Restricted to administrators only.
+      <div className="flex h-[60vh] items-center justify-center p-6">
+        <Card variant="outline" className="p-10 text-center max-w-sm rounded-[24px]">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <HiOutlineTrash className="w-8 h-8 text-red-500 opacity-80" />
+          </div>
+          <h2 className="text-xl font-black mb-2 tracking-tight">Access Denied</h2>
+          <p className="text-zinc-500 text-sm font-bold leading-relaxed">
+            Restricted to administrators only. Please contact support if you believe this is an
+            error.
           </p>
         </Card>
       </div>
@@ -140,41 +155,58 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 pb-8 animate-in fade-in duration-700">
+      {/* Breadcrumbs */}
+      <div
+        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60"
+        style={{ color: 'var(--text-tertiary)' }}
+      >
+        <Link href="/dashboard" className="hover:text-v8-primary transition-colors">
+          Home
+        </Link>
+        <HiChevronRight className="w-2.5 h-2.5" />
+        <span style={{ color: 'var(--text-secondary)' }}>User Management</span>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1
-            className="text-3xl font-black tracking-tighter"
+            className="text-2xl font-black tracking-tight"
             style={{ color: 'var(--text-primary)' }}
           >
             User Management
           </h1>
-          <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest mt-1">
-            Manage your cloud infrastructure users
+          <p
+            className="text-[10px] font-black uppercase tracking-widest mt-1 opacity-60"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            Control access and storage limits
           </p>
         </div>
         <Button
           variant="primary"
-          size="md"
-          icon={<HiOutlinePlus className="w-5 h-5" />}
+          size="sm"
+          className="rounded-full px-5 font-bold h-10"
+          icon={<HiOutlinePlus className="w-4 h-4" />}
           onClick={() => {
             setCreationResult(null);
             setShowAddModal(true);
           }}
         >
-          Add New User
+          Add User
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Input
-          placeholder="Search by name or email..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          icon={<HiOutlineSearch className="w-5 h-5" />}
-          containerClassName="max-w-md"
-          className="bg-card-bg border-0 ring-1 ring-inset ring-(--border-primary)"
-        />
+      <div className="flex items-center gap-3">
+        <div className="w-full max-w-xs">
+          <Input
+            placeholder="Search users..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            icon={<HiOutlineSearch />}
+            className="bg-card-bg/50 border-zinc-200 dark:border-zinc-800"
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -186,18 +218,18 @@ export default function UsersPage() {
           {filteredUsers.map(userItem => (
             <Card
               key={userItem.id}
-              className="group hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
+              className="group hover:-translate-y-1 transition-all duration-300 relative overflow-hidden p-5"
             >
               <div className="absolute top-0 right-0 h-32 w-32 bg-v8-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-v8-primary/10 transition-colors"></div>
 
-              <div className="flex items-start gap-4 p-2">
-                <div className="h-12 w-12 rounded-2xl bg-v8-primary/10 flex items-center justify-center text-v8-primary font-black text-lg shrink-0">
+              <div className="flex items-start gap-4">
+                <div className="h-11 w-11 rounded-2xl bg-v8-primary/10 flex items-center justify-center text-v8-primary font-black text-lg shrink-0">
                   {userItem.firstName?.[0] || userItem.email[0].toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <h3
-                      className="font-black truncate pr-2"
+                      className="font-black text-sm truncate pr-2"
                       style={{ color: 'var(--text-primary)' }}
                     >
                       {userItem.firstName} {userItem.lastName}
@@ -214,11 +246,11 @@ export default function UsersPage() {
                   </div>
                   <div className="flex items-center gap-1.5 text-zinc-500 mb-4">
                     <HiOutlineMail className="w-3.5 h-3.5" />
-                    <span className="text-xs font-bold truncate">{userItem.email}</span>
+                    <span className="text-[11px] font-bold truncate">{userItem.email}</span>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-zinc-400">
                       <span>Storage Allocation</span>
                       <span style={{ color: 'var(--text-primary)' }}>
                         {formatSize(parseInt(userItem.storageUsed))} /{' '}
@@ -236,14 +268,14 @@ export default function UsersPage() {
                   </div>
 
                   <div
-                    className="mt-6 pt-4 border-t border-dashed flex items-center justify-between"
+                    className="mt-5 pt-4 border-t border-dashed flex items-center justify-between"
                     style={{ borderColor: 'var(--border-primary)' }}
                   >
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                      Joined {new Date(userItem.createdAt).toLocaleDateString()}
+                    <div className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest opacity-60">
+                      Since {new Date(userItem.createdAt).toLocaleDateString()}
                     </div>
                     <button className="text-zinc-400 hover:text-red-500 transition-colors">
-                      <HiOutlineTrash className="w-5 h-5" />
+                      <HiOutlineTrash className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -268,11 +300,13 @@ export default function UsersPage() {
           setShowAddModal(false);
           setCreationResult(null);
         }}
-        title={creationResult ? 'Account Created Successfully' : 'Create New User'}
+        title={creationResult ? 'Account Created' : 'Add New User'}
         footer={
           <>
             <Button
               variant="ghost"
+              size="sm"
+              className="font-bold text-xs"
               onClick={() => {
                 setShowAddModal(false);
                 setCreationResult(null);
@@ -281,7 +315,13 @@ export default function UsersPage() {
               {creationResult ? 'Close' : 'Cancel'}
             </Button>
             {!creationResult && (
-              <Button variant="primary" onClick={handleAddUser} isLoading={submitting}>
+              <Button
+                variant="primary"
+                size="sm"
+                className="font-bold text-xs rounded-lg px-6"
+                onClick={handleAddUser}
+                isLoading={submitting}
+              >
                 Create Account
               </Button>
             )}
@@ -289,60 +329,56 @@ export default function UsersPage() {
         }
       >
         {creationResult ? (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 flex gap-3">
-              <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
-                <HiOutlineMail className="w-6 h-6" />
+              <div className="h-9 w-9 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
+                <HiOutlineMail className="w-5 h-5" />
               </div>
               <div>
-                <p className="text-sm font-bold text-emerald-600">Welcome email sent!</p>
-                <p className="text-xs font-medium text-emerald-600/70">
-                  Credential details have been emailed to {creationResult.email}
+                <p className="text-sm font-bold text-emerald-600">Email sent!</p>
+                <p className="text-[11px] font-medium text-emerald-600/70">
+                  Credentials sent to {creationResult.email}
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">
-                  Authenticator Setup (TOTP)
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2 ml-1">
+                  Authenticator Setup
                 </p>
-                <div className="flex flex-col items-center bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl p-6 border border-zinc-100 dark:border-zinc-800">
+                <div className="flex flex-col items-center bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-4 border border-zinc-100 dark:border-zinc-800">
                   <img
                     src={creationResult.totpSetup.qrCodeUrl}
                     alt="QR Code"
-                    className="w-48 h-48 rounded-2xl shadow-xl mb-4 bg-white p-2"
+                    className="w-40 h-40 rounded-xl shadow-lg mb-3 bg-white p-2"
                   />
-                  <p className="text-xs font-bold text-zinc-500 mb-1">Manual Entry Code</p>
-                  <code className="text-sm font-black text-v8-primary tracking-widest bg-v8-primary/5 px-3 py-1 rounded-lg">
+                  <code className="text-[11px] font-black text-v8-primary tracking-widest bg-v8-primary/5 px-2.5 py-1 rounded-md">
                     {creationResult.totpSetup.secret}
                   </code>
                 </div>
               </div>
 
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2">
-                  Emergency Backup Codes
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2 ml-1">
+                  Backup Codes
                 </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {creationResult.totpSetup.backupCodes.map((code, idx) => (
+                <div className="grid grid-cols-2 gap-1.5">
+                  {creationResult.totpSetup.backupCodes.slice(0, 6).map((code, idx) => (
                     <div
                       key={idx}
-                      className="bg-zinc-50 dark:bg-zinc-800 p-2 rounded-xl text-center text-xs font-mono font-bold text-zinc-500 border border-zinc-100 dark:border-zinc-800"
+                      className="bg-zinc-50 dark:bg-zinc-800 p-1.5 rounded-lg text-center text-[10px] font-mono font-bold text-zinc-500 border border-zinc-100 dark:border-zinc-800"
                     >
                       {code}
                     </div>
                   ))}
                 </div>
-                <p className="text-[10px] font-bold text-red-500 uppercase mt-2 text-center">
-                  Important: Save these codes now. They will not be shown again.
-                </p>
               </div>
             </div>
           </div>
         ) : (
           <form className="space-y-4" onSubmit={handleAddUser}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <Input
                 label="First Name"
                 placeholder="John"
@@ -357,13 +393,13 @@ export default function UsersPage() {
               />
             </div>
             <Input
-              label="Email Address"
+              label="Email"
               type="email"
               placeholder="john@example.com"
               value={formData.email}
               onChange={e => setFormData({ ...formData, email: e.target.value })}
               required
-              icon={<HiOutlineMail className="w-4 h-4" />}
+              icon={<HiOutlineMail />}
             />
             <Input
               label="Password"
@@ -374,42 +410,42 @@ export default function UsersPage() {
               required
             />
             <div className="space-y-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-2 ml-1">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 ml-1 opacity-70">
                 User Role
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  className={`py-3 px-4 rounded-xl border-2 font-bold text-sm transition-all ${
+                  className={`py-2 px-3 rounded-lg border font-bold text-xs transition-all ${
                     formData.role === 'USER'
                       ? 'border-v8-primary bg-v8-primary/5 text-v8-primary'
-                      : 'border-transparent bg-zinc-50 dark:bg-zinc-800 text-zinc-500'
+                      : 'border-transparent bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500'
                   }`}
                   onClick={() => setFormData({ ...formData, role: 'USER' })}
                 >
-                  Standard User
+                  User
                 </button>
                 <button
                   type="button"
-                  className={`py-3 px-4 rounded-xl border-2 font-bold text-sm transition-all ${
+                  className={`py-2 px-3 rounded-lg border font-bold text-xs transition-all ${
                     formData.role === 'ADMIN'
-                      ? 'border-purple-500 bg-purple-500/5 text-purple-500'
-                      : 'border-transparent bg-zinc-50 dark:bg-zinc-800 text-zinc-500'
+                      ? 'border-v8-primary bg-v8-primary/5 text-v8-primary'
+                      : 'border-transparent bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500'
                   }`}
                   onClick={() => setFormData({ ...formData, role: 'ADMIN' })}
                 >
-                  Administrator
+                  Admin
                 </button>
               </div>
             </div>
             <Input
-              label="Storage Limit (Bytes)"
+              label="Quota"
               type="number"
               value={formData.storageQuota}
               onChange={e => setFormData({ ...formData, storageQuota: parseInt(e.target.value) })}
-              icon={<HiOutlineDatabase className="w-4 h-4" />}
+              icon={<HiOutlineDatabase />}
               suffix={
-                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pr-2">
+                <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest pr-2">
                   {formatSize(formData.storageQuota)}
                 </span>
               }

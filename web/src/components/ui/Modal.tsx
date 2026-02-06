@@ -49,20 +49,20 @@ export default function Modal({
         onClick={onClose}
       ></div>
       <div
-        className={`w-full ${maxWidthClasses[maxWidth]} rounded-[32px] p-8 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300 border`}
+        className={`w-full ${maxWidthClasses[maxWidth]} rounded-[24px] p-6 relative z-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300 border`}
         style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-primary)' }}
       >
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-5">
           {title && (
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+            <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
               {title}
             </h3>
           )}
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
           >
-            <HiX className="w-6 h-6 text-gray-500" />
+            <HiX className="w-5 h-5 text-gray-500" />
           </button>
         </div>
 
@@ -70,7 +70,7 @@ export default function Modal({
 
         {footer && (
           <div
-            className="pt-6 mt-6 border-t flex justify-end gap-3"
+            className="pt-5 mt-5 border-t flex justify-end gap-3"
             style={{ borderColor: 'var(--border-primary)' }}
           >
             {footer}

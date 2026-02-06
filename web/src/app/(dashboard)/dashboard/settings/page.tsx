@@ -25,6 +25,7 @@ import {
   HiOutlineFingerPrint,
   HiOutlineClock,
   HiOutlineCheckCircle,
+  HiChevronRight,
 } from 'react-icons/hi';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -32,6 +33,7 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import PremiumLoader from '@/components/ui/PremiumLoader';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 // Types
 interface DeviceSession {
@@ -203,18 +205,33 @@ export default function SettingsPage() {
   if (!user) return <PremiumLoader />;
 
   return (
-    <div className=" mx-auto space-y-8 pb-12 relative">
+    <div className="space-y-6 pb-12 relative">
+      {/* Breadcrumbs */}
+      <div
+        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60"
+        style={{ color: 'var(--text-tertiary)' }}
+      >
+        <Link href="/dashboard" className="hover:text-v8-primary transition-colors">
+          Home
+        </Link>
+        <HiChevronRight className="w-2.5 h-2.5" />
+        <span style={{ color: 'var(--text-secondary)' }}>Account Settings</span>
+      </div>
+
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1
-            className="text-4xl font-black tracking-tighter"
+            className="text-2xl font-black tracking-tight"
             style={{ color: 'var(--text-primary)' }}
           >
             Account Settings
           </h1>
-          <p className="mt-2 text-sm font-medium" style={{ color: 'var(--text-tertiary)' }}>
-            Manage your profile, security, and connected devices.
+          <p
+            className="mt-1 text-[10px] font-black uppercase tracking-widest opacity-60"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            Manage your profile, security, and connected devices
           </p>
         </div>
       </div>

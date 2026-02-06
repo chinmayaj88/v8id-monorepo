@@ -55,22 +55,25 @@ export default function RecentPage() {
     <div className="space-y-6 pb-8">
       {/* Breadcrumbs */}
       <div
-        className="flex items-center gap-2 text-xs font-medium"
+        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60"
         style={{ color: 'var(--text-tertiary)' }}
       >
         <Link href="/dashboard" className="hover:text-v8-primary transition-colors">
           Home
         </Link>
-        <HiChevronRight className="w-3 h-3" />
+        <HiChevronRight className="w-2.5 h-2.5" />
         <span style={{ color: 'var(--text-secondary)' }}>Recent Activity</span>
       </div>
 
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
+        <h1 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
           Recent Activity
         </h1>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-tertiary)' }}>
+        <p
+          className="text-[10px] font-black uppercase tracking-widest mt-1 opacity-60"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
           Files you've worked on recently
         </p>
       </div>
@@ -84,70 +87,30 @@ export default function RecentPage() {
           <thead style={{ backgroundColor: 'var(--card-bg)' }}>
             <tr className="border-b" style={{ borderColor: 'var(--border-primary)' }}>
               <th
-                className="text-left px-5 py-3.5 text-xs font-normal"
+                className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest opacity-60"
                 style={{ color: 'var(--text-tertiary)' }}
               >
-                <button className="flex items-center gap-1 hover:text-current transition-colors">
-                  Document Name
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+                Document Name
               </th>
               <th
-                className="text-left px-5 py-3.5 text-xs font-normal hidden md:table-cell"
+                className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest opacity-60 hidden md:table-cell"
                 style={{ color: 'var(--text-tertiary)' }}
               >
-                <button className="flex items-center gap-1 hover:text-current transition-colors">
-                  Last Edit
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+                Last Edit
               </th>
               <th
-                className="text-left px-5 py-3.5 text-xs font-normal hidden lg:table-cell"
+                className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest opacity-60 hidden lg:table-cell"
                 style={{ color: 'var(--text-tertiary)' }}
               >
-                <button className="flex items-center gap-1 hover:text-current transition-colors">
-                  File Size
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+                File Size
               </th>
               <th
-                className="text-left px-5 py-3.5 text-xs font-normal hidden xl:table-cell"
+                className="text-left px-5 py-3 text-[10px] font-black uppercase tracking-widest opacity-60 hidden xl:table-cell"
                 style={{ color: 'var(--text-tertiary)' }}
               >
-                <button className="flex items-center gap-1 hover:text-current transition-colors">
-                  Member
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+                Member
               </th>
-              <th className="px-5 py-3.5"></th>
+              <th className="px-5 py-3"></th>
             </tr>
           </thead>
           <tbody style={{ backgroundColor: 'var(--card-bg)' }}>

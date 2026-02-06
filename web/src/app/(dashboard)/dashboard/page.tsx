@@ -112,39 +112,40 @@ export default function DashboardPage() {
     <div className="space-y-6 pb-8">
       {/* Breadcrumbs */}
       <div
-        className="flex items-center gap-2 text-xs font-medium"
+        className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60"
         style={{ color: 'var(--text-tertiary)' }}
       >
         <Link href="/dashboard" className="hover:text-v8-primary transition-colors">
           Home
         </Link>
-        <HiChevronRight className="w-3 h-3" />
+        <HiChevronRight className="w-2.5 h-2.5" />
         <span style={{ color: 'var(--text-secondary)' }}>Dashboard</span>
       </div>
 
-      {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-4xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
+        <h1 className="text-2xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
           Dashboard
         </h1>
         <div className="flex items-center gap-3">
           {user?.role === 'ADMIN' && (
-            <Button
-              variant="primary"
-              size="md"
-              className="gap-2 rounded-full px-6 font-bold"
-              style={{ backgroundColor: '#8b5cf6', color: 'white' }}
-              icon={<HiOutlineUserAdd className="w-5 h-5" />}
-            >
-              Add User
-            </Button>
+            <Link href="/dashboard/users?add=true">
+              <Button
+                variant="primary"
+                size="sm"
+                className="gap-2 rounded-full px-5 font-bold h-10"
+                style={{ backgroundColor: '#8b5cf6', color: 'white' }}
+                icon={<HiOutlineUserAdd className="w-4 h-4" />}
+              >
+                Add User
+              </Button>
+            </Link>
           )}
           <Button
             variant="outline"
-            size="md"
-            className="gap-2 rounded-full px-6 font-bold border"
+            size="sm"
+            className="gap-2 rounded-full px-5 font-bold h-10 border"
             style={{ borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
-            icon={<HiOutlineDeviceMobile className="w-5 h-5" />}
+            icon={<HiOutlineDeviceMobile className="w-4 h-4" />}
           >
             Get the App
           </Button>
@@ -155,12 +156,15 @@ export default function DashboardPage() {
         {/* Folders */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            <h2
+              className="text-base font-black tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
               Pinned Folders
             </h2>
             <Link
               href="/dashboard/files"
-              className="text-xs font-black uppercase tracking-widest text-v8-primary hover:underline"
+              className="text-[9px] font-black uppercase tracking-[0.15em] text-v8-primary hover:underline"
             >
               View All
             </Link>
@@ -241,7 +245,10 @@ export default function DashboardPage() {
         {/* Recent Files Table */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            <h2
+              className="text-base font-black tracking-tight"
+              style={{ color: 'var(--text-primary)' }}
+            >
               Recents
             </h2>
             <div
