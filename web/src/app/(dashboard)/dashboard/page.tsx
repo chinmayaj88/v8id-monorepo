@@ -165,62 +165,62 @@ export default function DashboardPage() {
               View All
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {dummyPinnedFolders.map(folder => {
               return (
                 <div
                   key={folder.id}
-                  className="p-6 rounded-[32px] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer border group relative bg-card-bg"
+                  className="p-5 rounded-[24px] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer border group relative bg-card-bg"
                   style={{
                     borderColor: 'var(--border-primary)',
                   }}
                 >
                   <div
-                    className={`absolute top-0 right-0 h-32 w-32 bg-linear-to-br ${folder.color} opacity-20 blur-3xl -mr-12 -mt-12 group-hover:opacity-60 transition-opacity`}
+                    className={`absolute top-0 right-0 h-24 w-24 bg-linear-to-br ${folder.color} opacity-20 blur-2xl -mr-8 -mt-8 group-hover:opacity-60 transition-opacity`}
                   />
 
-                  <div className="flex items-start justify-between mb-8 relative z-10">
+                  <div className="flex items-start justify-between mb-4 relative z-10">
                     <div
-                      className={`h-16 w-16 rounded-2xl flex items-center justify-center bg-linear-to-br ${folder.color} shadow-xl shadow-black/10 group-hover:scale-110 transition-transform duration-500`}
+                      className={`h-12 w-12 rounded-xl flex items-center justify-center bg-linear-to-br ${folder.color} shadow-lg shadow-black/10 group-hover:scale-110 transition-transform duration-500`}
                     >
-                      <HiOutlineFolder className="h-8 w-8 text-white" />
+                      <HiOutlineFolder className="h-6 w-6 text-white" />
                     </div>
                   </div>
 
                   <div className="relative z-10">
                     <h3
-                      className="text-lg font-black tracking-tight mb-2 truncate group-hover:text-v8-primary transition-colors"
+                      className="text-base font-black tracking-tight mb-1 truncate group-hover:text-v8-primary transition-colors"
                       style={{ color: 'var(--text-primary)' }}
                     >
                       {folder.name}
                     </h3>
 
-                    <div className="flex items-center gap-2 mb-6">
-                      <div className="px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-900/20 text-[9px] font-black uppercase tracking-widest text-v8-primary">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-900/20 text-[8px] font-black uppercase tracking-widest text-v8-primary">
                         Pinned
                       </div>
-                      <span className="h-1 w-1 rounded-full bg-zinc-300" />
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">
+                      <span className="h-0.5 w-0.5 rounded-full bg-zinc-300" />
+                      <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">
                         {folder.fileCount} items
                       </span>
-                      <span className="h-1 w-1 rounded-full bg-zinc-300" />
-                      <span className="text-[10px] font-black text-v8-primary uppercase tracking-tighter">
+                      <span className="h-0.5 w-0.5 rounded-full bg-zinc-300" />
+                      <span className="text-[9px] font-black text-v8-primary uppercase tracking-tighter">
                         {folder.size}
                       </span>
                     </div>
 
                     <div
-                      className="flex items-center justify-between text-[11px] pt-4 border-t"
+                      className="flex items-center justify-between text-[10px] pt-3 border-t"
                       style={{
                         borderColor: 'var(--border-primary)',
                         color: 'var(--text-secondary)',
                       }}
                     >
-                      <div className="flex -space-x-2.5">
-                        <div className="h-7 w-7 rounded-full border-2 border-white dark:border-black bg-linear-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-[10px] font-black text-white shadow-sm ring-1 ring-black/5">
+                      <div className="flex -space-x-2">
+                        <div className="h-6 w-6 rounded-full border-2 border-white dark:border-black bg-linear-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-[9px] font-black text-white shadow-sm ring-1 ring-black/5">
                           {user?.firstName?.[0] || 'U'}
                         </div>
-                        <div className="h-7 w-7 rounded-full border-2 border-white dark:border-black bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-500 shadow-sm ring-1 ring-black/5">
+                        <div className="h-6 w-6 rounded-full border-2 border-white dark:border-black bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[9px] font-black text-zinc-500 shadow-sm ring-1 ring-black/5">
                           +
                         </div>
                       </div>
