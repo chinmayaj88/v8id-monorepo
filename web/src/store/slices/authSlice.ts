@@ -16,6 +16,7 @@ export interface User {
   storagePercentage: number;
   storageUsedFormatted: string;
   storageQuotaFormatted: string;
+  totpEnabled?: boolean;
 }
 
 interface AuthState {

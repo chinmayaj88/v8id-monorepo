@@ -34,6 +34,7 @@ import Modal from '@/components/ui/Modal';
 import PremiumLoader from '@/components/ui/PremiumLoader';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useModal } from '@/components/ui/ModalProvider';
 
 // Types
 interface DeviceSession {
@@ -62,12 +63,15 @@ export default function SettingsPage() {
   // Modal States
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showBackupCodesModal, setShowBackupCodesModal] = useState(false);
+  const [show2FARequiredModal, setShow2FARequiredModal] = useState(false);
+  const { showNotification, showConfirmation } = useModal();
 
   // Password Form State
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
+    totpCode: '',
   });
   const [passwordLoading, setPasswordLoading] = useState(false);
 
@@ -116,8 +120,11 @@ export default function SettingsPage() {
       setBackupCodes(response.data?.data?.codes || []);
     } catch (error) {
       console.error('Failed to fetch backup codes', error);
-      // @ts-ignore
-      alert(error.response?.data?.message || 'Failed to fetch backup codes');
+      showNotification({
+        title: 'Error',
+        message: (error as any).response?.data?.message || 'Failed to fetch backup codes',
+        type: 'error',
+      });
     } finally {
       setLoadingCodes(false);
     }
@@ -129,53 +136,89 @@ export default function SettingsPage() {
   };
 
   const regenerateBackupCodes = async () => {
-    if (!confirm('Are you sure? Old codes will stop working immediately.')) return;
-    setLoadingCodes(true);
-    try {
-      const response = await apiClient.post(ENDPOINTS.AUTH.REGENERATE_BACKUP_CODES);
-      setBackupCodes(response.data?.data?.codes || []);
-    } catch (error) {
-      console.error('Failed to regenerate codes', error);
-      alert('Failed to regenerate codes');
-    } finally {
-      setLoadingCodes(false);
-    }
+    showConfirmation({
+      title: 'Regenerate Backup Codes?',
+      message:
+        'Are you sure? Old codes will stop working immediately. This action cannot be undone.',
+      confirmText: 'Regenerate',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setLoadingCodes(true);
+        try {
+          const response = await apiClient.post(ENDPOINTS.AUTH.REGENERATE_BACKUP_CODES);
+          setBackupCodes(response.data?.data?.codes || []);
+          showNotification({
+            title: 'Success',
+            message: 'Backup codes regenerated successfully',
+            type: 'success',
+          });
+        } catch (error) {
+          console.error('Failed to regenerate codes', error);
+          showNotification({
+            title: 'Error',
+            message: 'Failed to regenerate backup codes',
+            type: 'error',
+          });
+        } finally {
+          setLoadingCodes(false);
+        }
+      },
+    });
   };
 
   const handleRevokeSession = async (sessionId: string, isCurrent: boolean) => {
-    if (isCurrent) {
-      if (
-        !confirm(
-          'This is your current session. Revoking it will log you out immediately. Continue?'
-        )
-      )
-        return;
-    }
+    const confirmMessage = isCurrent
+      ? 'This is your current session. Revoking it will log you out immediately. Are you sure you want to continue?'
+      : 'Are you sure you want to revoke this session? The device will be logged out immediately.';
 
-    setRevokingId(sessionId);
-    try {
-      // @ts-ignore
-      await apiClient.delete(ENDPOINTS.USER.REVOKE_SESSION(sessionId));
+    showConfirmation({
+      title: isCurrent ? 'Log Out Device?' : 'Revoke Session?',
+      message: confirmMessage,
+      confirmText: isCurrent ? 'Log Out' : 'Revoke',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        setRevokingId(sessionId);
+        try {
+          // @ts-ignore
+          await apiClient.delete(ENDPOINTS.USER.REVOKE_SESSION(sessionId));
 
-      if (isCurrent) {
-        handleLogout();
-        return;
-      }
+          if (isCurrent) {
+            if (isCurrent) {
+              handleLogout(false);
+              return;
+            }
+            return;
+          }
 
-      // Optimistic update
-      setSessions(prev => prev.filter(s => s.id !== sessionId));
-    } catch (error) {
-      console.error('Failed to revoke session', error);
-      alert('Failed to revoke session');
-    } finally {
-      setRevokingId(null);
-    }
+          // Optimistic update
+          setSessions(prev => prev.filter(s => s.id !== sessionId));
+          showNotification({
+            title: 'Success',
+            message: 'Session revoked successfully',
+            type: 'success',
+          });
+        } catch (error) {
+          console.error('Failed to revoke session', error);
+          showNotification({
+            title: 'Error',
+            message: 'Failed to revoke session',
+            type: 'error',
+          });
+        } finally {
+          setRevokingId(null);
+        }
+      },
+    });
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert('New passwords do not match');
+      showNotification({
+        title: 'Validation Error',
+        message: 'New passwords do not match',
+        type: 'error',
+      });
       return;
     }
 
@@ -184,22 +227,45 @@ export default function SettingsPage() {
       await apiClient.post(ENDPOINTS.AUTH.CHANGE_PASSWORD, {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
+        totpCode: passwordForm.totpCode || undefined,
       });
-      alert('Password changed successfully');
+
       setShowPasswordModal(false);
-      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '', totpCode: '' });
+
+      showNotification({
+        title: 'Success',
+        message: 'Password changed successfully',
+        type: 'success',
+      });
     } catch (error) {
       console.error('Failed to change password', error);
-      // @ts-ignore
-      alert(error.response?.data?.message || 'Failed to change password');
+      showNotification({
+        title: 'Error',
+        message: (error as any).response?.data?.message || 'Failed to change password',
+        type: 'error',
+      });
     } finally {
       setPasswordLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    dispatch(logout());
-    router.push('/login');
+  const handleLogout = (withConfirmation = true) => {
+    if (withConfirmation) {
+      showConfirmation({
+        title: 'Sign Out?',
+        message: 'Are you sure you want to sign out of your account?',
+        confirmText: 'Sign Out',
+        cancelText: 'Cancel',
+        onConfirm: () => {
+          dispatch(logout());
+          router.push('/login');
+        },
+      });
+    } else {
+      dispatch(logout());
+      router.push('/login');
+    }
   };
 
   if (!user) return <PremiumLoader />;
@@ -320,7 +386,7 @@ export default function SettingsPage() {
                   variant="outline"
                   size="md"
                   className="w-full justify-center group"
-                  onClick={handleLogout}
+                  onClick={() => handleLogout()}
                 >
                   <HiOutlineLogout className="w-4 h-4 mr-2 group-hover:text-red-500 transition-colors" />
                   Sign Out of All Devices
@@ -406,8 +472,18 @@ export default function SettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
-                onClick={() => setShowPasswordModal(true)}
-                className="p-6 rounded-[24px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-left transition-all group lg:aspect-square flex flex-col justify-between"
+                onClick={() => {
+                  if (!user.totpEnabled) {
+                    setShow2FARequiredModal(true);
+                    return;
+                  }
+                  setShowPasswordModal(true);
+                }}
+                className={`p-6 rounded-[24px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 text-left transition-all group lg:aspect-square flex flex-col justify-between ${
+                  !user.totpEnabled
+                    ? 'hover:bg-red-50 dark:hover:bg-red-900/10 border-red-200 dark:border-red-900/30'
+                    : 'hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                }`}
               >
                 <div className="h-12 w-12 rounded-xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4 group-hover:scale-110 transition-transform">
                   <HiOutlineLockClosed className="w-6 h-6" />
@@ -419,8 +495,12 @@ export default function SettingsPage() {
                   >
                     Change Password
                   </h4>
-                  <p className="text-xs font-bold text-zinc-400">
-                    Update your account password regularly for better security
+                  <p
+                    className={`text-xs font-bold ${!user.totpEnabled ? 'text-red-500' : 'text-zinc-400'}`}
+                  >
+                    {user.totpEnabled
+                      ? 'Update your account password regularly for better security'
+                      : 'Enable 2FA to change your password'}
                   </p>
                 </div>
               </button>
@@ -457,11 +537,21 @@ export default function SettingsPage() {
                     >
                       Two-Factor Auth
                     </h4>
-                    <p className="text-xs font-bold text-zinc-400">Enabled since Oct 12, 2025</p>
+                    <p className="text-xs font-bold text-zinc-400">
+                      {user.totpEnabled
+                        ? 'Enabled since Oct 12, 2025'
+                        : 'Add extra security to your account'}
+                    </p>
                   </div>
                 </div>
-                <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase tracking-widest border border-emerald-500/20">
-                  Active
+                <div
+                  className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${
+                    user.totpEnabled
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                      : 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20'
+                  }`}
+                >
+                  {user.totpEnabled ? 'Active' : 'Inactive'}
                 </div>
               </div>
             </div>
@@ -622,6 +712,17 @@ export default function SettingsPage() {
             value={passwordForm.confirmPassword}
             onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
           />
+
+          {user.totpEnabled && (
+            <Input
+              label="TOTP Code (2FA)"
+              placeholder="000000"
+              required
+              maxLength={6}
+              value={passwordForm.totpCode}
+              onChange={e => setPasswordForm({ ...passwordForm, totpCode: e.target.value })}
+            />
+          )}
         </form>
       </Modal>
 
@@ -679,6 +780,39 @@ export default function SettingsPage() {
               )}
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* 2FA Required Modal */}
+      <Modal
+        isOpen={show2FARequiredModal}
+        onClose={() => setShow2FARequiredModal(false)}
+        title="Security Requirement"
+        footer={
+          <div className="flex justify-end w-full">
+            <Button variant="primary" onClick={() => setShow2FARequiredModal(false)}>
+              Understood
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 flex gap-4 text-red-700 dark:text-red-400">
+            <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+              <HiOutlineShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-black text-sm mb-1">Two-Factor Authentication Required</h4>
+              <p className="text-xs font-medium leading-relaxed opacity-90">
+                To ensure the highest level of security for your account, we require Two-Factor
+                Authentication (2FA) to be enabled before you can change your password.
+              </p>
+            </div>
+          </div>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 px-1">
+            Please enable 2FA in the "Security Settings" section to proceed with updating your
+            password.
+          </p>
         </div>
       </Modal>
     </div>

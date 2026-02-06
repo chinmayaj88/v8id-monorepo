@@ -7,6 +7,7 @@ import { ENDPOINTS } from '@/lib/constants';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import { useModal } from '@/components/ui/ModalProvider';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface AddUserModalProps {
 }
 
 export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) {
+  const { showNotification } = useModal();
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -62,8 +64,17 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
         storageQuota: 5368709120,
       });
       if (onSuccess) onSuccess();
+      showNotification({
+        title: 'Success',
+        message: 'User created successfully',
+        type: 'success',
+      });
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Failed to create user');
+      showNotification({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to create user',
+        type: 'error',
+      });
     } finally {
       setSubmitting(false);
     }

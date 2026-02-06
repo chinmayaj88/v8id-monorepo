@@ -14,6 +14,7 @@ import {
   HiOutlinePhotograph,
   HiChevronRight,
   HiOutlineFolderOpen,
+  HiOutlineRefresh,
 } from 'react-icons/hi';
 import { formatFileSize } from '@/utils/format';
 
@@ -103,6 +104,8 @@ interface UniversalFileViewProps {
   onDelete?: (item: any) => void;
   onDownload?: (item: any) => void;
   onShare?: (item: any) => void;
+  onRestore?: (item: any) => void;
+  isTrash?: boolean;
 }
 
 const Checkbox = ({
@@ -137,6 +140,8 @@ export default function UniversalFileView({
   onDelete,
   onDownload,
   onShare,
+  onRestore,
+  isTrash,
 }: UniversalFileViewProps) {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
@@ -231,6 +236,18 @@ export default function UniversalFileView({
               Move to...
             </button>
           )}
+          {onRestore && (
+            <button
+              onClick={() => {
+                onRestore(item);
+                setActiveMenuId(null);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all hover:pl-5 group/btn"
+            >
+              <HiOutlineRefresh className="w-4 h-4 group-hover/btn:rotate-180 transition-transform" />
+              Restore
+            </button>
+          )}
           <div className="h-px bg-black/5 dark:bg-white/5 my-1.5 mx-2" />
           {onDelete && (
             <button
@@ -241,7 +258,7 @@ export default function UniversalFileView({
               className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-extrabold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all hover:pl-5 group/btn"
             >
               <HiOutlineTrash className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-              Delete
+              {isTrash ? 'Delete Forever' : 'Delete'}
             </button>
           )}
         </div>
@@ -330,9 +347,26 @@ export default function UniversalFileView({
                   style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}
                 >
                   <div className="flex -space-x-2.5">
-                    <div className="h-7 w-7 rounded-full border-2 border-white dark:border-black bg-linear-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-[10px] font-black text-white shadow-sm ring-1 ring-black/5">
-                      {user?.firstName?.[0] || 'U'}
-                    </div>
+                    {item.owner ? (
+                      <div
+                        className="h-7 w-7 rounded-full border-2 border-white dark:border-black bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-black text-white shadow-sm ring-1 ring-black/5 overflow-hidden"
+                        title={`${item.owner.firstName} ${item.owner.lastName || ''} (${item.owner.email})`}
+                      >
+                        {item.owner.avatarUrl ? (
+                          <img
+                            src={item.owner.avatarUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span>{item.owner.firstName?.[0] || 'O'}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="h-7 w-7 rounded-full border-2 border-white dark:border-black bg-linear-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-[10px] font-black text-white shadow-sm ring-1 ring-black/5">
+                        {user?.firstName?.[0] || 'U'}
+                      </div>
+                    )}
                     <div className="h-7 w-7 rounded-full border-2 border-white dark:border-black bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-500 shadow-sm ring-1 ring-black/5">
                       +
                     </div>
@@ -462,9 +496,22 @@ export default function UniversalFileView({
 
             {/* Member */}
             <div className="hidden xl:flex items-center -space-x-2.5">
-              <div className="h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 bg-linear-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-[10px] font-black shadow-sm ring-1 ring-black/5">
-                {user?.firstName?.[0] || 'U'}
-              </div>
+              {item.owner ? (
+                <div
+                  className="h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 bg-linear-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-[10px] font-black shadow-sm ring-1 ring-black/5 overflow-hidden"
+                  title={`${item.owner.firstName} ${item.owner.lastName || ''} (${item.owner.email})`}
+                >
+                  {item.owner.avatarUrl ? (
+                    <img src={item.owner.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{item.owner.firstName?.[0] || 'O'}</span>
+                  )}
+                </div>
+              ) : (
+                <div className="h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 bg-linear-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-[10px] font-black shadow-sm ring-1 ring-black/5">
+                  {user?.firstName?.[0] || 'U'}
+                </div>
+              )}
               <div className="h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-zinc-500 text-[10px] font-black shadow-sm ring-1 ring-black/5">
                 +
               </div>

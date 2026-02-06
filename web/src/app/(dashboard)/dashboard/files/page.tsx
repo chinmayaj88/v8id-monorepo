@@ -31,11 +31,13 @@ import Button from '@/components/ui/Button';
 import Link from 'next/link';
 import UniversalFileView from '@/components/dashboard/UniversalFileView';
 import MoveCopyModal from '@/components/dashboard/MoveCopyModal';
+import { useModal } from '@/components/ui/ModalProvider';
 
 export default function FilesPage() {
   const dispatch = useAppDispatch();
   const { files, folders, isLoading, searchQuery } = useAppSelector(state => state.files);
   const { user } = useAppSelector(state => state.auth);
+  const { showConfirmation, showNotification } = useModal();
 
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'files' | 'folders'>('folders');
@@ -71,17 +73,34 @@ export default function FilesPage() {
   const handleDeleteSelected = async (targetIds?: Set<string>) => {
     const ids = targetIds || selectedIds;
     if (ids.size === 0) return;
-    if (!confirm(`Are you sure you want to delete ${ids.size} items?`)) return;
 
-    const fileIds = files.filter(f => ids.has(f.id)).map(f => f.id);
-    const folderIds = folders.filter(f => ids.has(f.id)).map(f => f.id);
+    showConfirmation({
+      title: 'Delete Items?',
+      message: `Are you sure you want to delete ${ids.size} items? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        const fileIds = files.filter(f => ids.has(f.id)).map(f => f.id);
+        const folderIds = folders.filter(f => ids.has(f.id)).map(f => f.id);
 
-    try {
-      await dispatch(bulkDeleteItems({ fileIds, folderIds })).unwrap();
-      setSelectedIds(new Set());
-    } catch (err) {
-      console.error(err);
-    }
+        try {
+          await dispatch(bulkDeleteItems({ fileIds, folderIds })).unwrap();
+          setSelectedIds(new Set());
+          showNotification({
+            title: 'Success',
+            message: 'Items deleted successfully',
+            type: 'success',
+          });
+        } catch (err: any) {
+          console.error(err);
+          showNotification({
+            title: 'Error',
+            message: err.message || 'Failed to delete items',
+            type: 'error',
+          });
+        }
+      },
+    });
   };
 
   const handleMoveCopyConfirm = async (targetId: string | null) => {
@@ -96,8 +115,17 @@ export default function FilesPage() {
       }
       setSelectedIds(new Set());
       setIsMoveCopyModalOpen(false);
+      showNotification({
+        title: 'Success',
+        message: `Items ${moveCopyMode === 'move' ? 'moved' : 'copied'} successfully`,
+        type: 'success',
+      });
     } catch (err: any) {
-      alert(err || 'Failed to complete operation');
+      showNotification({
+        title: 'Error',
+        message: err.message || 'Failed to complete operation',
+        type: 'error',
+      });
     }
   };
 

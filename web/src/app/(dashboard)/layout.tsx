@@ -7,6 +7,7 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 
 import PremiumLoader from '@/components/ui/PremiumLoader';
+import { ModalProvider } from '@/components/ui/ModalProvider';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -25,15 +26,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (!isAuthenticated) return null;
 
   return (
-    <div
-      style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}
-      className="transition-colors duration-300"
-    >
-      <Sidebar />
-      <div className="lg:ml-64 transition-all min-h-screen">
-        <DashboardHeader />
-        <main className="p-8">{children}</main>
+    <ModalProvider>
+      <div
+        style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh' }}
+        className="transition-colors duration-300"
+      >
+        <Sidebar />
+        <div className="lg:ml-64 transition-all min-h-screen">
+          <DashboardHeader />
+          <main className="p-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </ModalProvider>
   );
 }

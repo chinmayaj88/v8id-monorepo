@@ -37,6 +37,7 @@ export interface VerifyTotpLoginResult {
     storagePercentage: number;
     storageUsedFormatted: string;
     storageQuotaFormatted: string;
+    totpEnabled: boolean;
   };
 }
 
@@ -306,6 +307,7 @@ export class VerifyTotpLoginUseCase {
         storagePercentage: user.getStorageUsagePercentage(),
         storageUsedFormatted: StorageUtils.formatSize(user.storageUsed),
         storageQuotaFormatted: StorageUtils.formatSize(user.storageQuota),
+        totpEnabled: !!user.totpSecret,
       },
     };
   }

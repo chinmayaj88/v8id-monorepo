@@ -61,7 +61,7 @@ export class ChangePasswordUseCase {
     }
 
     if (!user.totpSecret) {
-      throw new Error('TOTP is required for password change');
+      throw new Error('TOTP is required for password change. Please enable 2FA first.');
     }
 
     const config = ConfigServiceFactory.getInstance();
@@ -119,7 +119,3 @@ export class ChangePasswordUseCase {
     }
   }
 }
-
-
-
-
