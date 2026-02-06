@@ -20,6 +20,7 @@ import {
   HiOutlineFolderOpen,
   HiX,
 } from 'react-icons/hi';
+import AddUserModal from '@/components/dashboard/AddUserModal';
 
 const dummyPinnedFolders = [
   {
@@ -69,6 +70,7 @@ export default function DashboardPage() {
   const [filterType, setFilterType] = useState<string>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
 
   const filterBySearch = (item: { name: string; mimeType?: string; extension?: string }) => {
     const matchesSearch = searchQuery
@@ -128,17 +130,16 @@ export default function DashboardPage() {
         </h1>
         <div className="flex items-center gap-3">
           {user?.role === 'ADMIN' && (
-            <Link href="/dashboard/users?add=true">
-              <Button
-                variant="primary"
-                size="sm"
-                className="gap-2 rounded-full px-5 font-bold h-10"
-                style={{ backgroundColor: '#8b5cf6', color: 'white' }}
-                icon={<HiOutlineUserAdd className="w-4 h-4" />}
-              >
-                Add User
-              </Button>
-            </Link>
+            <Button
+              variant="primary"
+              size="sm"
+              className="gap-2 rounded-full px-5 font-bold h-10"
+              style={{ backgroundColor: '#8b5cf6', color: 'white' }}
+              icon={<HiOutlineUserAdd className="w-4 h-4" />}
+              onClick={() => setShowAddUserModal(true)}
+            >
+              Add User
+            </Button>
           )}
           <Button
             variant="outline"
@@ -404,6 +405,15 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
+
+      <AddUserModal
+        isOpen={showAddUserModal}
+        onClose={() => setShowAddUserModal(false)}
+        onSuccess={() => {
+          // Optional: refresh dashboard data if needed, but fetchSyncData is already handled in useEffect
+          dispatch(fetchSyncData());
+        }}
+      />
     </div>
   );
 }
