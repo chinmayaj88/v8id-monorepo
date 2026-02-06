@@ -79,36 +79,55 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-6">
+        <nav className="flex-1 space-y-1.5 px-3 py-6">
           {navItems.map(item => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className="group flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-200"
+                className="group flex items-center gap-3 rounded-[20px] px-4 py-2.5 text-xs font-black uppercase tracking-tight transition-all duration-300"
                 style={{
-                  backgroundColor: isActive ? 'var(--sidebar-item-active)' : 'transparent',
-                  color: isActive ? 'var(--sidebar-text-active)' : 'var(--text-secondary)',
-                }}
-                onMouseEnter={e => {
-                  if (!isActive) {
-                    e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)';
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!isActive) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }
+                  backgroundColor: isActive ? 'var(--bg-tertiary)' : 'transparent',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
                 }}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className={`h-5 w-5 ${isActive ? 'text-v8-primary' : 'opacity-40'}`} />
                 {item.name}
               </Link>
             );
           })}
+
+          {/* Admin Section */}
+          {user?.role === 'ADMIN' && (
+            <div className="pt-6 mt-6 border-t" style={{ borderColor: 'var(--border-primary)' }}>
+              <p className="px-5 mb-2 text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                Admin Control
+              </p>
+              <Link
+                href="/dashboard/users"
+                className={`group flex items-center gap-3 rounded-[20px] px-4 py-2.5 text-xs font-black uppercase tracking-tight transition-all duration-300 ${
+                  pathname === '/dashboard/users' ? 'bg-zinc-800' : ''
+                }`}
+                style={{
+                  backgroundColor:
+                    pathname === '/dashboard/users' ? 'var(--bg-tertiary)' : 'transparent',
+                  color:
+                    pathname === '/dashboard/users'
+                      ? 'var(--text-primary)'
+                      : 'var(--text-tertiary)',
+                  boxShadow:
+                    pathname === '/dashboard/users' ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
+                }}
+              >
+                <HiOutlineUserGroup
+                  className={`h-5 w-5 ${pathname === '/dashboard/users' ? 'text-v8-primary' : 'opacity-40'}`}
+                />
+                User Management
+              </Link>
+            </div>
+          )}
         </nav>
 
         {/* Storage Info */}

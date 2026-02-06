@@ -1,17 +1,24 @@
 import React, { useState } from 'react';
 import {
   HiOutlineFolder,
+  HiOutlineDocument,
   HiOutlineDocumentText,
   HiOutlineDotsVertical,
-  HiChevronRight,
-  HiOutlinePhotograph,
-  HiOutlineViewList,
-  HiOutlineViewGrid,
+  HiOutlineShare,
+  HiOutlineDownload,
+  HiOutlineTrash,
+  HiOutlineDuplicate,
+  HiOutlineLink,
   HiCheck,
+  HiOutlineExternalLink,
+  HiOutlinePhotograph,
+  HiChevronRight,
 } from 'react-icons/hi';
 import { formatFileSize } from '@/utils/format';
 
 import { API_BASE_URL } from '@/lib/constants';
+import Card from '@/components/ui/Card';
+import { useAppSelector } from '@/store/hooks';
 
 const getFileIconStyle = (mimeType: string) => {
   if (mimeType?.includes('pdf')) return 'bg-rose-50 dark:bg-rose-900/20 text-rose-500';
@@ -155,11 +162,10 @@ export default function UniversalFileView({
           const folderSize = isFolder ? (item as any).size || '0 B' : null;
 
           return (
-            <div
+            <Card
               key={item.id}
               onClick={() => onItemClick?.(item)}
-              className="p-6 rounded-[32px] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all cursor-pointer border group relative bg-card-bg"
-              style={{ borderColor: 'var(--border-primary)' }}
+              className="cursor-pointer group relative bg-card-bg hover:shadow-2xl hover:-translate-y-2 p-6 rounded-[32px]"
             >
               {/* Top Section: Icon/Thumbnail */}
               <div className="flex items-start justify-between mb-8 relative z-10">
@@ -236,7 +242,7 @@ export default function UniversalFileView({
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>

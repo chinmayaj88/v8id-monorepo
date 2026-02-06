@@ -7,6 +7,7 @@ import AuthHeader from './AuthHeader';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { forgotPassword, clearError } from '@/store/slices/authSlice';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 
 export default function ForgotPasswordForm() {
   const dispatch = useAppDispatch();
@@ -112,30 +113,16 @@ export default function ForgotPasswordForm() {
         )}
 
         {/* Email Input */}
-        <div className="animate-item space-y-2.5">
-          <label
-            htmlFor="email"
-            className="block text-sm font-bold text-slate-800 dark:text-white ml-1"
-          >
-            Email Address
-          </label>
-          <div className="relative group">
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
-              className={clsx(
-                'w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 px-5 py-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-600 outline-none transition-all duration-300',
-                'focus:border-v8-primary focus:bg-white dark:focus:bg-zinc-950 focus:ring-4 focus:ring-v8-primary/10',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
-              )}
-              placeholder="name@example.com"
-            />
-          </div>
-        </div>
+        <Input
+          label="Email Address"
+          type="email"
+          id="email"
+          placeholder="name@example.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+          disabled={isLoading}
+        />
 
         {/* Submit Button */}
         <div className="animate-item pt-2">

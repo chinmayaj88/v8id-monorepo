@@ -9,6 +9,7 @@ import AuthHeader from './AuthHeader';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { verifyCredentials, clearError } from '@/store/slices/authSlice';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -68,61 +69,37 @@ export default function LoginForm() {
         )}
 
         {/* Email Input */}
-        <div className="animate-item space-y-2.5">
-          <label
-            htmlFor="email"
-            className="block text-sm font-bold text-slate-800 dark:text-white ml-1"
-          >
-            Email Address
-          </label>
-          <div className="relative group">
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              disabled={isLoading}
-              className={clsx(
-                'w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 px-5 py-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-600 outline-none transition-all duration-300',
-                'focus:border-v8-primary focus:bg-white dark:focus:bg-zinc-950 focus:ring-4 focus:ring-v8-primary/10',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
-              )}
-              placeholder="name@example.com"
-            />
-          </div>
-        </div>
+        <Input
+          label="Email Address"
+          type="email"
+          id="email"
+          placeholder="name@example.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          disabled={isLoading}
+          required
+        />
 
         {/* Password Input */}
-        <div className="animate-item space-y-2.5">
-          <label
-            htmlFor="password"
-            className="block text-sm font-bold text-slate-800 dark:text-white ml-1"
-          >
-            Password
-          </label>
-          <div className="relative group">
-            <input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              disabled={isLoading}
-              className={clsx(
-                'w-full rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-900/50 px-5 py-4 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-zinc-600 outline-none transition-all duration-300',
-                'focus:border-v8-primary focus:bg-white dark:focus:bg-zinc-950 focus:ring-4 focus:ring-v8-primary/10',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
-              )}
-              placeholder="Enter your password"
-            />
+        <Input
+          label="Password"
+          type={showPassword ? 'text' : 'password'}
+          id="password"
+          placeholder="Enter your password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          disabled={isLoading}
+          required
+          suffix={
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-5 top-1/2 -translate-y-1/2 text-sm font-bold text-v8-primary hover:text-v8-indigo focus:outline-none bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm px-2 py-1 rounded-lg transition-colors"
+              className="text-xs font-bold text-v8-primary hover:text-v8-indigo transition-colors bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm px-2 py-1 rounded-lg"
             >
               {showPassword ? 'Hide' : 'Show'}
             </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Remember Me & Forgot Password */}
         <div className="animate-item flex items-center justify-between px-1">

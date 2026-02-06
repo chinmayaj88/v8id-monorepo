@@ -17,6 +17,7 @@ import { apiClient } from '@/lib/api';
 import { ENDPOINTS } from '@/lib/constants';
 
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 
 export default function DashboardHeader() {
   const dispatch = useAppDispatch();
@@ -58,26 +59,18 @@ export default function DashboardHeader() {
       style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-primary)' }}
     >
       <div className="flex items-center gap-4 flex-1 max-w-2xl">
-        <div className="relative w-full max-w-md">
-          <HiOutlineSearch
-            className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2"
-            style={{ color: 'var(--text-tertiary)' }}
-          />
-          <input
-            type="text"
-            placeholder="Search files, folders, and more..."
-            value={searchQuery}
-            onChange={e => dispatch(setSearchQuery(e.target.value))}
-            className="w-full rounded-xl border py-2 pl-10 pr-4 text-sm font-medium outline-none transition-all duration-150 focus:ring-2 focus:ring-v8-primary/20"
-            style={{
-              backgroundColor: 'var(--bg-tertiary)',
-              borderColor: 'var(--border-primary)',
-              color: 'var(--text-primary)',
-            }}
-            onFocus={e => (e.currentTarget.style.borderColor = 'var(--brand-primary)')}
-            onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-primary)')}
-          />
-        </div>
+        <Input
+          placeholder="Search files, folders, and more..."
+          value={searchQuery}
+          onChange={e => dispatch(setSearchQuery(e.target.value))}
+          icon={<HiOutlineSearch className="h-5 w-5" />}
+          containerClassName="max-w-md"
+          className="border-0 ring-1 ring-inset ring-(--border-primary) focus:ring-2 focus:ring-v8-primary/20 py-2"
+          style={{
+            backgroundColor: 'var(--bg-tertiary)',
+            color: 'var(--text-primary)',
+          }}
+        />
       </div>
 
       <div className="flex items-center gap-3">

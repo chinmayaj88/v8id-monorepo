@@ -17,5 +17,7 @@ export const ENDPOINTS = {
     SESSIONS: '/users/me/sessions',
     REVOKE_SESSION: (id: string) => `/users/me/sessions/${id}`,
     REVOKE_ALL_SESSIONS: '/users/me/sessions/revoke-all',
+    LIST: '/users',
+    CREATE: '/users',
   },
 };
