@@ -37,6 +37,14 @@ export default function TwoFactorForm() {
     }
   };
 
+  // Auto-submit when OTP is complete
+  useEffect(() => {
+    const code = otp.join('');
+    if (code.length === 6 && tempToken && !isLoading) {
+      dispatch(verifyTotp({ totpCode: code, tempToken }));
+    }
+  }, [otp, tempToken, dispatch, isLoading]);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === 'Backspace') {
       if (otp[index] === '' && index > 0) {

@@ -15,6 +15,10 @@ import {
   HiOutlineViewGrid,
   HiOutlineAdjustments,
   HiOutlineArrowLeft,
+  HiOutlineTrash,
+  HiOutlineDuplicate,
+  HiOutlineFolderOpen,
+  HiX,
 } from 'react-icons/hi';
 import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 import Button from '@/components/ui/Button';
@@ -29,6 +33,12 @@ export default function FilesPage() {
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'files' | 'folders'>('folders');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Clear selection when changing folders or tabs
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentFolderId, activeTab]);
 
   useEffect(() => {
     dispatch(fetchSyncData());
@@ -138,6 +148,44 @@ export default function FilesPage() {
             className="flex items-center gap-2 p-1 rounded-2xl border bg-zinc-50/50 dark:bg-zinc-800/20 shadow-xs"
             style={{ borderColor: 'var(--border-primary)' }}
           >
+            {/* Bulk Actions Toolbar */}
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-1 pr-2 border-r border-zinc-200 dark:border-zinc-700 mr-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mr-2">
+                  {selectedIds.size} selected
+                </span>
+
+                <button
+                  onClick={() => setSelectedIds(new Set())}
+                  className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-600 transition-colors"
+                  title="Clear Selection"
+                >
+                  <HiX className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-v8-primary transition-colors"
+                  title="Move"
+                >
+                  <HiOutlineFolderOpen className="w-4 h-4" />
+                </button>
+
+                <button
+                  className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-v8-primary transition-colors"
+                  title="Copy"
+                >
+                  <HiOutlineDuplicate className="w-4 h-4" />
+                </button>
+
+                <button
+                  className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                  title="Delete"
+                >
+                  <HiOutlineTrash className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             <button
               onClick={() => setViewMode('list')}
               className={`p-1.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-v8-primary' : 'text-zinc-400'}`}
@@ -170,9 +218,19 @@ export default function FilesPage() {
             viewMode={viewMode}
             user={user}
             onItemClick={folder => setCurrentFolderId(folder.id)}
+            enableSelection={true} // Enable selection for folders
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
           />
         ) : (
-          <UniversalFileView items={filteredFiles} viewMode={viewMode} user={user} />
+          <UniversalFileView
+            items={filteredFiles}
+            viewMode={viewMode}
+            user={user}
+            enableSelection={true} // Enable selection for files
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
+          />
         )}
       </div>
     </div>

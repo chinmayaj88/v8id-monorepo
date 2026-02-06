@@ -15,6 +15,10 @@ import {
   HiOutlineUserAdd,
   HiOutlineViewGrid,
   HiOutlineViewList,
+  HiOutlineTrash,
+  HiOutlineDuplicate,
+  HiOutlineFolderOpen,
+  HiX,
 } from 'react-icons/hi';
 
 const dummyPinnedFolders = [
@@ -64,6 +68,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [filterType, setFilterType] = useState<string>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const filterBySearch = (item: { name: string; mimeType?: string; extension?: string }) => {
     const matchesSearch = searchQuery
@@ -243,6 +248,44 @@ export default function DashboardPage() {
               className="flex items-center gap-2 p-1 rounded-2xl border bg-zinc-50/50 dark:bg-zinc-800/20 shadow-xs relative"
               style={{ borderColor: 'var(--border-primary)' }}
             >
+              {/* Bulk Actions Toolbar */}
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-1 pr-2 border-r border-zinc-200 dark:border-zinc-700 mr-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 mr-2">
+                    {selectedIds.size} selected
+                  </span>
+
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-600 transition-colors"
+                    title="Clear Selection"
+                  >
+                    <HiX className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-v8-primary transition-colors"
+                    title="Move"
+                  >
+                    <HiOutlineFolderOpen className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    className="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-v8-primary transition-colors"
+                    title="Copy"
+                  >
+                    <HiOutlineDuplicate className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                    title="Delete"
+                  >
+                    <HiOutlineTrash className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-1.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-sm text-v8-primary' : 'text-zinc-400 hover:text-v8-primary'}`}
@@ -308,7 +351,14 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="space-y-3">
-            <UniversalFileView items={recentItems} viewMode={viewMode} user={user} />
+            <UniversalFileView
+              items={recentItems}
+              viewMode={viewMode}
+              user={user}
+              enableSelection={true}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+            />
           </div>
           {/* Creative Pagination */}
           <div className="flex items-center justify-between pt-6 px-2">

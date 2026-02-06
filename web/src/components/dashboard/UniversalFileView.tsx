@@ -5,6 +5,9 @@ import {
   HiOutlineDotsVertical,
   HiChevronRight,
   HiOutlinePhotograph,
+  HiOutlineViewList,
+  HiOutlineViewGrid,
+  HiCheck,
 } from 'react-icons/hi';
 import { formatFileSize } from '@/utils/format';
 
@@ -84,14 +87,61 @@ interface UniversalFileViewProps {
   viewMode: 'list' | 'grid';
   user?: any;
   onItemClick?: (item: any) => void;
+  enableSelection?: boolean;
+  selectedIds?: Set<string>;
+  onSelectionChange?: (ids: Set<string>) => void;
 }
+
+const Checkbox = ({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (e: React.MouseEvent) => void;
+}) => (
+  <div
+    onClick={onChange}
+    className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${
+      checked
+        ? 'bg-v8-primary border-v8-primary'
+        : 'border-zinc-300 dark:border-zinc-600 hover:border-v8-primary'
+    }`}
+  >
+    {checked && <HiCheck className="w-3.5 h-3.5 text-white stroke-2" />}
+  </div>
+);
 
 export default function UniversalFileView({
   items,
   viewMode,
   user,
   onItemClick,
+  enableSelection,
+  selectedIds,
+  onSelectionChange,
 }: UniversalFileViewProps) {
+  const handleToggle = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!onSelectionChange || !selectedIds) return;
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    onSelectionChange(newSelected);
+  };
+
+  const handleSelectAll = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!onSelectionChange) return;
+    if (selectedIds?.size === items.length) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(items.map(i => i.id)));
+    }
+  };
+
   if (viewMode === 'grid') {
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mt-4">
@@ -113,6 +163,14 @@ export default function UniversalFileView({
             >
               {/* Top Section: Icon/Thumbnail */}
               <div className="flex items-start justify-between mb-8 relative z-10">
+                {enableSelection && (
+                  <div className="absolute top-[-10px] left-[-10px] z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Checkbox
+                      checked={selectedIds?.has(item.id) || false}
+                      onChange={e => handleToggle(e, item.id)}
+                    />
+                  </div>
+                )}
                 <FileIcon
                   item={item}
                   isFolder={isFolder}
@@ -190,9 +248,21 @@ export default function UniversalFileView({
     <div className="space-y-3">
       {/* Table Header */}
       <div
-        className="grid grid-cols-[1fr_40px] md:grid-cols-[1fr_180px_40px] lg:grid-cols-[1fr_180px_120px_40px] xl:grid-cols-[1fr_180px_120px_120px_40px] items-center px-4 py-2 text-[13px] font-medium"
+        className={`grid ${
+          enableSelection
+            ? 'grid-cols-[40px_1fr_40px] md:grid-cols-[40px_1fr_180px_40px] lg:grid-cols-[40px_1fr_180px_120px_40px] xl:grid-cols-[40px_1fr_180px_120px_120px_40px]'
+            : 'grid-cols-[1fr_40px] md:grid-cols-[1fr_180px_40px] lg:grid-cols-[1fr_180px_120px_40px] xl:grid-cols-[1fr_180px_120px_120px_40px]'
+        } items-center px-4 py-2 text-[13px] font-medium`}
         style={{ color: 'var(--text-tertiary)' }}
       >
+        {enableSelection && (
+          <div className="flex items-center justify-center">
+            <Checkbox
+              checked={selectedIds?.size === items.length && items.length > 0}
+              onChange={handleSelectAll}
+            />
+          </div>
+        )}
         <div className="flex items-center gap-1 cursor-pointer hover:text-v8-primary transition-colors">
           Document Name <HiChevronRight className="w-3 h-3 rotate-90" />
         </div>
@@ -219,9 +289,21 @@ export default function UniversalFileView({
           <div
             key={item.id}
             onClick={() => onItemClick?.(item)}
-            className="grid grid-cols-[1fr_40px] md:grid-cols-[1fr_180px_40px] lg:grid-cols-[1fr_180px_120px_40px] xl:grid-cols-[1fr_180px_120px_120px_40px] items-center px-4 py-3 rounded-2xl border shadow-xs hover:shadow-md hover:scale-[1.002] transition-all cursor-pointer group bg-card-bg"
+            className={`grid ${
+              enableSelection
+                ? 'grid-cols-[40px_1fr_40px] md:grid-cols-[40px_1fr_180px_40px] lg:grid-cols-[40px_1fr_180px_120px_40px] xl:grid-cols-[40px_1fr_180px_120px_120px_40px]'
+                : 'grid-cols-[1fr_40px] md:grid-cols-[1fr_180px_40px] lg:grid-cols-[1fr_180px_120px_40px] xl:grid-cols-[1fr_180px_120px_120px_40px]'
+            } items-center px-4 py-3 rounded-2xl border shadow-xs hover:shadow-md hover:scale-[1.002] transition-all cursor-pointer group bg-card-bg`}
             style={{ borderColor: 'var(--border-primary)' }}
           >
+            {enableSelection && (
+              <div className="flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                <Checkbox
+                  checked={selectedIds?.has(item.id) || false}
+                  onChange={e => handleToggle(e, item.id)}
+                />
+              </div>
+            )}
             {/* Document Name */}
             <div className="flex items-center gap-3 min-w-0">
               <FileIcon
@@ -267,7 +349,7 @@ export default function UniversalFileView({
                 {user?.firstName?.[0] || 'U'}
               </div>
               <div className="h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-zinc-500 text-[10px] font-black shadow-sm ring-1 ring-black/5">
-                +1
+                +
               </div>
             </div>
 
