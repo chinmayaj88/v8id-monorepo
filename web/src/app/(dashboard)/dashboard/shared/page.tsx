@@ -59,9 +59,18 @@ export default function SharedPage() {
     const ids = targetIds || selectedIds;
     if (ids.size === 0) return;
 
+    let message = `Are you sure you want to remove ${ids.size} shared items?`;
+    if (ids.size === 1) {
+      const id = Array.from(ids)[0];
+      const item = [...sharedFiles, ...sharedFolders].find(i => i.id === id);
+      if (item) {
+        message = `Are you sure you want to remove "${item.name}" from your shared items?`;
+      }
+    }
+
     showConfirmation({
-      title: 'Remove Shared Items?',
-      message: `Are you sure you want to remove ${ids.size} shared items?`,
+      title: 'Remove Shared Items',
+      message,
       confirmText: 'Remove',
       cancelText: 'Cancel',
       onConfirm: async () => {
@@ -80,11 +89,10 @@ export default function SharedPage() {
           }
           showNotification({
             title: 'Success',
-            message: 'Shared items removed successfully',
+            message: ids.size === 1 ? 'Shared item removed' : 'Shared items removed',
             type: 'success',
           });
         } catch (err: any) {
-          console.error(err);
           showNotification({
             title: 'Error',
             message: err.message || 'Failed to remove shared items',

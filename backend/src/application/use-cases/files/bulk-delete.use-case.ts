@@ -36,7 +36,7 @@ export class BulkDeleteUseCase {
             continue;
           }
         }
-        console.error(`Failed to delete file ${fileId}:`, error);
+        // Silently skip or handle in controller
       }
     }
 
@@ -52,7 +52,7 @@ export class BulkDeleteUseCase {
             continue;
           }
         }
-        console.error(`Failed to delete folder ${folderId}:`, error);
+        // Silently skip or handle in controller
       }
     }
   }

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   HiOutlineFolder,
@@ -425,9 +427,16 @@ export default function UniversalFileView({
                         {user?.firstName?.[0] || 'U'}
                       </div>
                     )}
-                    <div className="h-7 w-7 rounded-full border-2 border-white dark:border-black bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-500 shadow-sm ring-1 ring-black/5">
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        onShare?.(item);
+                      }}
+                      className="h-7 w-7 rounded-full border-2 border-white dark:border-black bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-500 shadow-sm ring-1 ring-black/5 hover:bg-v8-primary hover:text-white hover:border-v8-primary transition-all active:scale-90"
+                      title="Share with others"
+                    >
                       +
-                    </div>
+                    </button>
                   </div>
                   <div className="flex flex-col items-end">
                     {!isFolder && (
@@ -573,9 +582,16 @@ export default function UniversalFileView({
                   {user?.firstName?.[0] || 'U'}
                 </div>
               )}
-              <div className="h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-zinc-500 text-[10px] font-black shadow-sm ring-1 ring-black/5">
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  onShare?.(item);
+                }}
+                className="h-7 w-7 rounded-full border-2 border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-zinc-500 text-[10px] font-black shadow-sm ring-1 ring-black/5 hover:bg-v8-primary hover:text-white hover:border-v8-primary transition-all active:scale-90"
+                title="Share with others"
+              >
                 +
-              </div>
+              </button>
             </div>
 
             {/* Actions */}

@@ -116,5 +116,5 @@ export interface IStorageService {
   /**
    * Generate an optimized thumbnail for an image buffer using Sharp.
    */
-  generateThumbnail(fileBuffer: Buffer): Promise<Buffer>;
+  generateThumbnail(fileBuffer: Buffer): Promise<Buffer | null>;
 }

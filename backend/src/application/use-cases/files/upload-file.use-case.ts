@@ -75,20 +75,22 @@ export class UploadFileUseCase {
       },
     });
 
-    // 6. Generate Thumbnail
+    // 6. Generate Thumbnail (Skip silently if unsupported)
     let thumbnailKey: string | undefined = undefined;
     if (dto.mimeType.startsWith('image/')) {
       try {
         const thumbnailBuffer = await this.storageService.generateThumbnail(dto.file);
-        thumbnailKey = `${userId}/thumbnails/${fileUuid}.webp`;
-        await this.storageService.uploadFile({
-          objectName: thumbnailKey,
-          file: thumbnailBuffer,
-          contentType: 'image/webp',
-          tier: StorageTier.STANDARD,
-        });
+        if (thumbnailBuffer) {
+          thumbnailKey = `${userId}/thumbnails/${fileUuid}.webp`;
+          await this.storageService.uploadFile({
+            objectName: thumbnailKey,
+            file: thumbnailBuffer,
+            contentType: 'image/webp',
+            tier: StorageTier.STANDARD,
+          });
+        }
       } catch (error) {
-        console.warn('Failed to generate thumbnail', error);
+        // Silently skip - requested by user to not show error
       }
     }
 

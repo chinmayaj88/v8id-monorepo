@@ -17,6 +17,7 @@ interface ConfirmationOptions {
   onConfirm: () => Promise<void> | void;
   confirmText?: string;
   cancelText?: string;
+  variant?: 'primary' | 'danger';
 }
 
 interface ModalContextType {
@@ -46,6 +47,10 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 
   const showNotification = (options: NotificationOptions) => {
     setNotification({ ...options, isOpen: true });
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, isOpen: false }));
+    }, 3000);
   };
 
   const showConfirmation = (options: ConfirmationOptions) => {
@@ -128,7 +133,12 @@ export function ModalProvider({ children }: { children: ReactNode }) {
             >
               {confirmation.cancelText || 'Cancel'}
             </Button>
-            <Button variant="primary" onClick={handleConfirm} isLoading={confirmation.isLoading}>
+            <Button
+              variant={confirmation.variant === 'danger' ? 'danger' : 'primary'}
+              onClick={handleConfirm}
+              isLoading={confirmation.isLoading}
+              style={confirmation.variant === 'danger' ? { backgroundColor: '#ef4444' } : undefined}
+            >
               {confirmation.confirmText || 'Confirm'}
             </Button>
           </div>

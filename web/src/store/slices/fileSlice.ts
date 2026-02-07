@@ -260,6 +260,28 @@ export const permanentDeleteItems = createAsyncThunk<
   }
 });
 
+export const shareItem = createAsyncThunk<
+  any,
+  {
+    itemId: string;
+    itemType: 'FILE' | 'FOLDER';
+    type: 'INTERNAL' | 'PUBLIC_LINK';
+    permission: 'VIEW' | 'EDIT';
+    email?: string;
+    expiresInSeconds?: number;
+  },
+  { rejectValue: string }
+>('files/shareItem', async (data, { rejectWithValue }) => {
+  try {
+    const { itemId, itemType, ...shareData } = data;
+    const endpoint = itemType === 'FILE' ? `/files/${itemId}/share` : `/folders/${itemId}/share`;
+    const response = await apiClient.post(endpoint, shareData);
+    return response.data.data;
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to share item');
+  }
+});
+
 const fileSlice = createSlice({
   name: 'files',
   initialState,
@@ -314,34 +336,64 @@ const fileSlice = createSlice({
     builder.addCase(fetchSharedData.fulfilled, (state, action) => {
       state.isLoading = false;
       const data = action.payload || { files: [], folders: [] };
-      state.sharedFiles = (data.files || []).map((s: any) => ({
-        ...(s.file || {}),
-        shareId: s.id,
-        permission: s.permission,
-        sharedAt: s.sharedAt,
-        owner: s.file?.sharedUsers?.[0]
-          ? {
-              firstName: s.file.sharedUsers[0].name.split(' ')[0],
-              lastName: s.file.sharedUsers[0].name.split(' ')[1] || '',
-              // avatarUrl: s.file.sharedUsers[0].avatarUrl,
-              email: '',
-            }
-          : s.file?.owner,
-      }));
-      state.sharedFolders = (data.folders || []).map((s: any) => ({
-        ...(s.folder || {}),
-        shareId: s.id,
-        permission: s.permission,
-        sharedAt: s.sharedAt,
-        owner: s.folder?.sharedUsers?.[0]
-          ? {
-              firstName: s.folder.sharedUsers[0].name.split(' ')[0],
-              lastName: s.folder.sharedUsers[0].name.split(' ')[1] || '',
-              // avatarUrl: s.folder.sharedUsers[0].avatarUrl,
-              email: '',
-            }
-          : s.folder?.owner,
-      }));
+
+      try {
+        state.sharedFiles = (data.files || []).map((s: any) => {
+          const file = s.file || {};
+          const ownerData = file.sharedUsers?.[0] || file.owner;
+
+          let owner = undefined;
+          if (ownerData) {
+            const name = ownerData.name || '';
+            const parts = name.split(' ');
+            owner = {
+              firstName: parts[0] || 'Unknown',
+              lastName: parts.slice(1).join(' ') || '',
+              email: ownerData.email || '',
+              // avatarUrl: ownerData.avatarUrl
+            };
+          }
+
+          return {
+            ...file,
+            shareId: s.id,
+            permission: s.permission,
+            sharedAt: s.sharedAt,
+            owner,
+          };
+        });
+
+        state.sharedFolders = (data.folders || []).map((s: any) => {
+          const folder = s.folder || {};
+          const ownerData = folder.sharedUsers?.[0] || folder.owner;
+
+          let owner = undefined;
+          if (ownerData) {
+            const name = ownerData.name || '';
+            const parts = name.split(' ');
+            owner = {
+              firstName: parts[0] || 'Unknown',
+              lastName: parts.slice(1).join(' ') || '',
+              email: ownerData.email || '',
+              // avatarUrl: ownerData.avatarUrl
+            };
+          }
+
+          return {
+            ...folder,
+            shareId: s.id,
+            permission: s.permission,
+            sharedAt: s.sharedAt,
+            owner,
+          };
+        });
+      } catch (e) {
+        console.error('Error mapping shared data:', e);
+        // Ensure we don't crash and leave isLoading true
+        state.sharedFiles = [];
+        state.sharedFolders = [];
+      }
+
       state.sharedBreadcrumbs = [];
     });
     builder.addCase(fetchSharedData.rejected, (state, action) => {
@@ -358,34 +410,41 @@ const fileSlice = createSlice({
       state.isLoading = false;
       const data = action.payload || { files: [], folders: [], breadcrumbs: [] };
 
-      const mapOwner = (item: any) => {
-        if (item.owner) return item.owner;
-        if (item.ownerName) {
-          const parts = item.ownerName.split(' ');
-          return {
-            firstName: parts[0],
-            lastName: parts.slice(1).join(' '),
-            email: '',
-            avatarUrl: null,
-          };
-        }
-        return undefined;
-      };
+      try {
+        const mapOwner = (item: any) => {
+          if (item.owner) return item.owner;
+          if (item.ownerName) {
+            const parts = item.ownerName.split(' ');
+            return {
+              firstName: parts[0],
+              lastName: parts.slice(1).join(' '),
+              email: '',
+              avatarUrl: null,
+            };
+          }
+          return undefined;
+        };
 
-      state.sharedFiles = (data.files || []).map((f: any) => ({
-        ...f,
-        isShared: true,
-        owner: mapOwner(f),
-      }));
-      state.sharedFolders = (data.folders || []).map((f: any) => ({
-        ...f,
-        isShared: true,
-        owner: mapOwner(f),
-      }));
-      state.sharedBreadcrumbs = (data.breadcrumbs || []).map((b: any) => ({
-        ...b,
-        isShared: true,
-      }));
+        state.sharedFiles = (data.files || []).map((f: any) => ({
+          ...f,
+          isShared: true,
+          owner: mapOwner(f),
+        }));
+        state.sharedFolders = (data.folders || []).map((f: any) => ({
+          ...f,
+          isShared: true,
+          owner: mapOwner(f),
+        }));
+        state.sharedBreadcrumbs = (data.breadcrumbs || []).map((b: any) => ({
+          ...b,
+          isShared: true,
+        }));
+      } catch (e) {
+        console.error('Error mapping shared folder contents:', e);
+        state.sharedFiles = [];
+        state.sharedFolders = [];
+        state.sharedBreadcrumbs = [];
+      }
     });
     builder.addCase(fetchSharedFolderContents.rejected, (state, action) => {
       state.isLoading = false;

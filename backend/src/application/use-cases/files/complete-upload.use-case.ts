@@ -50,16 +50,17 @@ export class CompleteUploadUseCase {
       try {
         const { file } = await this.storageService.downloadFile(dto.storageKey, dto.tier);
         const thumbnailBuffer = await this.storageService.generateThumbnail(file);
+        if (thumbnailBuffer) {
+          const fileUuid = dto.storageKey.split('/').pop()?.split('-')[0];
+          thumbnailKey = `${userId}/thumbnails/${fileUuid}.webp`;
 
-        const fileUuid = dto.storageKey.split('/').pop()?.split('-')[0];
-        thumbnailKey = `${userId}/thumbnails/${fileUuid}.webp`;
-
-        await this.storageService.uploadFile({
-          objectName: thumbnailKey,
-          file: thumbnailBuffer,
-          contentType: 'image/webp',
-          tier: StorageTier.STANDARD,
-        });
+          await this.storageService.uploadFile({
+            objectName: thumbnailKey,
+            file: thumbnailBuffer,
+            contentType: 'image/webp',
+            tier: StorageTier.STANDARD,
+          });
+        }
       } catch (error) {
         console.warn('Failed to generate thumbnail during complete upload:', error);
       }

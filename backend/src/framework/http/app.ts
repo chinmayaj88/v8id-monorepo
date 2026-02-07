@@ -66,9 +66,10 @@ export function createApp(): Express {
   // Debug & Safety Middleware: Ensure req.body exists and log content-type issues
   app.use((req, _res, next) => {
     if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
-      if (!req.body) {
+      const contentType = req.headers['content-type'] || '';
+      if (!req.body && !contentType.includes('multipart/form-data')) {
         console.warn(
-          `⚠️ [${req.method} ${req.url}] req.body is undefined. Content-Type: ${req.headers['content-type']}`
+          `⚠️ [${req.method} ${req.url}] req.body is undefined. Content-Type: ${contentType}`
         );
         req.body = {};
       }

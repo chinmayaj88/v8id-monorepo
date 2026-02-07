@@ -142,6 +142,7 @@ export class FolderRepository implements IFolderRepository {
     return prisma.folder.findMany({
       where: {
         userId,
+        isDeleted: false,
         updatedAt: {
           gt: since,
         },
@@ -170,4 +171,3 @@ export class FolderRepository implements IFolderRepository {
     });
   }
 }
-

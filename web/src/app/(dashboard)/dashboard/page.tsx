@@ -26,6 +26,8 @@ import MoveCopyModal from '@/components/dashboard/MoveCopyModal';
 import UploadModal from '@/components/dashboard/UploadModal';
 import { setCurrentFolderId } from '@/store/slices/fileSlice';
 import { useModal } from '@/components/ui/ModalProvider';
+import ShareModal from '@/components/dashboard/ShareModal';
+import { shareItem } from '@/store/slices/fileSlice';
 
 const dummyPinnedFolders = [
   {
@@ -79,6 +81,8 @@ export default function DashboardPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [sharingItem, setSharingItem] = useState<any>(null);
 
   useEffect(() => {
     dispatch(fetchSyncData());
@@ -141,28 +145,36 @@ export default function DashboardPage() {
     const ids = targetIds || selectedIds;
     if (ids.size === 0) return;
 
+    let message = `Are you sure you want to move ${ids.size} items to trash?`;
+    if (ids.size === 1) {
+      const id = Array.from(ids)[0];
+      const item = [...files, ...folders].find(i => i.id === id);
+      if (item) {
+        message = `Are you sure you want to move "${item.name}" to trash?`;
+      }
+    }
+
     showConfirmation({
-      title: 'Delete Items?',
-      message: `Are you sure you want to delete ${ids.size} items? This action cannot be undone.`,
-      confirmText: 'Delete',
+      title: 'Move to Trash',
+      message,
+      confirmText: 'Move to Trash',
       cancelText: 'Cancel',
       onConfirm: async () => {
         const fileIds = files.filter(f => ids.has(f.id)).map(f => f.id);
         const folderIds = folders.filter(f => ids.has(f.id)).map(f => f.id);
 
         try {
-          await dispatch(bulkDeleteItems({ fileIds, folderIds })).unwrap();
+          await dispatch(bulkDeleteItems({ fileIds, folderIds, permanent: false })).unwrap();
           setSelectedIds(new Set());
           showNotification({
             title: 'Success',
-            message: 'Items deleted successfully',
+            message: ids.size === 1 ? 'Item moved to trash' : 'Items moved to trash',
             type: 'success',
           });
         } catch (err: any) {
-          console.error(err);
           showNotification({
             title: 'Error',
-            message: err.message || 'Failed to delete items',
+            message: err.message || 'Failed to move items to trash',
             type: 'error',
           });
         }
@@ -226,7 +238,15 @@ export default function DashboardPage() {
   const filteredFiles = files.filter(filterBySearch);
   const filteredFolders = folders.filter(filterBySearch);
 
-  const recentItems = [...filteredFiles, ...filteredFolders]
+  const allItems = [...filteredFiles, ...filteredFolders];
+  const itemIds = new Set(allItems.map(i => i.id));
+
+  const recentItems = allItems
+    .filter(item => {
+      const parentId = (item as any).folderId || (item as any).parentId;
+      // Skip if parent is also in the recent items pool
+      return !parentId || !itemIds.has(parentId);
+    })
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 10);
 
@@ -236,6 +256,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-8 relative min-h-[600px]">
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => {
+          setIsShareModalOpen(false);
+          setSharingItem(null);
+        }}
+        item={sharingItem || {}}
+      />
       {/* Upload Modal */}
       <UploadModal
         isOpen={isUploadModalOpen}
@@ -384,9 +412,17 @@ export default function DashboardPage() {
                         <div className="h-6 w-6 rounded-full border-2 border-white dark:border-black bg-linear-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-[9px] font-black text-white shadow-sm ring-1 ring-black/5">
                           {user?.firstName?.[0] || 'U'}
                         </div>
-                        <div className="h-6 w-6 rounded-full border-2 border-white dark:border-black bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[9px] font-black text-zinc-500 shadow-sm ring-1 ring-black/5">
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            // dummy share for pinned folders
+                            setSharingItem(folder);
+                            setIsShareModalOpen(true);
+                          }}
+                          className="h-6 w-6 rounded-full border-2 border-white dark:border-black bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-[9px] font-black text-zinc-500 shadow-sm ring-1 ring-black/5 hover:bg-v8-primary hover:text-white hover:border-v8-primary transition-all active:scale-90"
+                        >
                           +
-                        </div>
+                        </button>
                       </div>
                       <span className="font-black uppercase tracking-tighter opacity-40">
                         {new Date(folder.updatedAt).toLocaleDateString('en-US', {
@@ -546,6 +582,10 @@ export default function DashboardPage() {
                 setSelectedIds(new Set([item.id]));
                 setMoveCopyMode('copy');
                 setIsMoveCopyModalOpen(true);
+              }}
+              onShare={item => {
+                setSharingItem(item);
+                setIsShareModalOpen(true);
               }}
             />
           </div>

@@ -162,6 +162,7 @@ export class FileRepository implements IFileRepository {
     return prisma.file.findMany({
       where: {
         userId,
+        isDeleted: false,
         updatedAt: {
           gt: since,
         },

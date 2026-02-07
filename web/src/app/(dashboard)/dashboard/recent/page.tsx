@@ -14,6 +14,7 @@ import Link from 'next/link';
 import UniversalFileView from '@/components/dashboard/UniversalFileView';
 import MoveCopyModal from '@/components/dashboard/MoveCopyModal';
 import { useModal } from '@/components/ui/ModalProvider';
+import ShareModal from '@/components/dashboard/ShareModal';
 
 export default function RecentPage() {
   const dispatch = useAppDispatch();
@@ -26,6 +27,8 @@ export default function RecentPage() {
 
   const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy'>('move');
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [sharingItem, setSharingItem] = useState<any>(null);
 
   useEffect(() => {
     dispatch(fetchSyncData());
@@ -35,28 +38,36 @@ export default function RecentPage() {
     const ids = targetIds || selectedIds;
     if (ids.size === 0) return;
 
+    let message = `Are you sure you want to move ${ids.size} items to trash?`;
+    if (ids.size === 1) {
+      const id = Array.from(ids)[0];
+      const item = [...files, ...folders].find(i => i.id === id);
+      if (item) {
+        message = `Are you sure you want to move "${item.name}" to trash?`;
+      }
+    }
+
     showConfirmation({
-      title: 'Delete Items?',
-      message: `Are you sure you want to delete ${ids.size} items? This action cannot be undone.`,
-      confirmText: 'Delete',
+      title: 'Move to Trash',
+      message,
+      confirmText: 'Move to Trash',
       cancelText: 'Cancel',
       onConfirm: async () => {
         const fileIds = files.filter(f => ids.has(f.id)).map(f => f.id);
         const folderIds = folders.filter(f => ids.has(f.id)).map(f => f.id);
 
         try {
-          await dispatch(bulkDeleteItems({ fileIds, folderIds })).unwrap();
+          await dispatch(bulkDeleteItems({ fileIds, folderIds, permanent: false })).unwrap();
           setSelectedIds(new Set());
           showNotification({
             title: 'Success',
-            message: 'Items deleted successfully',
+            message: ids.size === 1 ? 'Item moved to trash' : 'Items moved to trash',
             type: 'success',
           });
         } catch (err: any) {
-          console.error(err);
           showNotification({
             title: 'Error',
-            message: err.message || 'Failed to delete items',
+            message: err.message || 'Failed to move items to trash',
             type: 'error',
           });
         }
@@ -97,8 +108,16 @@ export default function RecentPage() {
     return item.name.toLowerCase().includes(searchQuery.toLowerCase());
   };
 
-  const recentFiles = [...files]
-    .filter(filterBySearch)
+  const allRecentItems = [...files, ...folders].filter(filterBySearch);
+  const itemIds = new Set(allRecentItems.map(i => i.id));
+
+  // Filter logic: if an item's parent is also in the pool of items being considered,
+  // we assume the parent is more representative of the "recent activity" (e.g. child was uploaded with folder)
+  const recentItems = allRecentItems
+    .filter(item => {
+      const parentId = (item as any).folderId || (item as any).parentId;
+      return !parentId || !itemIds.has(parentId);
+    })
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 50);
 
@@ -106,7 +125,7 @@ export default function RecentPage() {
     return <DashboardSkeleton />;
   }
 
-  const isEmpty = recentFiles.length === 0;
+  const isEmpty = recentItems.length === 0;
 
   return (
     <div className="space-y-6 pb-8">
@@ -116,6 +135,15 @@ export default function RecentPage() {
         onConfirm={handleMoveCopyConfirm}
         folders={folders}
         title={moveCopyMode === 'move' ? 'Move Items' : 'Copy Items'}
+      />
+
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => {
+          setIsShareModalOpen(false);
+          setSharingItem(null);
+        }}
+        item={sharingItem || {}}
       />
 
       {/* Breadcrumbs */}
@@ -188,7 +216,7 @@ export default function RecentPage() {
           </div>
         ) : (
           <UniversalFileView
-            items={recentFiles}
+            items={recentItems}
             viewMode={viewMode}
             user={user}
             enableSelection={true}
@@ -204,6 +232,10 @@ export default function RecentPage() {
               setSelectedIds(new Set([item.id]));
               setMoveCopyMode('copy');
               setIsMoveCopyModalOpen(true);
+            }}
+            onShare={item => {
+              setSharingItem(item);
+              setIsShareModalOpen(true);
             }}
           />
         )}
