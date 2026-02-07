@@ -60,11 +60,11 @@ export default function Sidebar() {
           className="flex h-16 items-center gap-3 px-6 border-b"
           style={{ borderColor: 'var(--border-primary)' }}
         >
-          <div className="relative h-8 w-8 min-w-[32px]">
+          <div className="relative h-9 w-9 min-w-[32px]">
             <img
               src="/images/v8id-logo.png"
               alt="V8id Logo"
-              className="h-full w-full object-contain brightness-110"
+              className="h-full w-full object-contain brightness-110 rounded-sm"
               onError={e => {
                 (e.target as HTMLImageElement).src = '/images/v8id-logo-2.png';
               }}
