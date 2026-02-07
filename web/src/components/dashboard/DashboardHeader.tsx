@@ -91,7 +91,7 @@ export default function DashboardHeader() {
         </button>
 
         <button
-          onClick={toggleTheme}
+          // onClick={toggleTheme}
           className="flex h-9 w-9 items-center justify-center rounded-lg border transition-all duration-200"
           style={{
             borderColor: 'var(--border-primary)',

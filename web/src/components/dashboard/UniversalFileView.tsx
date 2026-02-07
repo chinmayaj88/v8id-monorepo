@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   HiOutlineFolder,
   HiOutlineDocument,
@@ -144,6 +144,39 @@ export default function UniversalFileView({
   isTrash,
 }: UniversalFileViewProps) {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuId(null);
+      }
+    };
+
+    if (activeMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [activeMenuId]);
+
+  // Update menu position when activeMenuId changes
+  useEffect(() => {
+    if (activeMenuId && buttonRefs.current[activeMenuId]) {
+      const button = buttonRefs.current[activeMenuId];
+      const rect = button!.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + window.scrollY + 8,
+        right: window.innerWidth - rect.right + window.scrollX,
+      });
+    } else {
+      setMenuPosition(null);
+    }
+  }, [activeMenuId]);
 
   const handleToggle = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -172,97 +205,99 @@ export default function UniversalFileView({
     setActiveMenuId(activeMenuId === id ? null : id);
   };
 
+  const setButtonRef = (id: string) => (ref: HTMLButtonElement | null) => {
+    buttonRefs.current[id] = ref;
+  };
+
   const renderActionMenu = (item: any) => {
     const isFolder = 'fileCount' in item || !('mimeType' in item);
 
+    if (!menuPosition) return null;
+
     return (
-      <>
-        <div
-          className="fixed inset-0 z-40"
-          onClick={e => {
-            e.stopPropagation();
-            setActiveMenuId(null);
-          }}
-        />
-        <div
-          className="absolute right-0 top-10 w-48 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden py-2 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5"
-          onClick={e => e.stopPropagation()}
-        >
-          {!isFolder && onDownload && (
-            <button
-              onClick={() => {
-                onDownload(item);
-                setActiveMenuId(null);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
-            >
-              <HiOutlineDownload className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
-              Download
-            </button>
-          )}
-          {onShare && (
-            <button
-              onClick={() => {
-                onShare(item);
-                setActiveMenuId(null);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
-            >
-              <HiOutlineShare className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
-              Share
-            </button>
-          )}
-          {onCopy && (
-            <button
-              onClick={() => {
-                onCopy(item);
-                setActiveMenuId(null);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
-            >
-              <HiOutlineDuplicate className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
-              Copy to...
-            </button>
-          )}
-          {onMove && (
-            <button
-              onClick={() => {
-                onMove(item);
-                setActiveMenuId(null);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
-            >
-              <HiOutlineFolderOpen className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
-              Move to...
-            </button>
-          )}
-          {onRestore && (
-            <button
-              onClick={() => {
-                onRestore(item);
-                setActiveMenuId(null);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all hover:pl-5 group/btn"
-            >
-              <HiOutlineRefresh className="w-4 h-4 group-hover/btn:rotate-180 transition-transform" />
-              Restore
-            </button>
-          )}
-          <div className="h-px bg-black/5 dark:bg-white/5 my-1.5 mx-2" />
-          {onDelete && (
-            <button
-              onClick={() => {
-                onDelete(item);
-                setActiveMenuId(null);
-              }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-extrabold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all hover:pl-5 group/btn"
-            >
-              <HiOutlineTrash className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
-              {isTrash ? 'Delete Forever' : 'Delete'}
-            </button>
-          )}
-        </div>
-      </>
+      <div
+        ref={menuRef}
+        className="fixed w-48 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl shadow-2xl z-9999 overflow-hidden py-2 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5"
+        style={{
+          top: `${menuPosition.top}px`,
+          right: `${menuPosition.right}px`,
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {!isFolder && onDownload && (
+          <button
+            onClick={() => {
+              onDownload(item);
+              setActiveMenuId(null);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
+          >
+            <HiOutlineDownload className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
+            Download
+          </button>
+        )}
+        {onShare && (
+          <button
+            onClick={() => {
+              onShare(item);
+              setActiveMenuId(null);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
+          >
+            <HiOutlineShare className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
+            Share
+          </button>
+        )}
+        {onCopy && (
+          <button
+            onClick={() => {
+              onCopy(item);
+              setActiveMenuId(null);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
+          >
+            <HiOutlineDuplicate className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
+            Copy to...
+          </button>
+        )}
+        {onMove && (
+          <button
+            onClick={() => {
+              onMove(item);
+              setActiveMenuId(null);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all hover:pl-5 group/btn"
+          >
+            <HiOutlineFolderOpen className="w-4 h-4 text-zinc-400 group-hover/btn:text-v8-primary transition-colors" />
+            Move to...
+          </button>
+        )}
+        {onRestore && (
+          <button
+            onClick={() => {
+              onRestore(item);
+              setActiveMenuId(null);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-bold text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all hover:pl-5 group/btn"
+          >
+            <HiOutlineRefresh className="w-4 h-4 group-hover/btn:rotate-180 transition-transform" />
+            Restore
+          </button>
+        )}
+        <div className="h-px bg-black/5 dark:bg-white/5 my-1.5 mx-2" />
+        {onDelete && (
+          <button
+            onClick={() => {
+              onDelete(item);
+              setActiveMenuId(null);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] font-extrabold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all hover:pl-5 group/btn"
+          >
+            <HiOutlineTrash className="w-4 h-4 group-hover/btn:scale-110 transition-transform" />
+            {isTrash ? 'Delete Forever' : 'Delete'}
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -305,12 +340,12 @@ export default function UniversalFileView({
 
                 <div className="absolute top-0 right-0 z-30">
                   <button
+                    ref={setButtonRef(item.id)}
                     onClick={e => toggleMenu(e, item.id)}
                     className="p-1.5 rounded-xl bg-white/10 dark:bg-black/10 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all hover:bg-white dark:hover:bg-zinc-800 hover:text-v8-primary shadow-lg"
                   >
                     <HiOutlineDotsVertical className="w-5 h-5" />
                   </button>
-                  {activeMenuId === item.id && renderActionMenu(item)}
                 </div>
               </div>
 
@@ -390,6 +425,9 @@ export default function UniversalFileView({
             </Card>
           );
         })}
+
+        {/* Render active menu outside of cards to avoid z-index issues */}
+        {activeMenuId && renderActionMenu(items.find(item => item.id === activeMenuId))}
       </div>
     );
   }
@@ -444,7 +482,7 @@ export default function UniversalFileView({
               enableSelection
                 ? 'grid-cols-[40px_1fr_40px] md:grid-cols-[40px_1fr_180px_40px] lg:grid-cols-[40px_1fr_180px_120px_40px] xl:grid-cols-[40px_1fr_180px_120px_120px_40px]'
                 : 'grid-cols-[1fr_40px] md:grid-cols-[1fr_180px_40px] lg:grid-cols-[1fr_180px_120px_40px] xl:grid-cols-[1fr_180px_120px_120px_40px]'
-            } items-center px-4 py-3 rounded-2xl border shadow-xs hover:shadow-md hover:scale-[1.002] transition-all cursor-pointer group bg-card-bg relative overflow-visible`}
+            } items-center px-4 py-3 rounded-2xl border shadow-xs hover:shadow-md hover:scale-[1.002] transition-all cursor-pointer group bg-card-bg relative`}
             style={{ borderColor: 'var(--border-primary)' }}
           >
             {enableSelection && (
@@ -520,6 +558,7 @@ export default function UniversalFileView({
             {/* Actions */}
             <div className="flex justify-end relative">
               <button
+                ref={setButtonRef(item.id)}
                 onClick={e => toggleMenu(e, item.id)}
                 className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
               >
@@ -528,11 +567,13 @@ export default function UniversalFileView({
                   style={{ color: 'var(--text-tertiary)' }}
                 />
               </button>
-              {activeMenuId === item.id && renderActionMenu(item)}
             </div>
           </div>
         );
       })}
+
+      {/* Render active menu outside of rows to avoid z-index issues */}
+      {activeMenuId && renderActionMenu(items.find(item => item.id === activeMenuId))}
     </div>
   );
 }
