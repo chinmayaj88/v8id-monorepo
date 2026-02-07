@@ -19,9 +19,12 @@ import {
   HiOutlineDuplicate,
   HiOutlineFolderOpen,
   HiX,
+  HiOutlineCloudUpload,
 } from 'react-icons/hi';
 import AddUserModal from '@/components/dashboard/AddUserModal';
 import MoveCopyModal from '@/components/dashboard/MoveCopyModal';
+import UploadModal from '@/components/dashboard/UploadModal';
+import { setCurrentFolderId } from '@/store/slices/fileSlice';
 import { useModal } from '@/components/ui/ModalProvider';
 
 const dummyPinnedFolders = [
@@ -65,17 +68,74 @@ export default function DashboardPage() {
   const { files, folders, isLoading, searchQuery } = useAppSelector(state => state.files);
   const { showConfirmation, showNotification } = useModal();
 
-  useEffect(() => {
-    dispatch(fetchSyncData());
-  }, [dispatch]);
+  const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
+  const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy'>('move');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isDraggingOverPage, setIsDraggingOverPage] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [filterType, setFilterType] = useState<string>('all');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
-  const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy'>('move');
+
+  useEffect(() => {
+    dispatch(fetchSyncData());
+    dispatch(setCurrentFolderId(null));
+  }, [dispatch]);
+
+  // Global Drag and Drop
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handleDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer?.types.includes('Files')) {
+        setIsDraggingOverPage(true);
+      }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (
+        e.clientX <= 0 ||
+        e.clientY <= 0 ||
+        e.clientX >= window.innerWidth ||
+        e.clientY >= window.innerHeight
+      ) {
+        setIsDraggingOverPage(false);
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingOverPage(false);
+
+      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        setPendingFiles(Array.from(e.dataTransfer.files));
+        setIsUploadModalOpen(true);
+      }
+    };
+
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, []);
 
   const handleDeleteSelected = async (targetIds?: Set<string>) => {
     const ids = targetIds || selectedIds;
@@ -175,7 +235,42 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-6 pb-8 relative min-h-[600px]">
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => {
+          setIsUploadModalOpen(false);
+          setPendingFiles([]);
+        }}
+        folderId={null}
+        initialFiles={pendingFiles}
+      />
+
+      {/* Global Drag Overlay */}
+      {isDraggingOverPage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-v8-primary/10 backdrop-blur-md border-4 border-dashed border-v8-primary m-4 rounded-[40px] pointer-events-none animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-white dark:bg-zinc-900 p-12 rounded-[48px] shadow-2xl flex flex-col items-center gap-6 scale-110">
+            <div className="w-24 h-24 rounded-[32px] bg-v8-primary text-white flex items-center justify-center shadow-2xl shadow-v8-primary/40 animate-bounce">
+              <HiOutlineCloudUpload className="w-12 h-12" />
+            </div>
+            <div className="text-center">
+              <h2
+                className="text-3xl font-black tracking-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Drop to Upload
+              </h2>
+              <p
+                className="text-sm font-bold opacity-40 mt-1"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Your files will be uploaded to All Files
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Breadcrumbs */}
       <div
         className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-60"

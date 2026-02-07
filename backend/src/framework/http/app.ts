@@ -5,7 +5,6 @@ import { envConfig } from '../../infrastructure/config/env.config.js';
 import { ResponseUtil } from '../../presentation/utils/response.util.js';
 import { errorMiddleware } from '../../presentation/middleware/error.middleware.js';
 import { generalRateLimiter } from '../../presentation/middleware/rate-limit.middleware.js';
-import { multipartHandler } from '../../presentation/middleware/parser/multipart.middleware.js';
 import cookieParser from 'cookie-parser';
 import { attachCsrfToken, csrfProtection } from '../../presentation/middleware/csrf.middleware.js';
 import apiRoutes from '../../presentation/routes/index.js';
@@ -63,9 +62,6 @@ export function createApp(): Express {
 
   // Cookie parser
   app.use(cookieParser());
-
-  // Global Multipart Handler (Enterprise Pattern)
-  app.use(multipartHandler);
 
   // Debug & Safety Middleware: Ensure req.body exists and log content-type issues
   app.use((req, _res, next) => {

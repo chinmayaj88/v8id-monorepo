@@ -8,6 +8,7 @@ import {
   bulkDeleteItems,
   moveItems,
   copyItems,
+  setCurrentFolderId,
 } from '@/store/slices/fileSlice';
 import { formatFileSize } from '@/utils/format';
 import {
@@ -25,6 +26,7 @@ import {
   HiOutlineDuplicate,
   HiOutlineFolderOpen,
   HiX,
+  HiOutlineCloudUpload,
 } from 'react-icons/hi';
 import DashboardSkeleton from '@/components/ui/DashboardSkeleton';
 import Button from '@/components/ui/Button';
@@ -32,6 +34,7 @@ import Link from 'next/link';
 import UniversalFileView from '@/components/dashboard/UniversalFileView';
 import MoveCopyModal from '@/components/dashboard/MoveCopyModal';
 import { useModal } from '@/components/ui/ModalProvider';
+import UploadModal from '@/components/dashboard/UploadModal';
 
 export default function FilesPage() {
   const dispatch = useAppDispatch();
@@ -39,7 +42,13 @@ export default function FilesPage() {
   const { user } = useAppSelector(state => state.auth);
   const { showConfirmation, showNotification } = useModal();
 
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [currentFolderId, setCurrentFolderIdLocal] = useState<string | null>(null);
+
+  // Sync with global store
+  useEffect(() => {
+    dispatch(setCurrentFolderId(currentFolderId));
+  }, [currentFolderId, dispatch]);
+
   const [activeTab, setActiveTab] = useState<'files' | 'folders'>('folders');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -48,6 +57,62 @@ export default function FilesPage() {
 
   const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy'>('move');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isDraggingOverPage, setIsDraggingOverPage] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+  // Global Drag and Drop
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const handleDragEnter = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer?.types.includes('Files')) {
+        setIsDraggingOverPage(true);
+      }
+    };
+
+    const handleDragLeave = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Only set to false if we're leaving the window
+      if (
+        e.clientX <= 0 ||
+        e.clientY <= 0 ||
+        e.clientX >= window.innerWidth ||
+        e.clientY >= window.innerHeight
+      ) {
+        setIsDraggingOverPage(false);
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingOverPage(false);
+
+      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+        setPendingFiles(Array.from(e.dataTransfer.files));
+        setIsUploadModalOpen(true);
+      }
+    };
+
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
+    };
+  }, []);
 
   // Clear selection when changing folders or tabs
   useEffect(() => {
@@ -172,6 +237,42 @@ export default function FilesPage() {
 
   return (
     <div className="space-y-6 pb-8 relative min-h-[600px]">
+      {/* Upload Modal */}
+      <UploadModal
+        isOpen={isUploadModalOpen}
+        onClose={() => {
+          setIsUploadModalOpen(false);
+          setPendingFiles([]);
+        }}
+        folderId={currentFolderId}
+        initialFiles={pendingFiles}
+      />
+
+      {/* Global Drag Overlay */}
+      {isDraggingOverPage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-v8-primary/10 backdrop-blur-md border-4 border-dashed border-v8-primary m-4 rounded-[40px] pointer-events-none animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-white dark:bg-zinc-900 p-12 rounded-[48px] shadow-2xl flex flex-col items-center gap-6 scale-110">
+            <div className="w-24 h-24 rounded-[32px] bg-v8-primary text-white flex items-center justify-center shadow-2xl shadow-v8-primary/40 animate-bounce">
+              <HiOutlineCloudUpload className="w-12 h-12" />
+            </div>
+            <div className="text-center">
+              <h2
+                className="text-3xl font-black tracking-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Drop to Upload
+              </h2>
+              <p
+                className="text-sm font-bold opacity-40 mt-1"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                Your files will be uploaded to {currentFolder ? currentFolder.name : 'All Files'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Folder Modal */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -235,7 +336,7 @@ export default function FilesPage() {
           <React.Fragment key={crumb.id || 'root'}>
             {idx > 0 && <HiChevronRight className="w-2.5 h-2.5 mx-1" />}
             <button
-              onClick={() => setCurrentFolderId(crumb.id)}
+              onClick={() => setCurrentFolderIdLocal(crumb.id)}
               className={`hover:text-v8-primary transition-colors ${idx === getBreadcrumbs().length - 1 ? 'text-v8-primary' : ''}`}
             >
               {crumb.name}
@@ -275,7 +376,7 @@ export default function FilesPage() {
               <button
                 onClick={() => {
                   const parent = folders.find(f => f.id === currentFolderId)?.parentId;
-                  setCurrentFolderId(parent || null);
+                  setCurrentFolderIdLocal(parent || null);
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-2xl border text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all opacity-60 hover:opacity-100"
                 style={{ borderColor: 'var(--border-primary)' }}
@@ -397,7 +498,7 @@ export default function FilesPage() {
             items={filteredFolders}
             viewMode={viewMode}
             user={user}
-            onItemClick={folder => setCurrentFolderId(folder.id)}
+            onItemClick={folder => setCurrentFolderIdLocal(folder.id)}
             enableSelection={true} // Enable selection for folders
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}

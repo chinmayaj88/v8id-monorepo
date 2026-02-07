@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { filesContainer } from '../../infrastructure/di/index.js';
 import { sharedContainer } from '../../infrastructure/di/index.js';
 import { authMiddleware } from '../middleware/auth.middleware.js';
@@ -12,6 +13,7 @@ const authenticate = authMiddleware(
 );
 
 const router: Router = Router();
+const upload = multer();
 
 router.use(authenticate);
 
@@ -26,7 +28,7 @@ router.delete('/shares/:id', strictMutationRateLimiter, (req, res) =>
 router.get('/analytics', (req, res) => filesContainer.fileController.getAnalytics(req, res));
 router.get('/albums', (req, res) => filesContainer.fileController.getAlbums(req, res));
 
-router.post('/upload', strictMutationRateLimiter, (req, res) =>
+router.post('/upload', strictMutationRateLimiter, upload.array('files'), (req, res) =>
   filesContainer.fileController.handleUpload(req, res)
 );
 

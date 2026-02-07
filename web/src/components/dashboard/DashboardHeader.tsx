@@ -18,14 +18,16 @@ import { ENDPOINTS } from '@/lib/constants';
 
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import UploadModal from '@/components/dashboard/UploadModal';
 
 export default function DashboardHeader() {
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.auth.user);
-  const searchQuery = useAppSelector(state => state.files.searchQuery);
+  const { searchQuery, currentFolderId } = useAppSelector(state => state.files);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -108,11 +110,18 @@ export default function DashboardHeader() {
 
         <Button
           variant="primary"
-          icon={<HiOutlinePlus className="h-5 w-5" />}
+          icon={<HiOutlinePlus className="h-4 w-4" />}
           className="shadow-lg shadow-v8-primary/20"
+          onClick={() => setIsUploadModalOpen(true)}
         >
           Upload
         </Button>
+
+        <UploadModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          folderId={currentFolderId}
+        />
 
         <div className="h-8 w-px bg-(--border-primary) mx-2"></div>
 

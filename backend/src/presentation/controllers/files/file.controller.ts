@@ -66,10 +66,19 @@ export class FileController {
       }
 
       // 1. Normalize input into an array (Industry Grade: Batch Support)
-      const inputs = Array.isArray(req.body) ? req.body : [req.body];
+      const expressFiles = req.files as any[] | undefined;
+      const bodyInputs = Array.isArray(req.body) ? req.body : [req.body];
 
-      if (inputs.length > 10) {
-        ResponseUtil.validationError(res, 'Maximum 10 files per batch upload');
+      // If we have files but body is not an array, or body is smaller than files,
+      // we spread the body metadata (like folderId) to all files.
+      let inputs = bodyInputs;
+      if (expressFiles && expressFiles.length > bodyInputs.length && bodyInputs.length === 1) {
+        inputs = new Array(expressFiles.length).fill(bodyInputs[0]);
+      }
+
+      if (inputs.length > 20) {
+        // Increased batch limit for multi-upload
+        ResponseUtil.validationError(res, 'Maximum 20 files per batch upload');
         return;
       }
 

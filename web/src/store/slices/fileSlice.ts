@@ -50,6 +50,7 @@ interface FileState {
   trashFiles: FileItem[];
   trashFolders: FolderItem[];
   searchQuery: string;
+  currentFolderId: string | null;
   lastSync: string | null;
   isLoading: boolean;
   error: string | null;
@@ -64,6 +65,7 @@ const initialState: FileState = {
   trashFiles: [],
   trashFolders: [],
   searchQuery: '',
+  currentFolderId: null,
   lastSync: null,
   isLoading: false,
   error: null,
@@ -163,6 +165,33 @@ export const bulkDeleteItems = createAsyncThunk<
   }
 });
 
+export const uploadFiles = createAsyncThunk<
+  FileItem[],
+  { files: File[]; folderId: string | null; onProgress?: (percent: number) => void },
+  { rejectValue: string }
+>('files/uploadFiles', async ({ files, folderId, onProgress }, { rejectWithValue, dispatch }) => {
+  try {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    if (folderId) formData.append('folderId', folderId);
+
+    const response = await apiClient.post('/files/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: progressEvent => {
+        if (onProgress && progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentCompleted);
+        }
+      },
+    });
+
+    dispatch(fetchSyncData());
+    return response.data.data;
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to upload files');
+  }
+});
+
 export const fetchTrashData = createAsyncThunk<
   { files: FileItem[]; folders: FolderItem[] },
   void,
@@ -224,6 +253,9 @@ const fileSlice = createSlice({
     setSearchQuery: (state, action: PayloadAction<string>) => {
       state.searchQuery = action.payload;
     },
+    setCurrentFolderId: (state, action: PayloadAction<string | null>) => {
+      state.currentFolderId = action.payload;
+    },
     clearFileData: state => {
       state.files = [];
       state.folders = [];
@@ -233,7 +265,7 @@ const fileSlice = createSlice({
       state.trashFiles = [];
       state.trashFolders = [];
       state.searchQuery = '';
-      state.lastSync = null;
+      ((state.currentFolderId = null), (state.lastSync = null));
       state.error = null;
     },
   },
@@ -384,5 +416,6 @@ const fileSlice = createSlice({
   },
 });
 
-export const { setFiles, setFolders, setSearchQuery, clearFileData } = fileSlice.actions;
+export const { setFiles, setFolders, setSearchQuery, setCurrentFolderId, clearFileData } =
+  fileSlice.actions;
 export default fileSlice.reducer;
