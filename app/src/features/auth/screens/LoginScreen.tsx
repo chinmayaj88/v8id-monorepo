@@ -100,7 +100,7 @@ const LoginScreen = ({ navigation }: any) => {
   );
 
   const [email, setEmail] = useState('jenachinmaya51@gmail.com');
-  const [password, setPassword] = useState('Chinmaya@6370');
+  const [password, setPassword] = useState('Msi88@server');
   const [rememberMe, setRememberMe] = useState(true);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 

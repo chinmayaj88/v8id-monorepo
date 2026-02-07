@@ -20,4 +20,10 @@ export const ENDPOINTS = {
     LIST: '/users',
     CREATE: '/users',
   },
+  FILE: {
+    BASE: '/files',
+  },
+  FOLDER: {
+    BASE: '/folders',
+  },
 };

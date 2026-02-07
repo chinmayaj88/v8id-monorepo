@@ -31,6 +31,9 @@ router.get('/albums', (req, res) => filesContainer.fileController.getAlbums(req,
 router.post('/upload', strictMutationRateLimiter, upload.array('files'), (req, res) =>
   filesContainer.fileController.handleUpload(req, res)
 );
+router.post('/notes', strictMutationRateLimiter, (req, res) =>
+  filesContainer.fileController.createNote(req, res)
+);
 
 // File operations
 router.post('/download', strictMutationRateLimiter, (req, res) =>

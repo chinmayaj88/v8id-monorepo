@@ -35,6 +35,8 @@ import UniversalFileView from '@/components/dashboard/UniversalFileView';
 import MoveCopyModal from '@/components/dashboard/MoveCopyModal';
 import { useModal } from '@/components/ui/ModalProvider';
 import UploadModal from '@/components/dashboard/UploadModal';
+import CreateNoteModal from '@/components/dashboard/CreateNoteModal';
+import { HiOutlineFolderAdd, HiOutlineDocumentAdd } from 'react-icons/hi';
 
 export default function FilesPage() {
   const dispatch = useAppDispatch();
@@ -58,6 +60,8 @@ export default function FilesPage() {
   const [isMoveCopyModalOpen, setIsMoveCopyModalOpen] = useState(false);
   const [moveCopyMode, setMoveCopyMode] = useState<'move' | 'copy'>('move');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [isCreateDropdownOpen, setIsCreateDropdownOpen] = useState(false);
   const [isDraggingOverPage, setIsDraggingOverPage] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
@@ -246,6 +250,12 @@ export default function FilesPage() {
         }}
         folderId={currentFolderId}
         initialFiles={pendingFiles}
+      />
+
+      <CreateNoteModal
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        folderId={currentFolderId}
       />
 
       {/* Global Drag Overlay */}
@@ -452,16 +462,82 @@ export default function FilesPage() {
               <HiOutlineViewGrid className="w-4 h-4" />
             </button>
           </div>
-          <Button
-            variant="primary"
-            size="sm"
-            className="gap-2 rounded-full px-5 font-bold h-10"
-            style={{ backgroundColor: '#8b5cf6', color: 'white' }}
-            icon={<HiPlus className="w-4 h-4" />}
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            Create
-          </Button>
+          <div className="relative">
+            <Button
+              variant="primary"
+              size="sm"
+              className="gap-2 rounded-full px-5 font-bold h-10 shadow-lg shadow-v8-primary/20"
+              style={{ backgroundColor: '#8b5cf6', color: 'white' }}
+              icon={
+                <HiPlus
+                  className={`w-4 h-4 transition-transform ${isCreateDropdownOpen ? 'rotate-45' : ''}`}
+                />
+              }
+              onClick={() => setIsCreateDropdownOpen(!isCreateDropdownOpen)}
+            >
+              Create
+            </Button>
+
+            {isCreateDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsCreateDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-3 w-56 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[28px] shadow-2xl z-50 overflow-hidden p-2 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
+                  <button
+                    onClick={() => {
+                      setIsCreateModalOpen(true);
+                      setIsCreateDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all text-left group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/20 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <HiOutlineFolderAdd className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-wider">New Folder</p>
+                      <p className="text-[9px] font-bold opacity-40">Create a directory</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsUploadModalOpen(true);
+                      setIsCreateDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all text-left group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <HiOutlineCloudUpload className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-wider">
+                        Upload Files
+                      </p>
+                      <p className="text-[9px] font-bold opacity-40">Add files or folders</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsNoteModalOpen(true);
+                      setIsCreateDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all text-left group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <HiOutlineDocumentAdd className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-wider">New Note</p>
+                      <p className="text-[9px] font-bold opacity-40">Create a text file</p>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

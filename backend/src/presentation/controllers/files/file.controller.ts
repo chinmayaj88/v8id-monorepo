@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import {
+  UploadFileUseCase,
   GenerateFileLinkUseCase,
   DeleteFileUseCase,
   RestoreFileUseCase,
@@ -11,6 +12,7 @@ import {
   MoveItemsUseCase,
   CopyItemsUseCase,
   BulkDeleteUseCase,
+  CreateNoteUseCase,
 } from '../../../application/use-cases/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
@@ -19,6 +21,7 @@ import { IFileRepository } from '../../../application/interfaces/index.js';
 export class FileController {
   constructor(
     private fileRepository: IFileRepository,
+    private uploadFileUseCase: UploadFileUseCase,
     private generateFileLinkUseCase: GenerateFileLinkUseCase,
     private deleteFileUseCase: DeleteFileUseCase,
     private restoreFileUseCase: RestoreFileUseCase,
@@ -29,7 +32,8 @@ export class FileController {
     private getMediaAlbumsUseCase: GetMediaAlbumsUseCase,
     private moveItemsUseCase: MoveItemsUseCase,
     private copyItemsUseCase: CopyItemsUseCase,
-    private bulkDeleteUseCase: BulkDeleteUseCase
+    private bulkDeleteUseCase: BulkDeleteUseCase,
+    private createNoteUseCase: CreateNoteUseCase
   ) {}
 
   // Methods...
@@ -65,26 +69,35 @@ export class FileController {
         return;
       }
 
-      // 1. Normalize input into an array (Industry Grade: Batch Support)
       const expressFiles = req.files as any[] | undefined;
-      const bodyInputs = Array.isArray(req.body) ? req.body : [req.body];
+      let metadata: any[] = [];
 
-      // If we have files but body is not an array, or body is smaller than files,
-      // we spread the body metadata (like folderId) to all files.
-      let inputs = bodyInputs;
-      if (expressFiles && expressFiles.length > bodyInputs.length && bodyInputs.length === 1) {
-        inputs = new Array(expressFiles.length).fill(bodyInputs[0]);
+      // 1. Parse Metadata
+      if (req.body.metadata) {
+        try {
+          metadata =
+            typeof req.body.metadata === 'string'
+              ? JSON.parse(req.body.metadata)
+              : req.body.metadata;
+        } catch (e) {
+          metadata = [];
+        }
+      } else {
+        const bodyInputs = Array.isArray(req.body) ? req.body : [req.body];
+        metadata = bodyInputs;
       }
 
-      if (inputs.length > 20) {
-        // Increased batch limit for multi-upload
-        ResponseUtil.validationError(res, 'Maximum 20 files per batch upload');
-        return;
+      // If we have files but metadata is shorter, fill it
+      if (expressFiles && expressFiles.length > metadata.length) {
+        const lastMeta = metadata[metadata.length - 1] || {};
+        for (let i = metadata.length; i < expressFiles.length; i++) {
+          metadata.push({ ...lastMeta });
+        }
       }
 
       // 2. Global Batch Validation (5GB Limit)
       const MAX_BATCH_SIZE = 5 * 1024 * 1024 * 1024;
-      const totalSize = inputs.reduce((sum, item) => sum + (Number(item.size) || 0), 0);
+      const totalSize = metadata.reduce((sum, item) => sum + (Number(item.size) || 0), 0);
 
       if (totalSize > MAX_BATCH_SIZE) {
         ResponseUtil.validationError(
@@ -94,24 +107,42 @@ export class FileController {
         return;
       }
 
-      const results = await Promise.all(
-        inputs.map(async (input: any, index: number) => {
-          const storageKey = input.storageKey;
-          const ociUploadId = input.ociUploadId;
-          const parts = input.parts;
-          // Flexible field resolution to support various client payloads
-          const fileName = input.fileName || input.filename || input.name || input.originalName;
-          const mimeType = input.mimeType || input.mimetype || input.type || input.contentType;
-          const size = input.size !== undefined ? input.size : input.fileSize;
+      // 3. Process Batch Sequentially (Avoid Race Conditions in Folder Creation)
+      const results = [];
+      for (let i = 0; i < metadata.length; i++) {
+        const meta = metadata[i];
+        const currentFile = expressFiles?.[i];
 
-          const folderId = input.folderId;
-          const tier = input.tier;
-          const path = input.path;
+        try {
+          // MODE 1: Direct Upload (File content present in request)
+          if (currentFile) {
+            const fileName = meta.fileName || meta.name || currentFile.originalname;
+            const folderId = meta.folderId;
+            const path = meta.path;
 
-          // MODE A: COMPLETION
+            const file = await this.uploadFileUseCase.execute(req.user!.id, {
+              fileName,
+              mimeType: currentFile.mimetype,
+              size: BigInt(currentFile.size),
+              file: currentFile.buffer,
+              folderId,
+              path,
+            });
+
+            results.push({ ...file, size: file.size.toString(), mode: 'DIRECT' });
+            continue;
+          }
+
+          // MODE 2: Multipart Completion
+          const { storageKey, ociUploadId, parts } = meta;
+          const fileName = meta.fileName || meta.name;
+          const mimeType = meta.mimeType || meta.type;
+          const size = meta.size;
+
           if (storageKey || ociUploadId) {
             if (!fileName || !mimeType || size === undefined) {
-              return { error: 'Missing metadata for completion', fileName };
+              results.push({ error: 'Missing metadata for completion', fileName, index: i });
+              continue;
             }
 
             const result = await this.completeUploadUseCase.execute(req.user!.id, {
@@ -119,68 +150,57 @@ export class FileController {
               fileName,
               mimeType,
               size: BigInt(size),
-              folderId,
-              tier,
+              folderId: meta.folderId,
+              tier: meta.tier,
               ociUploadId,
               parts: typeof parts === 'string' ? JSON.parse(parts) : parts,
             });
 
-            return { ...result, size: result.size.toString(), mode: 'COMPLETED' };
+            results.push({ ...result, size: result.size.toString(), mode: 'COMPLETED' });
+            continue;
           }
 
-          // MODE B: INITIATION
-          let finalFileName: string = fileName || '';
-          let finalMimeType: string = mimeType || '';
-          let finalSize: number | string | bigint = size;
-
-          // Postman metadata helper: Extract from 'files' array if present
-          const expressFiles = req.files as any[] | undefined;
-          const currentFile = expressFiles?.[index];
-          if (currentFile) {
-            finalFileName = finalFileName || currentFile.originalname;
-            finalMimeType = finalMimeType || currentFile.mimetype;
-            finalSize = finalSize !== undefined ? finalSize : currentFile.size;
-          }
-
-          if (!finalFileName || !finalMimeType || finalSize === undefined) {
-            const missing = [];
-            if (!finalFileName) missing.push('fileName');
-            if (!finalMimeType) missing.push('mimeType');
-            if (finalSize === undefined) missing.push('size');
-            return {
-              error: `VALIDATION_ERROR: Missing required fields for initiation: ${missing.join(', ')}`,
-              received: {
-                fileName: finalFileName,
-                mimeType: finalMimeType,
-                size: finalSize,
-                originalInput: input,
-              }, // Helpful debug info
-              index,
-            };
+          // MODE 3: Initiation (For large files, client will upload directly to storage)
+          if (!fileName || !mimeType || size === undefined) {
+            results.push({ error: 'Missing metadata for initiation', index: i });
+            continue;
           }
 
           const result = await this.initiateUploadUseCase.execute(req.user!.id, {
-            fileName: finalFileName,
-            mimeType: finalMimeType,
-            size: BigInt(finalSize),
-            folderId: folderId || null,
-            tier,
-            path,
+            fileName,
+            mimeType: mimeType,
+            size: BigInt(size),
+            folderId: meta.folderId || null,
+            tier: meta.tier,
+            path: meta.path,
           });
 
-          return { ...result, mode: 'INITIATED' };
-        })
-      );
+          results.push({ ...result, mode: 'INITIATED' });
+        } catch (err: any) {
+          results.push({
+            error: err.message || 'Processing failed',
+            index: i,
+            fileName: currentFile?.originalname || meta.fileName,
+          });
+        }
+      }
 
       // Check for partial failures
       const hasErrors = results.some((r: any) => r.error);
-      if (hasErrors && inputs.length === 1) {
-        const validError = results[0] as any;
-        ResponseUtil.validationError(res, validError.error || 'Upload error', validError.received);
+      const allFailed = results.every((r: any) => r.error);
+
+      if (allFailed && metadata.length > 0) {
+        ResponseUtil.error(res, 'UPLOAD_ERROR', 'All files in batch failed to upload', 400, {
+          results,
+        });
         return;
       }
 
-      ResponseUtil.success(res, results, 'Batch processed successfully');
+      ResponseUtil.success(
+        res,
+        results,
+        'Batch processed successfully' + (hasErrors ? ' with some errors' : '')
+      );
     } catch (error) {
       console.error('Upload Handle Error:', error);
       const message = error instanceof Error ? error.message : 'Upload workflow failed';
@@ -411,6 +431,32 @@ export class FileController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to delete items';
       ResponseUtil.error(res, 'BULK_DELETE_ERROR', message);
+    }
+  }
+
+  async createNote(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const { name, content, folderId } = req.body;
+      if (!name || !content) {
+        ResponseUtil.validationError(res, 'Name and content are required');
+        return;
+      }
+
+      const file = await this.createNoteUseCase.execute(req.user.id, {
+        name,
+        content,
+        folderId,
+      });
+
+      ResponseUtil.success(res, file, 'Note created successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create note';
+      ResponseUtil.error(res, 'CREATE_NOTE_ERROR', message);
     }
   }
 }

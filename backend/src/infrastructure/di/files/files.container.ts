@@ -25,6 +25,7 @@ import {
   MoveItemsUseCase,
   CopyItemsUseCase,
   BulkDeleteUseCase,
+  CreateNoteUseCase,
 } from '../../../application/use-cases/index.js';
 import { FileController } from '../../../presentation/controllers/files/file.controller.js';
 import { FolderController } from '../../../presentation/controllers/files/folder.controller.js';
@@ -69,6 +70,7 @@ export class FilesContainer {
   public readonly moveItemsUseCase: MoveItemsUseCase;
   public readonly copyItemsUseCase: CopyItemsUseCase;
   public readonly bulkDeleteUseCase: BulkDeleteUseCase;
+  public readonly createNoteUseCase: CreateNoteUseCase;
 
   // Controllers
   public readonly fileController: FileController;
@@ -198,12 +200,20 @@ export class FilesContainer {
     );
     this.bulkDeleteUseCase = new BulkDeleteUseCase(
       this.deleteFileUseCase,
-      this.deleteFolderUseCase
+      this.deleteFolderUseCase,
+      this.shareRepository,
+      sharedContainer.userRepository
+    );
+    this.createNoteUseCase = new CreateNoteUseCase(
+      this.fileRepository,
+      sharedContainer.storageService,
+      sharedContainer.userRepository
     );
 
     // Controllers implementation
     this.fileController = new FileController(
       this.fileRepository,
+      this.uploadFileUseCase,
       this.generateFileLinkUseCase,
       this.deleteFileUseCase,
       this.restoreFileUseCase,
@@ -214,7 +224,8 @@ export class FilesContainer {
       this.getMediaAlbumsUseCase,
       this.moveItemsUseCase,
       this.copyItemsUseCase,
-      this.bulkDeleteUseCase
+      this.bulkDeleteUseCase,
+      this.createNoteUseCase
     );
 
     this.folderController = new FolderController(

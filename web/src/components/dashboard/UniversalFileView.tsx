@@ -15,6 +15,7 @@ import {
   HiChevronRight,
   HiOutlineFolderOpen,
   HiOutlineRefresh,
+  HiOutlineArchive,
 } from 'react-icons/hi';
 import { formatFileSize } from '@/utils/format';
 
@@ -23,13 +24,21 @@ import Card from '@/components/ui/Card';
 import { useAppSelector } from '@/store/hooks';
 
 const getFileIconStyle = (mimeType: string) => {
-  if (mimeType?.includes('pdf')) return 'bg-rose-50 dark:bg-rose-900/20 text-rose-500';
-  if (mimeType?.includes('word') || mimeType?.includes('document'))
+  const mt = (mimeType || '').toLowerCase();
+  if (mt.includes('pdf')) return 'bg-rose-50 dark:bg-rose-900/20 text-rose-500';
+  if (mt.includes('word') || mt.includes('document'))
     return 'bg-blue-50 dark:bg-blue-900/20 text-blue-600';
-  if (mimeType?.includes('sheet') || mimeType?.includes('excel'))
-    return 'bg-amber-50 dark:bg-amber-900/20 text-amber-500';
-  if (mimeType?.includes('image') || mimeType?.includes('svg'))
+  if (mt.includes('sheet') || mt.includes('excel'))
+    return 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600';
+  if (mt.includes('image') || mt.includes('svg'))
     return 'bg-orange-50 dark:bg-orange-900/20 text-orange-500';
+  if (
+    mt.includes('zip') ||
+    mt.includes('archive') ||
+    mt.includes('compressed') ||
+    mt.includes('tar')
+  )
+    return 'bg-amber-50 dark:bg-amber-900/20 text-amber-500';
   return 'bg-purple-50 dark:bg-purple-900/20 text-purple-600';
 };
 
@@ -60,6 +69,18 @@ interface FileIconProps {
   viewMode: 'list' | 'grid';
 }
 
+const isArchiveFile = (item: any) => {
+  const mime = (item.mimeType || '').toLowerCase();
+  const ext = (item.extension || '').toLowerCase();
+  return (
+    mime.includes('zip') ||
+    mime.includes('archive') ||
+    mime.includes('compressed') ||
+    mime.includes('tar') ||
+    ['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)
+  );
+};
+
 const FileIcon = ({ item, isFolder, thumbUrl, iconStyle, viewMode }: FileIconProps) => {
   const [imgError, setImgError] = useState(false);
   const showImage = thumbUrl && !imgError;
@@ -82,6 +103,8 @@ const FileIcon = ({ item, isFolder, thumbUrl, iconStyle, viewMode }: FileIconPro
         />
       ) : isImageFile(item) ? (
         <HiOutlinePhotograph className={`${iconSize} text-orange-500`} />
+      ) : isArchiveFile(item) ? (
+        <HiOutlineArchive className={`${iconSize} text-amber-500`} />
       ) : (
         <HiOutlineDocumentText
           className={`${iconSize} ${viewMode === 'grid' ? 'opacity-40' : ''}`}

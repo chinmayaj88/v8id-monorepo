@@ -75,7 +75,7 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await apiClient.post(ENDPOINTS.AUTH.REFRESH);
+        await apiClient.post(ENDPOINTS.AUTH.REFRESH, {});
         isRefreshing = false; // Reset before processing queue
         processQueue(null);
         return apiClient(originalRequest);

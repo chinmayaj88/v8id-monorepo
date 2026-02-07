@@ -167,30 +167,50 @@ export const bulkDeleteItems = createAsyncThunk<
 
 export const uploadFiles = createAsyncThunk<
   FileItem[],
-  { files: File[]; folderId: string | null; onProgress?: (percent: number) => void },
+  {
+    files: File[];
+    folderId: string | null;
+    paths?: string[];
+    onProgress?: (percent: number) => void;
+  },
   { rejectValue: string }
->('files/uploadFiles', async ({ files, folderId, onProgress }, { rejectWithValue, dispatch }) => {
-  try {
-    const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
-    if (folderId) formData.append('folderId', folderId);
+>(
+  'files/uploadFiles',
+  async ({ files, folderId, paths, onProgress }, { rejectWithValue, dispatch }) => {
+    try {
+      const formData = new FormData();
+      files.forEach((file, index) => {
+        formData.append('files', file);
+      });
 
-    const response = await apiClient.post('/files/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      onUploadProgress: progressEvent => {
-        if (onProgress && progressEvent.total) {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(percentCompleted);
-        }
-      },
-    });
+      // Send metadata for folder support
+      const metadata = files.map((file, index) => ({
+        fileName: file.name,
+        size: file.size,
+        mimeType: file.type,
+        folderId,
+        path: paths ? paths[index] : undefined,
+      }));
 
-    dispatch(fetchSyncData());
-    return response.data.data;
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || 'Failed to upload files');
+      formData.append('metadata', JSON.stringify(metadata));
+
+      const response = await apiClient.post('/files/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: progressEvent => {
+          if (onProgress && progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            onProgress(percentCompleted);
+          }
+        },
+      });
+
+      dispatch(fetchSyncData());
+      return response.data.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to upload files');
+    }
   }
-});
+);
 
 export const fetchTrashData = createAsyncThunk<
   { files: FileItem[]; folders: FolderItem[] },

@@ -7,6 +7,7 @@ import {
   HiOutlineDocument,
   HiCheckCircle,
   HiOutlineExclamationCircle,
+  HiOutlineFolderAdd,
 } from 'react-icons/hi';
 import { useAppDispatch } from '@/store/hooks';
 import { uploadFiles } from '@/store/slices/fileSlice';
@@ -20,6 +21,9 @@ interface UploadModalProps {
   onClose: () => void;
   folderId: string | null;
   initialFiles?: File[];
+  initialPaths?: string[];
+  mode?: 'file' | 'folder' | null;
+  autoStart?: boolean;
 }
 
 interface FileUploadProgress {
@@ -29,16 +33,29 @@ interface FileUploadProgress {
   error?: string;
 }
 
-export default function UploadModal({ isOpen, onClose, folderId, initialFiles }: UploadModalProps) {
+export default function UploadModal({
+  isOpen,
+  onClose,
+  folderId,
+  initialFiles,
+  initialPaths,
+  mode,
+  autoStart,
+}: UploadModalProps) {
   const dispatch = useAppDispatch();
   const [files, setFiles] = useState<FileUploadProgress[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const [uploadPaths, setUploadPaths] = useState<string[]>([]);
+  const triggeredRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
       setFiles([]);
+      setUploadPaths([]);
+      triggeredRef.current = false;
     } else {
       // Entrance animation
       gsap.fromTo(
@@ -48,10 +65,25 @@ export default function UploadModal({ isOpen, onClose, folderId, initialFiles }:
       );
 
       if (initialFiles && initialFiles.length > 0) {
-        addFiles(initialFiles);
+        addFiles(initialFiles, initialPaths);
+        if (autoStart) {
+          // Delay slightly to ensure state is settled
+          setTimeout(() => startUpload(), 100);
+        }
+      }
+
+      // Handle direct triggers from header - only once per open
+      if (!triggeredRef.current) {
+        if (mode === 'file') {
+          fileInputRef.current?.click();
+          triggeredRef.current = true;
+        } else if (mode === 'folder') {
+          folderInputRef.current?.click();
+          triggeredRef.current = true;
+        }
       }
     }
-  }, [isOpen, initialFiles]);
+  }, [isOpen, initialFiles, mode, autoStart, initialPaths]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -59,13 +91,31 @@ export default function UploadModal({ isOpen, onClose, folderId, initialFiles }:
     }
   };
 
-  const addFiles = (newFiles: File[]) => {
+  const handleFolderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      const paths = filesArray.map(f => {
+        const parts = f.webkitRelativePath.split('/');
+        parts.pop(); // Remove filename, keep only directory path
+        return parts.join('/');
+      });
+      addFiles(filesArray, paths);
+    }
+  };
+
+  const addFiles = (newFiles: File[], paths?: string[]) => {
     const formattedFiles: FileUploadProgress[] = newFiles.map(file => ({
       file,
       progress: 0,
       status: 'pending',
     }));
     setFiles(prev => [...prev, ...formattedFiles]);
+
+    if (paths) {
+      setUploadPaths(prev => [...prev, ...paths]);
+    } else {
+      setUploadPaths(prev => [...prev, ...new Array(newFiles.length).fill('')]);
+    }
 
     // Animate new files entering
     setTimeout(() => {
@@ -92,11 +142,61 @@ export default function UploadModal({ isOpen, onClose, folderId, initialFiles }:
     setIsDragging(false);
   };
 
-  const onDrop = (e: React.DragEvent) => {
+  const onDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files) {
-      addFiles(Array.from(e.dataTransfer.files));
+
+    const items = e.dataTransfer.items;
+    if (!items) return;
+
+    const files: File[] = [];
+    const paths: string[] = [];
+
+    const traverseEntry = async (entry: any, currentPath: string = '') => {
+      if (entry.isFile) {
+        const file = await new Promise<File>((resolve, reject) => {
+          entry.file(resolve, reject);
+        });
+        files.push(file);
+        paths.push(currentPath); // Path is the parent directory
+      } else if (entry.isDirectory) {
+        const reader = entry.createReader();
+        const readAllEntries = async (): Promise<any[]> => {
+          let allEntries: any[] = [];
+          const read = async (): Promise<any[]> => {
+            return new Promise((resolve, reject) => {
+              reader.readEntries(resolve, reject);
+            });
+          };
+          let results = await read();
+          while (results.length > 0) {
+            allEntries = allEntries.concat(results);
+            results = await read();
+          }
+          return allEntries;
+        };
+
+        const entries = await readAllEntries();
+        for (const childEntry of entries) {
+          await traverseEntry(
+            childEntry,
+            currentPath ? `${currentPath}/${entry.name}` : entry.name
+          );
+        }
+      }
+    };
+
+    const promises = [];
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry();
+      if (entry) {
+        promises.push(traverseEntry(entry));
+      }
+    }
+
+    await Promise.all(promises);
+    if (files.length > 0) {
+      addFiles(files, paths);
     }
   };
 
@@ -104,6 +204,10 @@ export default function UploadModal({ isOpen, onClose, folderId, initialFiles }:
     if (files.length === 0) return;
 
     const filesToUpload = files.filter(f => f.status === 'pending' || f.status === 'error');
+    const indicesToUpload = files
+      .map((f, i) => (f.status === 'pending' || f.status === 'error' ? i : -1))
+      .filter(i => i !== -1);
+    const pathsToUpload = indicesToUpload.map(i => uploadPaths[i]);
 
     setFiles(prev =>
       prev.map(f =>
@@ -126,6 +230,7 @@ export default function UploadModal({ isOpen, onClose, folderId, initialFiles }:
         uploadFiles({
           files: filesToUpload.map(f => f.file),
           folderId,
+          paths: pathsToUpload.some(p => p) ? pathsToUpload : undefined,
           onProgress: percent => {
             setFiles(prev =>
               prev.map(f => (f.status === 'uploading' ? { ...f, progress: percent } : f))
@@ -187,165 +292,31 @@ export default function UploadModal({ isOpen, onClose, folderId, initialFiles }:
     <Modal
       isOpen={isOpen}
       onClose={isUploading ? () => {} : onClose}
-      title="Upload Files"
-      maxWidth="lg"
-    >
-      <div className="space-y-6 modal-content">
-        {/* Drop Zone */}
-        <div
-          ref={dropZoneRef}
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-          onClick={() => !isUploading && fileInputRef.current?.click()}
-          onMouseEnter={() =>
-            !isUploading &&
-            gsap.to('.upload-icon-container', { scale: 1.1, rotate: 5, duration: 0.3 })
-          }
-          onMouseLeave={() =>
-            !isUploading &&
-            gsap.to('.upload-icon-container', { scale: 1, rotate: 0, duration: 0.3 })
-          }
-          className={`
-            relative cursor-pointer rounded-[40px] border-2 border-dashed p-10 
-            transition-all duration-500 ease-out flex flex-col items-center justify-center gap-4
-            ${
-              isDragging
-                ? 'border-v8-primary bg-v8-primary/5 scale-[0.98] shadow-2xl shadow-v8-primary/10'
-                : 'border-zinc-200 dark:border-zinc-800 hover:border-v8-primary/50 hover:bg-zinc-50 dark:hover:bg-zinc-900/50'
-            }
-            ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
-          `}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileSelect}
-            className="hidden"
-            multiple
-          />
-
-          <div
-            className={`
-            upload-icon-container w-24 h-24 rounded-[32px] flex items-center justify-center transition-all duration-500
-            ${isDragging ? 'bg-v8-primary text-white rotate-12' : 'bg-v8-primary/10 text-v8-primary'}
-          `}
-          >
-            <HiOutlineCloudUpload className={`w-12 h-12 ${isDragging ? 'animate-bounce' : ''}`} />
-          </div>
-
-          <div className="text-center">
-            <h4
-              className="text-xl font-black tracking-tight"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              {isDragging ? 'Drop to upload' : 'Select files to upload'}
-            </h4>
-            <p
-              className="text-sm font-bold opacity-40 mt-1"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              or drag and drop them here
-            </p>
-          </div>
-        </div>
-
-        {/* File List */}
-        {files.length > 0 && (
-          <div className="max-h-[300px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
-            {files.map((fileProgress, index) => (
-              <div
-                key={index}
-                className={`group relative flex items-center gap-4 p-4 rounded-3xl bg-zinc-50 dark:bg-zinc-900/50 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-all duration-300 ${fileProgress.status === 'pending' ? 'file-item-new' : ''}`}
-              >
-                <div
-                  className={`
-                  w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border
-                  ${
-                    fileProgress.status === 'completed'
-                      ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100'
-                      : fileProgress.status === 'error'
-                        ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500 border-rose-100'
-                        : 'bg-white dark:bg-zinc-800 text-zinc-400 border-zinc-100 dark:border-zinc-800'
-                  }
-                `}
-                >
-                  {fileProgress.status === 'completed' ? (
-                    <HiCheckCircle className="w-7 h-7" />
-                  ) : fileProgress.status === 'error' ? (
-                    <HiOutlineExclamationCircle className="w-7 h-7" />
-                  ) : (
-                    <HiOutlineDocument className="w-6 h-6" />
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-2">
-                    <p
-                      className="text-[14px] font-bold truncate pr-4"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {fileProgress.file.name}
-                    </p>
-                    <span className="text-[10px] font-black uppercase tracking-tighter opacity-40 shrink-0">
-                      {formatFileSize(fileProgress.file.size)}
-                    </span>
-                  </div>
-
-                  <div className="relative h-2 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                    <div
-                      className={`absolute inset-y-0 left-0 transition-all duration-500 ease-out rounded-full ${
-                        fileProgress.status === 'error'
-                          ? 'bg-rose-500'
-                          : fileProgress.status === 'completed'
-                            ? 'bg-emerald-500'
-                            : 'bg-v8-primary shadow-[0_0_12px_rgba(139,92,246,0.3)]'
-                      }`}
-                      style={{ width: `${fileProgress.progress}%` }}
-                    />
-                  </div>
-
-                  {fileProgress.status === 'error' && (
-                    <p className="text-[10px] font-extrabold text-rose-500 mt-1.5 flex items-center gap-1">
-                      <HiOutlineExclamationCircle className="w-3 h-3" />
-                      {fileProgress.error || 'Upload failed'}
-                    </p>
-                  )}
-                </div>
-
-                {!isUploading && fileProgress.status !== 'completed' && (
-                  <button
-                    onClick={() => removeFile(index)}
-                    className="p-2 rounded-xl text-zinc-400 hover:bg-rose-50 hover:text-rose-500 transition-all"
-                  >
-                    <HiX className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex gap-4 pt-2">
+      title={isUploading ? 'Uploading Items...' : allCompleted ? 'Upload Complete' : 'Upload Files'}
+      maxWidth="md"
+      footer={
+        <div className="flex gap-2 w-full">
           <Button
-            variant="outline"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
             disabled={isUploading}
-            className="flex-1 rounded-[24px] h-14 font-black text-xs uppercase tracking-widest"
+            className="flex-1 rounded-xl h-10 font-bold text-[11px] uppercase tracking-wider"
           >
-            {allCompleted ? 'Done' : 'Cancel'}
+            {allCompleted ? 'Close' : 'Cancel'}
           </Button>
           <Button
             variant="primary"
+            size="sm"
             onClick={startUpload}
             disabled={files.length === 0 || isUploading || allCompleted}
             style={{ backgroundColor: allCompleted ? '#10b981' : '#8b5cf6', color: 'white' }}
-            className={`upload-btn flex-1 rounded-[24px] h-14 font-black text-xs uppercase tracking-widest gap-2 shadow-xl ${isUploading ? 'animate-pulse opacity-90' : 'shadow-v8-primary/25'}`}
+            className={`upload-btn flex-1 rounded-xl h-10 font-bold text-[11px] uppercase tracking-wider gap-2 shadow-lg ${isUploading ? 'animate-pulse opacity-90' : 'shadow-v8-primary/20'}`}
             icon={
               isUploading ? null : allCompleted ? (
-                <HiCheckCircle className="w-5 h-5" />
+                <HiCheckCircle className="w-4 h-4" />
               ) : (
-                <HiOutlineCloudUpload className="w-5 h-5" />
+                <HiOutlineCloudUpload className="w-4 h-4" />
               )
             }
           >
@@ -356,6 +327,218 @@ export default function UploadModal({ isOpen, onClose, folderId, initialFiles }:
                 : `Upload ${files.length} ${files.length === 1 ? 'file' : 'files'}`}
           </Button>
         </div>
+      }
+    >
+      <div className="space-y-4 modal-content">
+        {/* Drop Zone */}
+        {files.length === 0 && (
+          <div
+            ref={dropZoneRef}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onClick={() => {
+              // Only trigger file select if no specific mode is active or user clicks outside icons
+              if (!mode && !isUploading) fileInputRef.current?.click();
+            }}
+            onMouseEnter={() =>
+              !isUploading &&
+              gsap.to('.upload-icon-container', { scale: 1.1, rotate: 5, duration: 0.3 })
+            }
+            onMouseLeave={() =>
+              !isUploading &&
+              gsap.to('.upload-icon-container', { scale: 1, rotate: 0, duration: 0.3 })
+            }
+            className={`
+            relative cursor-pointer rounded-[32px] border-2 border-dashed p-6 
+            transition-all duration-500 ease-out flex flex-col items-center justify-center gap-3
+            ${
+              isDragging
+                ? 'border-v8-primary bg-v8-primary/5 scale-[0.98]'
+                : 'border-zinc-200 dark:border-zinc-800 hover:border-v8-primary/50 hover:bg-zinc-50 dark:hover:bg-zinc-900/40'
+            }
+            ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
+          `}
+          >
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
+              multiple
+            />
+            <input
+              type="file"
+              ref={folderInputRef}
+              onChange={handleFolderSelect}
+              className="hidden"
+              // @ts-ignore
+              webkitdirectory=""
+              // @ts-ignore
+              directory=""
+              multiple
+            />
+
+            {!mode && (
+              <div className="flex gap-6 mb-2">
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  className="group/btn flex flex-col items-center gap-3"
+                >
+                  <div
+                    className={`
+                  upload-icon-container w-16 h-16 rounded-[24px] flex items-center justify-center transition-all duration-500
+                  ${isDragging ? 'bg-v8-primary text-white rotate-12' : 'bg-v8-primary/10 text-v8-primary group-hover/btn:bg-v8-primary group-hover/btn:text-white group-hover/btn:scale-110 group-hover/btn:rotate-6'}
+                `}
+                  >
+                    <HiOutlineCloudUpload
+                      className={`w-8 h-8 ${isDragging ? 'animate-bounce' : ''}`}
+                    />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60 group-hover/btn:opacity-100 transition-opacity">
+                    Upload Files
+                  </span>
+                </button>
+
+                <div className="w-px h-16 bg-zinc-200 dark:bg-zinc-800 my-auto" />
+
+                <button
+                  type="button"
+                  onClick={e => {
+                    e.stopPropagation();
+                    folderInputRef.current?.click();
+                  }}
+                  className="group/btn flex flex-col items-center gap-3"
+                >
+                  <div
+                    className={`
+                  w-16 h-16 rounded-[24px] flex items-center justify-center transition-all duration-500
+                  bg-emerald-500/10 text-emerald-600 group-hover/btn:bg-emerald-500 group-hover/btn:text-white group-hover/btn:scale-110 group-hover/btn:-rotate-6
+                `}
+                  >
+                    <HiOutlineFolderAdd className="w-8 h-8" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-60 group-hover/btn:opacity-100 transition-opacity">
+                    Upload Folder
+                  </span>
+                </button>
+              </div>
+            )}
+
+            <div className="text-center mt-2">
+              <h4
+                className="text-lg font-black tracking-tight"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {isDragging
+                  ? 'Drop items here'
+                  : mode === 'folder'
+                    ? 'Select folder to upload'
+                    : mode === 'file'
+                      ? 'Select files to upload'
+                      : 'Drop files or folders'}
+              </h4>
+              <p
+                className="text-[11px] font-bold opacity-40 mt-1"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                {mode === 'folder'
+                  ? 'only folders will be accepted'
+                  : mode === 'file'
+                    ? 'multiple files supported'
+                    : 'recursive folder upload supported'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* File List */}
+        {files.length > 0 && (
+          <div
+            className="relative"
+            style={{
+              maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+            }}
+          >
+            <div className="max-h-[300px] overflow-y-auto pr-2 space-y-2 custom-scrollbar pb-12">
+              {files.map((fileProgress, index) => (
+                <div
+                  key={index}
+                  className={`group relative flex items-center gap-3 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-all duration-300 ${fileProgress.status === 'pending' ? 'file-item-new' : ''}`}
+                >
+                  <div
+                    className={`
+                  w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border
+                  ${
+                    fileProgress.status === 'completed'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 border-emerald-100'
+                      : fileProgress.status === 'error'
+                        ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-500 border-rose-100'
+                        : 'bg-white dark:bg-zinc-800 text-zinc-400 border-zinc-100 dark:border-zinc-800'
+                  }
+                `}
+                  >
+                    {fileProgress.status === 'completed' ? (
+                      <HiCheckCircle className="w-6 h-6" />
+                    ) : fileProgress.status === 'error' ? (
+                      <HiOutlineExclamationCircle className="w-6 h-6" />
+                    ) : (
+                      <HiOutlineDocument className="w-5 h-5" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1.5">
+                      <p
+                        className="text-[13px] font-bold truncate pr-3"
+                        style={{ color: 'var(--text-primary)' }}
+                      >
+                        {fileProgress.file.name}
+                      </p>
+                      <span className="text-[10px] font-black uppercase tracking-tighter opacity-40 shrink-0">
+                        {formatFileSize(fileProgress.file.size)}
+                      </span>
+                    </div>
+
+                    <div className="relative h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                      <div
+                        className={`absolute inset-y-0 left-0 transition-all duration-500 ease-out rounded-full ${
+                          fileProgress.status === 'error'
+                            ? 'bg-rose-500'
+                            : fileProgress.status === 'completed'
+                              ? 'bg-emerald-500'
+                              : 'bg-v8-primary'
+                        }`}
+                        style={{ width: `${fileProgress.progress}%` }}
+                      />
+                    </div>
+
+                    {fileProgress.status === 'error' && (
+                      <p className="text-[9px] font-extrabold text-rose-500 mt-1 flex items-center gap-1">
+                        <HiOutlineExclamationCircle className="w-2.5 h-2.5" />
+                        {fileProgress.error || 'Upload failed'}
+                      </p>
+                    )}
+                  </div>
+
+                  {!isUploading && fileProgress.status !== 'completed' && (
+                    <button
+                      onClick={() => removeFile(index)}
+                      className="p-1.5 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-500 transition-all"
+                    >
+                      <HiX className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   );
