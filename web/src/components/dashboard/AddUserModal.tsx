@@ -9,13 +9,14 @@ import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { useModal } from '@/components/ui/ModalProvider';
 
-interface AddUserModalProps {
+export interface AddUserModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  handleClose: () => void;
   onSuccess?: () => void;
 }
 
-export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) {
+export default function AddUserModal(props: AddUserModalProps) {
+  const { isOpen, handleClose, onSuccess } = props;
   const { showNotification } = useModal();
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -40,7 +41,7 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (creationResult) {
-      handleClose();
+      closeModal();
       return;
     }
 
@@ -80,8 +81,8 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
     }
   };
 
-  const handleClose = () => {
-    onClose();
+  const closeModal = () => {
+    handleClose();
     // Delay clearing result to avoid jump while closing
     setTimeout(() => {
       setCreationResult(null);
@@ -99,11 +100,11 @@ export default function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModa
   return (
     <Modal
       isOpen={isOpen}
-      onClose={handleClose}
+      onClose={closeModal}
       title={creationResult ? 'Account Created' : 'Add New User'}
       footer={
         <>
-          <Button variant="ghost" size="sm" className="font-bold text-xs" onClick={handleClose}>
+          <Button variant="ghost" size="sm" className="font-bold text-xs" onClick={closeModal}>
             {creationResult ? 'Close' : 'Cancel'}
           </Button>
           {!creationResult && (

@@ -235,7 +235,7 @@ export default function UsersPage() {
 
       <AddUserModal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        handleClose={() => setShowAddModal(false)}
         onSuccess={fetchUsers}
       />
     </div>

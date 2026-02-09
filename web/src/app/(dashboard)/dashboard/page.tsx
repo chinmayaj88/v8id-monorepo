@@ -629,7 +629,7 @@ export default function DashboardPage() {
 
       <AddUserModal
         isOpen={showAddUserModal}
-        onClose={() => setShowAddUserModal(false)}
+        handleClose={() => setShowAddUserModal(false)}
         onSuccess={() => {
           // Optional: refresh dashboard data if needed, but fetchSyncData is already handled in useEffect
           dispatch(fetchSyncData());
@@ -639,7 +639,7 @@ export default function DashboardPage() {
       {isMoveCopyModalOpen && (
         <MoveCopyModal
           isOpen={isMoveCopyModalOpen}
-          onClose={() => setIsMoveCopyModalOpen(false)}
+          handleClose={() => setIsMoveCopyModalOpen(false)}
           onConfirm={handleMoveCopyConfirm}
           folders={folders}
           title={moveCopyMode === 'move' ? 'Move to Folder' : 'Copy to Folder'}

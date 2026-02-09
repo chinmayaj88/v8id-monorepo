@@ -7,20 +7,15 @@ import { FolderItem } from '@/store/slices/fileSlice';
 
 interface MoveCopyModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  handleClose: () => void;
   onConfirm: (targetId: string | null) => void;
   folders: FolderItem[];
   title: string;
 }
 
-export default function MoveCopyModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  folders,
-  title,
-}: MoveCopyModalProps) {
+export default function MoveCopyModal(props: MoveCopyModalProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { isOpen, handleClose, onConfirm, folders, title } = props;
 
   if (!isOpen) return null;
 
@@ -64,7 +59,7 @@ export default function MoveCopyModal({
         >
           <h2 className="text-xl font-black tracking-tight">{title}</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <HiX className="w-5 h-5 opacity-40" />
@@ -102,7 +97,7 @@ export default function MoveCopyModal({
           <Button
             variant="outline"
             className="flex-1 rounded-2xl h-12 font-black"
-            onClick={onClose}
+            onClick={handleClose}
           >
             Cancel
           </Button>

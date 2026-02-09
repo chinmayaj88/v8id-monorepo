@@ -150,7 +150,7 @@ export default function SharedPage() {
       {isMoveCopyModalOpen && (
         <MoveCopyModal
           isOpen={isMoveCopyModalOpen}
-          onClose={() => setIsMoveCopyModalOpen(false)}
+          handleClose={() => setIsMoveCopyModalOpen(false)}
           onConfirm={handleMoveCopyConfirm}
           folders={useAppSelector(state => state.files.folders)} // User's own folders for destination
           title="Copy to My Files"

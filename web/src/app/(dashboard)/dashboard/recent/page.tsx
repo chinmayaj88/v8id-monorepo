@@ -131,7 +131,7 @@ export default function RecentPage() {
     <div className="space-y-6 pb-8">
       <MoveCopyModal
         isOpen={isMoveCopyModalOpen}
-        onClose={() => setIsMoveCopyModalOpen(false)}
+        handleClose={() => setIsMoveCopyModalOpen(false)}
         onConfirm={handleMoveCopyConfirm}
         folders={folders}
         title={moveCopyMode === 'move' ? 'Move Items' : 'Copy Items'}

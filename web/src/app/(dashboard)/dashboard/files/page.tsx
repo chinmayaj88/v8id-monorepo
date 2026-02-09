@@ -337,7 +337,7 @@ export default function FilesPage() {
       {isMoveCopyModalOpen && (
         <MoveCopyModal
           isOpen={isMoveCopyModalOpen}
-          onClose={() => setIsMoveCopyModalOpen(false)}
+          handleClose={() => setIsMoveCopyModalOpen(false)}
           onConfirm={handleMoveCopyConfirm}
           folders={folders}
           title={moveCopyMode === 'move' ? 'Move to Folder' : 'Copy to Folder'}
