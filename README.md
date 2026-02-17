@@ -30,6 +30,17 @@
 - ⚡ **Blazing Smooth Mobile**: Native Kotlin apps for seamless mobile experience
 - 🚀 **Production-Ready**: Enterprise-grade with CI/CD, Terraform IaC, and cloud-ready deployment
 
+## 📸 App Preview
+
+<p align="center">
+  <img src="images/dashboard.png" width="100%" alt="Dashboard Overview">
+</p>
+
+<p align="center">
+  <img src="images/login.png" width="48%" alt="Secure Login">
+  <img src="images/vault.png" width="48%" alt="Personal Vault">
+</p>
+
 ## 🏗️ Architecture
 
 This is a **monorepo** project using **pnpm workspaces** with **Clean Architecture** principles. The project structure:
