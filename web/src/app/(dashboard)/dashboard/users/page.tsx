@@ -20,6 +20,7 @@ import PremiumLoader from '@/components/ui/PremiumLoader';
 import Link from 'next/link';
 import AddUserModal from '@/components/dashboard/AddUserModal';
 import UniversalUserView from '@/components/dashboard/UniversalUserView';
+import { useModal } from '@/components/ui/ModalProvider';
 
 interface UserItem {
   id: string;
@@ -43,6 +44,62 @@ export default function UsersPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const { showConfirmation, showNotification } = useModal();
+
+  const handleDeleteUsers = (userIds: Set<string>) => {
+    if (userIds.size === 0) return;
+
+    if (currentUser?.id && userIds.has(currentUser.id)) {
+      showNotification({
+        title: 'Error',
+        message: 'You cannot delete yourself',
+        type: 'error',
+      });
+      return;
+    }
+
+    const count = userIds.size;
+    const isSingle = count === 1;
+    let message = `Are you sure you want to delete ${count} users? This action cannot be undone.`;
+
+    if (isSingle) {
+      const id = Array.from(userIds)[0];
+      const targetUser = users.find(u => u.id === id);
+      if (targetUser) {
+        message = `Are you sure you want to delete ${targetUser.email}? This action cannot be undone.`;
+      }
+    }
+
+    showConfirmation({
+      title: 'Delete User' + (isSingle ? '' : 's'),
+      message,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: async () => {
+        try {
+          // Send delete requests in parallel
+          const idsArray = Array.from(userIds);
+          await Promise.all(idsArray.map(id => apiClient.delete(ENDPOINTS.USER.DELETE(id))));
+
+          showNotification({
+            title: 'Success',
+            message: `${isSingle ? 'User' : 'Users'} deleted successfully`,
+            type: 'success',
+          });
+
+          setSelectedIds(new Set());
+          fetchUsers();
+        } catch (error: any) {
+          const errMsg = error.response?.data?.message || 'Failed to delete user(s)';
+          showNotification({
+            title: 'Error',
+            message: errMsg,
+            type: 'error',
+          });
+        }
+      },
+    });
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -158,11 +215,27 @@ export default function UsersPage() {
               <button
                 onClick={e => {
                   e.stopPropagation();
-                  // trigger delete or clear
                   setSelectedIds(new Set());
                 }}
-                className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-600 transition-colors mr-1"
                 title="Clear Selection"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  handleDeleteUsers(selectedIds);
+                }}
+                className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                title="Delete Selected"
               >
                 <HiOutlineTrash className="w-4 h-4" />
               </button>
@@ -198,8 +271,7 @@ export default function UsersPage() {
             selectedIds={selectedIds}
             onSelectionChange={setSelectedIds}
             onDelete={user => {
-              // Implement delete logic here if needed or use existing logic
-              console.log('Delete user', user.id);
+              handleDeleteUsers(new Set([user.id]));
             }}
           />
 

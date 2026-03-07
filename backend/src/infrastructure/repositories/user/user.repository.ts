@@ -134,13 +134,9 @@ export class UserRepository implements IUserRepository {
   }
 
   async delete(id: string): Promise<void> {
-    // Soft delete by setting isActive to false
-    await prisma.user.update({
+    // Hard delete user and all cascading relations
+    await prisma.user.delete({
       where: { id },
-      data: {
-        isActive: false,
-        updatedAt: new Date(),
-      },
     });
   }
 

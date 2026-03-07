@@ -34,6 +34,13 @@ router.get(
   (req, res) => userController.listUsers(req, res)
 );
 
+router.delete(
+  '/:id',
+  authMiddleware(userRepository, deviceSessionRepository, jwtService),
+  adminMiddleware(),
+  (req, res) => userController.deleteUser(req, res)
+);
+
 router.get(
   '/search',
   authMiddleware(userRepository, deviceSessionRepository, jwtService),

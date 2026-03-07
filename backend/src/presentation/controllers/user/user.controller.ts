@@ -216,6 +216,59 @@ export class UserController {
   }
 
   /**
+   * DELETE /api/users/:id (Admin only)
+   */
+  async deleteUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+
+      const id = req.params.id as string;
+
+      if (!id) {
+        ResponseUtil.validationError(res, 'User ID is required');
+        return;
+      }
+
+      // Prevent admins from deleting themselves
+      if (req.user.id === id) {
+        ResponseUtil.error(res, 'CANNOT_DELETE_SELF', 'You cannot delete your own account');
+        return;
+      }
+
+      const userToDelete = await this.userRepository.findById(id);
+      if (!userToDelete) {
+        ResponseUtil.notFound(res, 'User not found');
+        return;
+      }
+
+      await this.userRepository.delete(id);
+
+      // Log the action
+      const ipAddress = extractIpAddress(req);
+      const userAgent = Array.isArray(req.headers['user-agent'])
+        ? req.headers['user-agent'][0]
+        : req.headers['user-agent'] || undefined;
+
+      await this.auditLogService.logEvent({
+        userId: req.user.id,
+        eventType: 'USER_DELETED',
+        eventData: { deletedUserId: id, deletedUserEmail: userToDelete.email },
+        ipAddress,
+        userAgent,
+        success: true,
+      });
+
+      ResponseUtil.success(res, undefined, 'User deleted successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete user';
+      ResponseUtil.error(res, 'DELETE_USER_ERROR', message);
+    }
+  }
+
+  /**
    * GET /api/users/me/sessions
    * List all active sessions for the current user
    */

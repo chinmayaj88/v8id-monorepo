@@ -19,6 +19,7 @@ export const ENDPOINTS = {
     REVOKE_ALL_SESSIONS: '/users/me/sessions/revoke-all',
     LIST: '/users',
     CREATE: '/users',
+    DELETE: (id: string) => `/users/${id}`,
   },
   FILE: {
     BASE: '/files',
