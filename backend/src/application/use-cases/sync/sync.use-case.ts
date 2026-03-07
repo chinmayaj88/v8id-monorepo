@@ -1,6 +1,8 @@
 import { IFileRepository, IFolderRepository } from '../../interfaces/index.js';
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
 import { File, Folder } from '../../../infrastructure/database/index.js';
+import { FileMapper } from '../../utils/file.mapper.js';
+import { FileItemDTO, FolderItemDTO } from '../../dtos/files/file-item.dto.js';
 
 export interface SyncDTO {
   since?: Date;
@@ -37,8 +39,6 @@ export class SyncUseCase {
     }
 
     // 2. Fetch Shared Items - ONLY Incoming (Shared With Me)
-    // Because simple logic: "if someone has recently shared something with me"
-
     const fileShares = await this.shareRepository.findFileSharesByEmail(email);
     const folderShares = await this.shareRepository.findFolderSharesByEmail(email);
 
@@ -49,25 +49,15 @@ export class SyncUseCase {
     if (fileShares) {
       fileShares.forEach((share: any) => {
         if (share.file) {
-          // Check if updated OR shared recently
           if (
             !since ||
             new Date(share.file.updatedAt) > since ||
             new Date(share.createdAt) > since
           ) {
             sharedFiles.push({
-              ...share.file,
-              isShared: true,
-              sharePermission: share.permission,
-              sharedBy: share.ownerId,
-              owner: share.owner
-                ? {
-                    firstName: share.owner.firstName,
-                    lastName: share.owner.lastName,
-                    email: share.owner.email,
-                    avatarUrl: share.owner.avatarPath,
-                  }
-                : undefined,
+              file: share.file,
+              owner: share.owner,
+              permission: share.permission,
             });
           }
         }
@@ -102,24 +92,32 @@ export class SyncUseCase {
       });
     }
 
-    // 3. Map Owned Files
-    const mappedOwnedFiles = files.map(f => ({
-      ...f,
-      size: f.size.toString(),
-      thumbnailUrl: f.thumbnailKey ? `api/files/${f.id}/thumbnail` : null,
-      isShared: false,
-    }));
+    // 3. Map Owned Items
+    const mappedOwnedFiles = files.map(f =>
+      FileMapper.toDTO(f, { isOwner: true, ownerName: 'Me' })
+    );
+    const mappedOwnedFolders = folders.map(f =>
+      FileMapper.toFolderDTO(f, { isOwner: true, ownerName: 'Me' })
+    );
 
-    // 4. Map Shared Files
-    const mappedSharedFiles = sharedFiles.map(f => ({
-      ...f,
-      size: f.size ? f.size.toString() : '0',
-      thumbnailUrl: f.thumbnailKey ? `api/files/${f.id}/thumbnail` : null,
-    }));
+    // 4. Map Shared Items
+    const mappedSharedFiles = sharedFiles.map(s =>
+      FileMapper.toDTO(s.file, {
+        isOwner: false,
+        ownerName: s.owner ? `${s.owner.firstName} ${s.owner.lastName}`.trim() : 'Unknown',
+      })
+    );
+
+    const mappedSharedFolders = sharedFolders.map(f =>
+      FileMapper.toFolderDTO(f, {
+        isOwner: false,
+        ownerName: f.owner ? `${f.owner.firstName} ${f.owner.lastName}`.trim() : 'Unknown',
+      })
+    );
 
     return {
       files: [...mappedOwnedFiles, ...mappedSharedFiles],
-      folders: [...folders, ...sharedFolders],
+      folders: [...mappedOwnedFolders, ...mappedSharedFolders],
       lastSync: now,
     };
   }

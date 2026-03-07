@@ -14,6 +14,7 @@ import {
   BulkDeleteUseCase,
   CreateNoteUseCase,
 } from '../../../application/use-cases/index.js';
+import { FileMapper } from '../../../application/utils/file.mapper.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
 import { IFileRepository } from '../../../application/interfaces/index.js';
@@ -129,7 +130,7 @@ export class FileController {
               path,
             });
 
-            results.push({ ...file, size: file.size.toString(), mode: 'DIRECT' });
+            results.push({ ...FileMapper.toDTO(file), mode: 'DIRECT' });
             continue;
           }
 
@@ -156,7 +157,7 @@ export class FileController {
               parts: typeof parts === 'string' ? JSON.parse(parts) : parts,
             });
 
-            results.push({ ...result, size: result.size.toString(), mode: 'COMPLETED' });
+            results.push({ ...FileMapper.toDTO(result), mode: 'COMPLETED' });
             continue;
           }
 

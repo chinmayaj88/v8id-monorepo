@@ -1,9 +1,11 @@
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
 import { FileShare, File } from '../../../infrastructure/database/index.js';
+import { FileMapper } from '../../utils/file.mapper.js';
+import { FileItemDTO } from '../../dtos/files/file-item.dto.js';
 
 export interface SharedFileResult {
   share: FileShare;
-  file: File;
+  file: FileItemDTO;
   isExpired: boolean;
 }
 
@@ -30,7 +32,7 @@ export class GetSharedFileUseCase {
 
     return {
       share,
-      file: (share as any).file, // Repository includes file
+      file: FileMapper.toDTO((share as any).file),
       isExpired,
     };
   }

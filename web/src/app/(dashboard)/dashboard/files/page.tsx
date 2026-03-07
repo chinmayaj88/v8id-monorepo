@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
 import {
   fetchSyncData,
@@ -40,12 +41,20 @@ import { HiOutlineFolderAdd, HiOutlineDocumentAdd } from 'react-icons/hi';
 import ShareModal from '@/components/dashboard/ShareModal';
 
 export default function FilesPage() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
+  const searchParams = useSearchParams();
+  const folderIdFromUrl = searchParams.get('folderId');
   const { files, folders, isLoading, searchQuery } = useAppSelector(state => state.files);
   const { user } = useAppSelector(state => state.auth);
   const { showConfirmation, showNotification } = useModal();
 
-  const [currentFolderId, setCurrentFolderIdLocal] = useState<string | null>(null);
+  const [currentFolderId, setCurrentFolderIdLocal] = useState<string | null>(folderIdFromUrl);
+
+  // Sync state with URL folderId
+  useEffect(() => {
+    setCurrentFolderIdLocal(folderIdFromUrl);
+  }, [folderIdFromUrl]);
 
   // Sync with global store
   useEffect(() => {
@@ -53,6 +62,13 @@ export default function FilesPage() {
   }, [currentFolderId, dispatch]);
 
   const [activeTab, setActiveTab] = useState<'files' | 'folders'>('folders');
+
+  // Auto-switch to files tab if previewId is present
+  useEffect(() => {
+    if (searchParams.get('previewId')) {
+      setActiveTab('files');
+    }
+  }, [searchParams]);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -397,7 +413,7 @@ export default function FilesPage() {
               <button
                 onClick={() => {
                   const parent = folders.find(f => f.id === currentFolderId)?.parentId;
-                  setCurrentFolderIdLocal(parent || null);
+                  router.push(parent ? `/dashboard/files?folderId=${parent}` : '/dashboard/files');
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-2xl border text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all opacity-60 hover:opacity-100"
                 style={{ borderColor: 'var(--border-primary)' }}
@@ -590,58 +606,69 @@ export default function FilesPage() {
             </Button>
           </div>
         ) : activeTab === 'folders' ? (
-          <UniversalFileView
-            items={filteredFolders}
-            viewMode={viewMode}
-            user={user}
-            onItemClick={folder => setCurrentFolderIdLocal(folder.id)}
-            enableSelection={true} // Enable selection for folders
-            selectedIds={selectedIds}
-            onSelectionChange={setSelectedIds}
-            onDelete={item => {
-              handleDeleteSelected(new Set([item.id]));
-            }}
-            onMove={item => {
-              setSelectedIds(new Set([item.id]));
-              setMoveCopyMode('move');
-              setIsMoveCopyModalOpen(true);
-            }}
-            onCopy={item => {
-              setSelectedIds(new Set([item.id]));
-              setMoveCopyMode('copy');
-              setIsMoveCopyModalOpen(true);
-            }}
-            onShare={item => {
-              setSharingItem(item);
-              setIsShareModalOpen(true);
-            }}
-          />
+          <div className="space-y-8">
+            <UniversalFileView
+              items={filteredFolders}
+              viewMode={viewMode}
+              user={user}
+              onItemClick={item => {
+                if ('parentId' in item || 'fileCount' in item) {
+                  router.push(`/dashboard/files?folderId=${item.id}`);
+                }
+              }}
+              enableSelection={true}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+              onDelete={item => {
+                handleDeleteSelected(new Set([item.id]));
+              }}
+              onMove={item => {
+                setSelectedIds(new Set([item.id]));
+                setMoveCopyMode('move');
+                setIsMoveCopyModalOpen(true);
+              }}
+              onCopy={item => {
+                setSelectedIds(new Set([item.id]));
+                setMoveCopyMode('copy');
+                setIsMoveCopyModalOpen(true);
+              }}
+              onShare={item => {
+                setSharingItem(item);
+                setIsShareModalOpen(true);
+              }}
+            />
+          </div>
         ) : (
-          <UniversalFileView
-            items={filteredFiles}
-            viewMode={viewMode}
-            user={user}
-            enableSelection={true} // Enable selection for files
-            selectedIds={selectedIds}
-            onSelectionChange={setSelectedIds}
-            onDelete={item => {
-              handleDeleteSelected(new Set([item.id]));
-            }}
-            onMove={item => {
-              setSelectedIds(new Set([item.id]));
-              setMoveCopyMode('move');
-              setIsMoveCopyModalOpen(true);
-            }}
-            onCopy={item => {
-              setSelectedIds(new Set([item.id]));
-              setMoveCopyMode('copy');
-              setIsMoveCopyModalOpen(true);
-            }}
-            onShare={item => {
-              setSharingItem(item);
-              setIsShareModalOpen(true);
-            }}
-          />
+          <div className="space-y-8">
+            <UniversalFileView
+              items={filteredFiles}
+              viewMode={viewMode}
+              user={user}
+              onItemClick={item => {
+                // Files handled by preview in UniversalFileView
+              }}
+              enableSelection={true}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+              onDelete={item => {
+                handleDeleteSelected(new Set([item.id]));
+              }}
+              onMove={item => {
+                setSelectedIds(new Set([item.id]));
+                setMoveCopyMode('move');
+                setIsMoveCopyModalOpen(true);
+              }}
+              onCopy={item => {
+                setSelectedIds(new Set([item.id]));
+                setMoveCopyMode('copy');
+                setIsMoveCopyModalOpen(true);
+              }}
+              onShare={item => {
+                setSharingItem(item);
+                setIsShareModalOpen(true);
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

@@ -156,101 +156,207 @@ export class NodemailerEmailService implements IEmailService {
     }
   }
 
-  private getPasswordResetEmailTemplate(resetLink: string): string {
+  private getCommonStyles(): string {
+    return `
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        table { border-collapse: collapse !important; }
+        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        
+        .card {
+          background-color: #ffffff;
+          border-radius: 12px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+          border: 1px solid #e2e8f0;
+          overflow: hidden;
+        }
+        
+        .header {
+          padding: 32px 0;
+          text-align: center;
+          background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+        }
+        
+        .content {
+          padding: 40px;
+        }
+        
+        .footer {
+          padding: 32px;
+          text-align: center;
+          color: #64748b;
+          font-size: 14px;
+        }
+        
+        .btn {
+          display: inline-block;
+          padding: 14px 32px;
+          background-color: #7c3aed;
+          color: #ffffff !important;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 16px;
+          transition: background-color 0.3s ease;
+        }
+        
+        .badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 9999px;
+          font-size: 12px;
+          font-weight: 500;
+          text-transform: uppercase;
+          margin-bottom: 16px;
+        }
+        
+        .badge-warning { background-color: #fef3c7; color: #92400e; }
+        .badge-danger { background-color: #fee2e2; color: #b91c1c; }
+        .badge-info { background-color: #e0e7ff; color: #4338ca; }
+        
+        h1 { color: #0f172a; font-size: 24px; font-weight: 700; margin-top: 0; margin-bottom: 16px; }
+        p { color: #475569; font-size: 16px; line-height: 24px; margin-top: 0; margin-bottom: 24px; }
+        
+        .info-box {
+          background-color: #f1f5f9;
+          border-left: 4px solid #7c3aed;
+          padding: 20px;
+          border-radius: 0 8px 8px 0;
+          margin: 24px 0;
+        }
+        
+        .code {
+          font-family: 'SF Mono', 'Fira Code', monospace;
+          background-color: #f1f5f9;
+          padding: 2px 6px;
+          border-radius: 4px;
+          color: #7c3aed;
+        }
+      </style>
+    `;
+  }
+
+  private wrapInBaseTemplate(content: string, previewText: string): string {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://v8id.cloud';
+    const logoUrl = `${appUrl}/images/v8id-logo.png`;
+
     return `
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reset Your Password</title>
+  <meta name="x-apple-disable-message-reformatting">
+  <title>v8id-cloud</title>
+  ${this.getCommonStyles()}
 </head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px;">
-    <h1 style="color: #2c3e50; margin-top: 0;">Reset Your Password</h1>
-    
-    <p>You requested to reset your password for your v8id-cloud account.</p>
-    
-    <p>Click the button below to reset your password. This link will expire in <strong>1 hour</strong>.</p>
-    
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${resetLink}" 
-         style="display: inline-block; background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-        Reset Password
-      </a>
-    </div>
-    
-    <p style="font-size: 14px; color: #666;">
-      Or copy and paste this link into your browser:<br>
-      <a href="${resetLink}" style="color: #007bff; word-break: break-all;">${resetLink}</a>
-    </p>
-    
-    <p style="font-size: 14px; color: #666; margin-top: 30px;">
-      <strong>Security Notice:</strong><br>
-      If you didn't request this password reset, please ignore this email. Your password will remain unchanged.
-    </p>
-    
-    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-    
-    <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated message from v8id-cloud. Please do not reply to this email.
-    </p>
+<body>
+  <div style="display: none; max-height: 0px; overflow: hidden;">
+    ${previewText}
   </div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table class="card" role="presentation" width="100%" style="max-width: 600px;" cellspacing="0" cellpadding="0" border="0">
+          <tr>
+            <td class="header">
+              <img src="${logoUrl}" alt="v8id-cloud Logo" width="120" style="display: block; margin: 0 auto;">
+            </td>
+          </tr>
+          <tr>
+            <td class="content">
+              ${content}
+            </td>
+          </tr>
+          <tr>
+            <td class="footer">
+              <p style="margin-bottom: 16px;">&copy; ${new Date().getFullYear()} v8id-cloud. All rights reserved.</p>
+              <div style="margin-bottom: 16px;">
+                <a href="#" style="color: #64748b; text-decoration: none; margin: 0 10px;">Privacy Policy</a>
+                <a href="#" style="color: #64748b; text-decoration: none; margin: 0 10px;">Terms of Service</a>
+                <a href="#" style="color: #64748b; text-decoration: none; margin: 0 10px;">Support</a>
+              </div>
+              <p style="font-size: 12px; color: #94a3b8;">
+                You are receiving this email because you have a v8id-cloud account.<br>
+                If this wasn't you, please ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
     `.trim();
   }
 
+  private getPasswordResetEmailTemplate(resetLink: string): string {
+    const content = `
+      <div class="badge badge-info">Security</div>
+      <h1>Reset Your Password</h1>
+      <p>Hello,</p>
+      <p>We received a request to reset the password for your v8id-cloud account. No problem, just click the button below to set up a new one.</p>
+      
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${resetLink}" class="btn">Reset Password</a>
+      </div>
+      
+      <p>This link will expire in <strong>1 hour</strong>. If you didn't request this, you can safely ignore this email; your password will remain unchanged.</p>
+      
+      <div class="info-box" style="font-size: 14px; color: #64748b;">
+        <strong>Trouble with the button?</strong><br>
+        Copy and paste this link into your browser:<br>
+        <a href="${resetLink}" style="color: #7c3aed; word-break: break-all;">${resetLink}</a>
+      </div>
+    `;
+
+    return this.wrapInBaseTemplate(content, 'Reset your v8id-cloud password');
+  }
+
   private getWelcomeEmailTemplate(firstName?: string, tempPassword?: string): string {
     const greeting = firstName ? `Hello ${firstName},` : 'Hello,';
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://v8id.cloud';
 
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to v8id-cloud</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px;">
-    <h1 style="color: #2c3e50; margin-top: 0;">Welcome to v8id-cloud!</h1>
-    
-    <p>${greeting}</p>
-    
-    <p>Your account has been created successfully. You can now access your secure cloud storage.</p>
-    
-    ${
-      tempPassword
-        ? `
-    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0; font-weight: bold;">⚠️ Temporary Password:</p>
-      <p style="margin: 5px 0 0 0; font-family: monospace; font-size: 14px;">${tempPassword}</p>
-      <p style="margin: 10px 0 0 0; font-size: 12px;">Please change this password after your first login.</p>
-    </div>
-    `
-        : ''
-    }
-    
-    <p><strong>Next Steps:</strong></p>
-    <ol>
-      <li>Scan the QR code provided during account creation with an authenticator app</li>
-      <li>Complete TOTP setup by verifying your first login</li>
-      <li>Save your backup codes in a secure location</li>
-      <li>${tempPassword ? 'Change your temporary password' : 'Start using your secure cloud storage'}</li>
-    </ol>
-    
-    <p>Thank you for choosing v8id-cloud for your secure document storage needs.</p>
-    
-    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-    
-    <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated message from v8id-cloud. Please do not reply to this email.
-    </p>
-  </div>
-</body>
-</html>
-    `.trim();
+    const content = `
+      <div class="badge badge-info">Welcome</div>
+      <h1>Welcome to v8id-cloud!</h1>
+      <p>${greeting}</p>
+      <p>We're thrilled to have you on board. Your account is now active and ready for secure document storage.</p>
+      
+      <div style="margin: 32px 0; text-align: center;">
+        <img src="${appUrl}/images/vault.png" alt="Secure Vault" width="280" style="border-radius: 12px; max-width: 100%;">
+      </div>
+      
+      ${
+        tempPassword
+          ? `
+      <div class="info-box">
+        <p style="margin-bottom: 8px; font-weight: 600; color: #b45309;">Temporary Password:</p>
+        <p style="font-family: monospace; font-size: 20px; letter-spacing: 2px; color: #0f172a; margin: 0;">${tempPassword}</p>
+        <p style="font-size: 13px; color: #64748b; margin-top: 8px;">Please update this immediately after your first login.</p>
+      </div>
+      `
+          : ''
+      }
+      
+      <h2 style="font-size: 18px; color: #0f172a; margin-bottom: 16px;">Getting Started:</h2>
+      <ul style="color: #475569; padding-left: 20px; line-height: 1.8;">
+        <li>Set up your 2FA using an authenticator app.</li>
+        <li>Securely upload and manage your sensitive documents.</li>
+        <li>Share files with encryption-backed links.</li>
+      </ul>
+      
+      <div style="text-align: center; margin: 40px 0;">
+        <a href="${appUrl}/login" class="btn">Launch Dashboard</a>
+      </div>
+    `;
+
+    return this.wrapInBaseTemplate(content, 'Welcome to your secure cloud storage');
   }
 
   private getPasswordChangeNotificationTemplate(
@@ -259,49 +365,54 @@ export class NodemailerEmailService implements IEmailService {
     userAgent?: string
   ): string {
     const greeting = firstName ? `Hello ${firstName},` : 'Hello,';
-    const timestamp = new Date().toLocaleString();
+    const timestamp = new Date().toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
 
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Password Changed</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px;">
-    <h1 style="color: #2c3e50; margin-top: 0;">Password Changed Successfully</h1>
-    
-    <p>${greeting}</p>
-    
-    <p>Your password has been changed successfully.</p>
-    
-    <div style="background-color: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0; font-weight: bold;">🔒 Security Notice:</p>
-      <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li>All existing sessions have been invalidated</li>
-        <li>You must login again on all devices</li>
-        <li>If you didn't make this change, please contact support immediately</li>
-      </ul>
-    </div>
-    
-    <p><strong>Change Details:</strong></p>
-    <ul style="color: #666; font-size: 14px;">
-      <li>Time: ${timestamp}</li>
-      ${ipAddress ? `<li>IP Address: ${ipAddress}</li>` : ''}
-      ${userAgent ? `<li>Device: ${userAgent}</li>` : ''}
-    </ul>
-    
-    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-    
-    <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated security notification from v8id-cloud. Please do not reply to this email.
-    </p>
-  </div>
-</body>
-</html>
-    `.trim();
+    const content = `
+      <div class="badge badge-info">Security Update</div>
+      <h1>Password Changed Successfully</h1>
+      <p>${greeting}</p>
+      <p>This is a confirmation that your password was recently updated. If you made this change, you can safely ignore this email.</p>
+      
+      <div class="info-box">
+        <p style="margin: 0; font-weight: 600; color: #0f172a;">Review the details:</p>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top: 12px;">
+          <tr>
+            <td style="padding: 4px 0; color: #64748b; font-size: 14px;" width="100">Time:</td>
+            <td style="padding: 4px 0; color: #0f172a; font-size: 14px;">${timestamp}</td>
+          </tr>
+          ${
+            ipAddress
+              ? `
+          <tr>
+            <td style="padding: 4px 0; color: #64748b; font-size: 14px;">IP Address:</td>
+            <td style="padding: 4px 0; color: #0f172a; font-size: 14px;">${ipAddress}</td>
+          </tr>`
+              : ''
+          }
+          ${
+            userAgent
+              ? `
+          <tr>
+            <td style="padding: 4px 0; color: #64748b; font-size: 14px;">Device:</td>
+            <td style="padding: 4px 0; color: #0f172a; font-size: 14px;">${userAgent}</td>
+          </tr>`
+              : ''
+          }
+        </table>
+      </div>
+      
+      <div style="background-color: #fee2e2; border-radius: 8px; padding: 20px; margin-top: 24px;">
+        <p style="margin: 0; font-weight: 600; color: #b91c1c;">Didn't make this change?</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: #7f1d1d;">
+          Please contact our security team immediately at <strong>support@v8id.cloud</strong> or reset your password using the "Forgot Password" link on the login page.
+        </p>
+      </div>
+    `;
+
+    return this.wrapInBaseTemplate(content, 'Your password was successfully updated');
   }
 
   private getNewDeviceLoginAlertTemplate(
@@ -312,55 +423,61 @@ export class NodemailerEmailService implements IEmailService {
     location?: string
   ): string {
     const greeting = firstName ? `Hello ${firstName},` : 'Hello,';
-    const timestamp = new Date().toLocaleString();
+    const timestamp = new Date().toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
 
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>New Device Login</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px;">
-    <h1 style="color: #2c3e50; margin-top: 0;">🔔 New Device Login Alert</h1>
-    
-    <p>${greeting}</p>
-    
-    <p>A new device has logged into your v8id-cloud account.</p>
-    
-    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0; font-weight: bold;">Device Information:</p>
-      <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li><strong>Type:</strong> ${deviceType}</li>
-        <li><strong>Name:</strong> ${deviceName}</li>
-        ${ipAddress ? `<li><strong>IP Address:</strong> ${ipAddress}</li>` : ''}
-        ${location ? `<li><strong>Location:</strong> ${location}</li>` : ''}
-        <li><strong>Time:</strong> ${timestamp}</li>
-      </ul>
-    </div>
-    
-    <p><strong>If this was you:</strong> No action needed. You can safely ignore this email.</p>
-    
-    <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0; font-weight: bold;">⚠️ If this wasn't you:</p>
-      <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li>Change your password immediately</li>
-        <li>Revoke all sessions from your account settings</li>
-        <li>Contact support if you suspect unauthorized access</li>
-      </ul>
-    </div>
-    
-    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-    
-    <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated security notification from v8id-cloud. Please do not reply to this email.
-    </p>
-  </div>
-</body>
-</html>
-    `.trim();
+    const content = `
+      <div class="badge badge-warning">Security Alert</div>
+      <h1>New Device Login</h1>
+      <p>${greeting}</p>
+      <p>We detected a new login to your v8id-cloud account from a device we don't recognize.</p>
+      
+      <div class="info-box">
+        <p style="margin: 0 0 12px 0; font-weight: 600; color: #0f172a;">Login Details:</p>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+          <tr>
+            <td style="padding: 4px 0; color: #64748b; font-size: 14px;" width="100">Device:</td>
+            <td style="padding: 4px 0; color: #0f172a; font-size: 14px;">${deviceType} (${deviceName})</td>
+          </tr>
+          ${
+            ipAddress
+              ? `
+          <tr>
+            <td style="padding: 4px 0; color: #64748b; font-size: 14px;">IP Address:</td>
+            <td style="padding: 4px 0; color: #0f172a; font-size: 14px;">${ipAddress}</td>
+          </tr>`
+              : ''
+          }
+          ${
+            location
+              ? `
+          <tr>
+            <td style="padding: 4px 0; color: #64748b; font-size: 14px;">Location:</td>
+            <td style="padding: 4px 0; color: #0f172a; font-size: 14px;">${location}</td>
+          </tr>`
+              : ''
+          }
+          <tr>
+            <td style="padding: 4px 0; color: #64748b; font-size: 14px;">Time:</td>
+            <td style="padding: 4px 0; color: #0f172a; font-size: 14px;">${timestamp}</td>
+          </tr>
+        </table>
+      </div>
+      
+      <p style="font-weight: 600; color: #0f172a; margin-top: 24px;">If this was you:</p>
+      <p>You can safely ignore this email. We'll remember this device for future logins.</p>
+      
+      <div style="background-color: #fee2e2; border-radius: 8px; padding: 20px; margin-top: 24px;">
+        <p style="margin: 0; font-weight: 600; color: #b91c1c;">If this wasn't you:</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: #7f1d1d;">
+          Please change your password immediately and revoke any unfamiliar active sessions from your security settings.
+        </p>
+      </div>
+    `;
+
+    return this.wrapInBaseTemplate(content, 'New device login detected for your account');
   }
 
   private getSuspiciousActivityAlertTemplate(
@@ -371,115 +488,72 @@ export class NodemailerEmailService implements IEmailService {
     ipAddress?: string
   ): string {
     const greeting = firstName ? `Hello ${firstName},` : 'Hello,';
-    const formattedTime = timestamp.toLocaleString();
+    const formattedTime = timestamp.toLocaleString('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
 
+    let activityTitle = 'Suspicious Activity Detected';
     let activityDescription = '';
-    let recommendedActions = '';
+    let recommendations = '';
 
     switch (activityType) {
       case 'MULTIPLE_FAILED_LOGINS':
-        activityDescription = `
-          <p><strong>Multiple Failed Login Attempts Detected</strong></p>
-          <p>We detected ${details.count || 'multiple'} failed login attempts on your account within the last ${details.timeWindow || '15 minutes'}.</p>
-          ${ipAddress ? `<p><strong>IP Address:</strong> ${ipAddress}</p>` : ''}
-        `;
-        recommendedActions = `
-          <ul style="margin: 10px 0 0 20px; padding: 0;">
-            <li>If this was you: Make sure you're using the correct password and TOTP code</li>
-            <li>If this wasn't you: Change your password immediately</li>
-            <li>Review your active sessions and revoke any suspicious ones</li>
-            <li>Enable additional security measures if available</li>
-          </ul>
+        activityTitle = 'Multiple Failed Logins';
+        activityDescription = `We detected ${details.count || 'multiple'} failed login attempts on your account within a short period.`;
+        recommendations = `
+          <li>Verify you are using the correct credentials and 2FA code.</li>
+          <li>If you haven't tried logging in, your account may be under attempt to be accessed.</li>
+          <li>We recommend changing your password as a precaution.</li>
         `;
         break;
       case 'MULTIPLE_FAILED_TOTP':
-        activityDescription = `
-          <p><strong>Multiple Failed TOTP Verification Attempts</strong></p>
-          <p>We detected ${details.count || 'multiple'} failed TOTP code verification attempts on your account within the last ${details.timeWindow || '15 minutes'}.</p>
-          ${ipAddress ? `<p><strong>IP Address:</strong> ${ipAddress}</p>` : ''}
-        `;
-        recommendedActions = `
-          <ul style="margin: 10px 0 0 20px; padding: 0;">
-            <li>If this was you: Make sure you're entering the correct TOTP code from your authenticator app</li>
-            <li>Check if your device time is synchronized correctly</li>
-            <li>If this wasn't you: Change your password and regenerate TOTP backup codes</li>
-            <li>Review your active sessions immediately</li>
-          </ul>
+        activityTitle = '2FA Verification Failures';
+        activityDescription = `There have been ${details.count || 'multiple'} unsuccessful attempts to verify your 2FA code.`;
+        recommendations = `
+          <li>Check that your authenticator app time is synchronized.</li>
+          <li>If this was not you, someone may have your password and is trying to bypass security.</li>
+          <li>Change your password immediately.</li>
         `;
         break;
       case 'UNUSUAL_LOCATION':
-        activityDescription = `
-          <p><strong>Login from Unusual Location</strong></p>
-          <p>We detected a login to your account from an IP address that differs from your recent login locations.</p>
-          ${ipAddress ? `<p><strong>Current IP Address:</strong> ${ipAddress}</p>` : ''}
-          ${details.currentLocation ? `<p><strong>Location:</strong> ${details.currentLocation}</p>` : ''}
-        `;
-        recommendedActions = `
-          <ul style="margin: 10px 0 0 20px; padding: 0;">
-            <li>If this was you: No action needed. We're just keeping you informed.</li>
-            <li>If this wasn't you: Change your password immediately</li>
-            <li>Revoke all sessions and re-login from trusted devices</li>
-            <li>Contact support if you suspect unauthorized access</li>
-          </ul>
+        activityTitle = 'Login from Unusual Location';
+        activityDescription = `Your account was accessed from a location that differs from your usual patterns.`;
+        recommendations = `
+          <li>If you are traveling or using a VPN, you can ignore this alert.</li>
+          <li>If not, logout all active sessions and update your password.</li>
         `;
         break;
       default:
-        activityDescription = `
-          <p><strong>Suspicious Activity Detected</strong></p>
-          <p>We detected unusual activity on your account that may require your attention.</p>
-        `;
-        recommendedActions = `
-          <ul style="margin: 10px 0 0 20px; padding: 0;">
-            <li>Review your account activity</li>
-            <li>Change your password if you notice anything unusual</li>
-            <li>Revoke any suspicious sessions</li>
-            <li>Contact support if needed</li>
-          </ul>
+        activityDescription = `Unusual activity was flagged on your account that requires review.`;
+        recommendations = `
+          <li>Review your recent account activity logs.</li>
+          <li>Ensure your security settings are up to date.</li>
         `;
     }
 
-    return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Suspicious Activity Alert</title>
-</head>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background-color: #f8f9fa; padding: 30px; border-radius: 8px;">
-    <h1 style="color: #dc3545; margin-top: 0;">⚠️ Suspicious Activity Alert</h1>
-    
-    <p>${greeting}</p>
-    
-    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
-      ${activityDescription}
-      <p><strong>Time:</strong> ${formattedTime}</p>
-    </div>
-    
-    <div style="background-color: #d1ecf1; border-left: 4px solid #0c5460; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0; font-weight: bold;">📋 Recommended Actions:</p>
-      ${recommendedActions}
-    </div>
-    
-    <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0;">
-      <p style="margin: 0; font-weight: bold;">🔒 If you suspect unauthorized access:</p>
-      <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li>Change your password immediately</li>
-        <li>Revoke all sessions from your account settings</li>
-        <li>Regenerate your TOTP backup codes</li>
-        <li>Contact support for additional assistance</li>
+    const content = `
+      <div class="badge badge-danger">High Priority Alert</div>
+      <h1 style="color: #dc3545;">⚠️ ${activityTitle}</h1>
+      <p>${greeting}</p>
+      <div class="info-box" style="background-color: #fff7ed; border-left-color: #f97316;">
+        <p style="margin: 0; color: #9a3412;">${activityDescription}</p>
+        <p style="margin: 8px 0 0 0; font-size: 14px; color: #c2410c;">
+          <strong>Time:</strong> ${formattedTime}<br>
+          ${ipAddress ? `<strong>IP Address:</strong> ${ipAddress}` : ''}
+        </p>
+      </div>
+      
+      <h2 style="font-size: 18px; color: #0f172a; margin-top: 32px; margin-bottom: 16px;">Recommended Actions:</h2>
+      <ul style="color: #475569; padding-left: 20px; line-height: 1.8;">
+        ${recommendations}
       </ul>
-    </div>
-    
-    <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-    
-    <p style="font-size: 12px; color: #999; text-align: center;">
-      This is an automated security notification from v8id-cloud. Please do not reply to this email.
-    </p>
-  </div>
-</body>
-</html>
-    `.trim();
+      
+      <div style="margin-top: 40px; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 32px;">
+        <a href="mailto:support@v8id.cloud" style="color: #7c3aed; font-weight: 600; text-decoration: none;">Contact Security Team &rarr;</a>
+      </div>
+    `;
+
+    return this.wrapInBaseTemplate(content, 'Immediate Action Required: Security Alert');
   }
 }

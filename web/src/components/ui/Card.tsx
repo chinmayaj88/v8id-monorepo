@@ -2,12 +2,11 @@
 
 import React from 'react';
 
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   variant?: 'default' | 'elevated' | 'outline';
   noPadding?: boolean;
-  onClick?: () => void;
 }
 
 export default function Card({
@@ -15,7 +14,7 @@ export default function Card({
   className = '',
   variant = 'default',
   noPadding = false,
-  onClick,
+  ...props
 }: CardProps) {
   const baseStyles = 'rounded-[32px] overflow-hidden transition-all duration-300';
 
@@ -30,10 +29,11 @@ export default function Card({
   return (
     <div
       className={`${baseStyles} ${variants[variant]} ${padding} ${className}`}
-      onClick={onClick}
+      {...props}
       style={{
         backgroundColor: variant !== 'outline' ? 'var(--card-bg)' : 'transparent',
         borderColor: 'var(--border-primary)',
+        ...props.style,
       }}
     >
       {children}

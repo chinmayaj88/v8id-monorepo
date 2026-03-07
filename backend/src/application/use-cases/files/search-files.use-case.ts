@@ -79,7 +79,7 @@ export class SearchFilesUseCase {
       size: f.size.toString(),
       mimeType: f.mimeType,
       extension: f.extension,
-      thumbnailUrl: null,
+      thumbnailUrl: f.thumbnailKey ? `api/files/${f.id}/thumbnail` : null,
       createdAt: f.createdAt,
       updatedAt: f.updatedAt,
       isOwner: f.userId === userId,

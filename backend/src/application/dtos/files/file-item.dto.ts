@@ -3,7 +3,9 @@ export interface FileItemDTO {
   name: string;
   size: string;
   mimeType: string;
+  folderId?: string | null;
   extension?: string | null;
+  thumbnailKey?: string | null;
   thumbnailUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -16,6 +18,7 @@ export interface FileItemDTO {
 export interface FolderItemDTO {
   id: string;
   name: string;
+  parentId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   isOwner: boolean;

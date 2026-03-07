@@ -3,6 +3,7 @@ import { Folder, StorageTier } from '../../../infrastructure/database/index.js';
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
 import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 import { FileItemDTO, FolderItemDTO } from '../../dtos/files/file-item.dto.js';
+import { FileMapper } from '../../utils/file.mapper.js';
 
 export interface ListFolderContentsDTO {
   parentId?: string | null; // Null for root
@@ -109,51 +110,20 @@ export class ListFolderContentsUseCase {
     }
 
     // 3. Map Owned/Located Items to DTOs
-    const mapFolder = (f: any): FolderItemDTO => ({
-      id: f.id,
-      name: f.name,
-      createdAt: f.createdAt,
-      updatedAt: f.updatedAt,
-      isOwner: f.userId === userId,
-      ownerName: f.userId === userId ? currentUserName : folderOwnerName,
-      // Map shares (recipients)
-      // Map shares (recipients)
-      sharedUsers: f.folderShares
-        ? f.folderShares.map((s: any) => ({
-            shareId: s.id,
-            name: s.sharedWith, // Email
-            avatarUrl: null,
-          }))
-        : [],
-    });
-
-    const mapFile = (f: any): FileItemDTO => ({
-      id: f.id,
-      name: f.name,
-      size: f.size.toString(),
-      mimeType: f.mimeType,
-      extension: f.extension,
-      thumbnailUrl: f.thumbnailKey ? `api/files/${f.id}/thumbnail` : null,
-      createdAt: f.createdAt,
-      updatedAt: f.updatedAt,
-      isOwner: f.userId === userId,
-      ownerName: f.userId === userId ? currentUserName : folderOwnerName,
-      tier: f.storageTier,
-      // Map shares (recipients)
-      sharedUsers: f.fileShares
-        ? f.fileShares.map((s: any) => ({
-            shareId: s.id,
-            name: s.sharedWith, // Email
-            avatarUrl: null,
-          }))
-        : [],
-    });
-
-    const resultFolders = foldersRaw.map(mapFolder);
-    const resultFiles = filesRaw.map(mapFile);
+    const resultFolders = foldersRaw.map(f =>
+      FileMapper.toFolderDTO(f, {
+        isOwner: f.userId === userId,
+        ownerName: f.userId === userId ? currentUserName : folderOwnerName,
+      })
+    );
+    const resultFiles = filesRaw.map(f =>
+      FileMapper.toDTO(f, {
+        isOwner: f.userId === userId,
+        ownerName: f.userId === userId ? currentUserName : folderOwnerName,
+      })
+    );
 
     // 4. Merge "Shared With Me" items if at Root
-    // These are items where I am the recipient
     if (!parentId) {
       const [sharedFiles, sharedFolders] = await Promise.all([
         this.shareRepository.findFileSharesByEmail(currentUser.email),
@@ -161,50 +131,39 @@ export class ListFolderContentsUseCase {
       ]);
 
       sharedFolders.forEach((s: any) => {
-        resultFolders.push({
-          id: s.folder.id,
-          name: s.folder.name,
-          createdAt: s.folder.createdAt,
-          updatedAt: s.folder.updatedAt,
-          isOwner: false,
-          ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-          sharedUsers: [
-            {
-              name: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-              avatarUrl: s.owner.avatarPath,
-            },
-          ],
-        });
+        resultFolders.push(
+          FileMapper.toFolderDTO(s.folder, {
+            isOwner: false,
+            ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+          })
+        );
       });
 
       sharedFiles.forEach((s: any) => {
-        resultFiles.push({
-          id: s.file.id,
-          name: s.file.name,
-          size: s.file.size.toString(),
-          mimeType: s.file.mimeType,
-          extension: s.file.extension,
-          thumbnailUrl: s.file.thumbnailKey ? `api/files/${s.file.id}/thumbnail` : null,
-          createdAt: s.file.createdAt,
-          updatedAt: s.file.updatedAt,
-          isOwner: false,
-          ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-          tier: s.file.storageTier,
-          sharedUsers: [
-            {
-              name: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-              avatarUrl: s.owner.avatarPath,
-            },
-          ],
-        });
+        resultFiles.push(
+          FileMapper.toDTO(s.file, {
+            isOwner: false,
+            ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
+          })
+        );
       });
     }
 
     return {
       folders: resultFolders,
       files: resultFiles,
-      currentFolder: currentFolderRaw ? mapFolder(currentFolderRaw) : null,
-      breadcrumbs: breadcrumbsRaw.map(mapFolder),
+      currentFolder: currentFolderRaw
+        ? FileMapper.toFolderDTO(currentFolderRaw, {
+            isOwner: currentFolderRaw.userId === userId,
+            ownerName: currentFolderRaw.userId === userId ? currentUserName : folderOwnerName,
+          })
+        : null,
+      breadcrumbs: breadcrumbsRaw.map(f =>
+        FileMapper.toFolderDTO(f, {
+          isOwner: f.userId === userId,
+          ownerName: f.userId === userId ? currentUserName : folderOwnerName,
+        })
+      ),
     };
   }
 }

@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchSyncData, bulkDeleteItems, moveItems, copyItems } from '@/store/slices/fileSlice';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   HiChevronRight,
   HiOutlineAdjustments,
@@ -65,6 +66,7 @@ const dummyPinnedFolders = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.auth.user);
   const { files, folders, isLoading, searchQuery } = useAppSelector(state => state.files);
@@ -208,6 +210,9 @@ export default function DashboardPage() {
     }
   };
 
+  const isItemAFolder = (item: any) =>
+    !item || 'fileCount' in item || !item.mimeType || 'parentId' in item;
+
   const filterBySearch = (item: { name: string; mimeType?: string; extension?: string }) => {
     const matchesSearch = searchQuery
       ? item.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -342,7 +347,7 @@ export default function DashboardPage() {
 
       <div className="space-y-6">
         {/* Folders */}
-        <section>
+        {/* <section>
           <div className="flex items-center justify-between mb-4">
             <h2
               className="text-base font-black tracking-tight"
@@ -436,7 +441,7 @@ export default function DashboardPage() {
               );
             })}
           </div>
-        </section>
+        </section> */}
 
         {/* Recent Files Table */}
         <section>
@@ -570,6 +575,12 @@ export default function DashboardPage() {
               enableSelection={true}
               selectedIds={selectedIds}
               onSelectionChange={setSelectedIds}
+              onItemClick={item => {
+                if (isItemAFolder(item)) {
+                  // Navigate to folder in dedicated view
+                  router.push(`/dashboard/files?folderId=${item.id}`);
+                }
+              }}
               onDelete={item => {
                 handleDeleteSelected(new Set([item.id]));
               }}

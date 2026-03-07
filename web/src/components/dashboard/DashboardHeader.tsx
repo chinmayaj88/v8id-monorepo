@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   HiOutlineSearch,
   HiOutlinePlus,
@@ -13,6 +14,8 @@ import {
   HiOutlineFolderAdd,
   HiOutlineCloudUpload,
   HiOutlineDocumentAdd,
+  HiOutlineFolder,
+  HiOutlineDocumentText,
 } from 'react-icons/hi';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
@@ -26,9 +29,10 @@ import UploadModal from '@/components/dashboard/UploadModal';
 import CreateNoteModal from '@/components/dashboard/CreateNoteModal';
 
 export default function DashboardHeader() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.auth.user);
-  const { searchQuery, currentFolderId } = useAppSelector(state => state.files);
+  const { searchQuery, currentFolderId, files, folders } = useAppSelector(state => state.files);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [mounted, setMounted] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -41,6 +45,9 @@ export default function DashboardHeader() {
     null
   );
 
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,6 +57,38 @@ export default function DashboardHeader() {
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const allSearchableItems = [
+    ...folders.map(f => ({ ...f, type: 'folder' })),
+    ...files.map(f => ({ ...f, type: 'file' })),
+  ];
+
+  const searchResults = searchQuery.trim()
+    ? allSearchableItems
+        .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .slice(0, 8)
+    : [];
+
+  const handleResultClick = (item: any) => {
+    setIsSearchFocused(false);
+    dispatch(setSearchQuery(''));
+    if (item.type === 'folder') {
+      router.push(`/dashboard/files?folderId=${item.id}`);
+    } else {
+      const folderParam = item.folderId ? `folderId=${item.folderId}&` : '';
+      router.push(`/dashboard/files?${folderParam}previewId=${item.id}`);
+    }
+  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -87,19 +126,58 @@ export default function DashboardHeader() {
       className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b px-6 transition-colors duration-300"
       style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--border-primary)' }}
     >
-      <div className="flex items-center gap-4 flex-1 max-w-2xl">
+      <div className="flex items-center gap-4 flex-1 max-w-2xl relative" ref={searchContainerRef}>
         <Input
           placeholder="Search files, folders, and more..."
           value={searchQuery}
-          onChange={e => dispatch(setSearchQuery(e.target.value))}
+          onChange={e => {
+            dispatch(setSearchQuery(e.target.value));
+            setIsSearchFocused(true);
+          }}
+          onFocus={() => setIsSearchFocused(true)}
           icon={<HiOutlineSearch className="h-5 w-5" />}
-          containerClassName="max-w-md"
+          containerClassName="max-w-md w-full"
           className="border-0 ring-1 ring-inset ring-(--border-primary) focus:ring-2 focus:ring-v8-primary/20 py-2"
           style={{
             backgroundColor: 'var(--bg-tertiary)',
             color: 'var(--text-primary)',
           }}
         />
+
+        {isSearchFocused && searchResults.length > 0 && (
+          <div className="absolute top-full left-0 mt-2 w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl shadow-2xl z-50 overflow-hidden p-2 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="px-4 py-2 mb-1">
+              <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                Search Results
+              </p>
+            </div>
+            {searchResults.map(item => (
+              <button
+                key={item.id}
+                onClick={() => handleResultClick(item)}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all text-left group"
+              >
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform ${item.type === 'folder' ? 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600' : 'bg-purple-100 dark:bg-purple-900/20 text-purple-600'}`}
+                >
+                  {item.type === 'folder' ? (
+                    <HiOutlineFolder className="w-5 h-5" />
+                  ) : (
+                    <HiOutlineDocumentText className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[12px] font-bold text-zinc-800 dark:text-zinc-200 truncate">
+                    {item.name}
+                  </p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 opacity-60">
+                    {item.type === 'folder' ? 'Folder' : (item as any).extension || 'File'}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-3">

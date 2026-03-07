@@ -30,8 +30,15 @@ export function createApp(): Express {
           defaultSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
           scriptSrc: ["'self'"],
-          imgSrc: ["'self'", 'data:', 'https:'],
-          connectSrc: ["'self'", 'https://*.oraclecloud.com'], // Allow OCI
+          imgSrc: [
+            "'self'",
+            'data:',
+            'https:',
+            'http://localhost:4000',
+            'http://localhost:3000',
+            'http://localhost:3001',
+          ],
+          connectSrc: ["'self'", 'https://*.oraclecloud.com', 'http://localhost:4000'], // Allow OCI and local API
         },
       },
       crossOriginEmbedderPolicy: false,

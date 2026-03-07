@@ -25,7 +25,7 @@ export default function AddUserModal(props: AddUserModalProps) {
     firstName: '',
     lastName: '',
     role: 'USER' as 'USER' | 'ADMIN',
-    storageQuota: 5368709120, // 5GB default
+    storageQuota: 5 * 1024 * 1024 * 1024, // 5GB default
   });
 
   const [creationResult, setCreationResult] = useState<{
@@ -62,7 +62,7 @@ export default function AddUserModal(props: AddUserModalProps) {
         firstName: '',
         lastName: '',
         role: 'USER',
-        storageQuota: 5368709120,
+        storageQuota: 5 * 1024 * 1024 * 1024,
       });
       if (onSuccess) onSuccess();
       showNotification({
@@ -232,14 +232,17 @@ export default function AddUserModal(props: AddUserModalProps) {
             </div>
           </div>
           <Input
-            label="Quota"
+            label="Storage Quota"
             type="number"
-            value={formData.storageQuota}
-            onChange={e => setFormData({ ...formData, storageQuota: parseInt(e.target.value) })}
+            value={formData.storageQuota / (1024 * 1024 * 1024)}
+            onChange={e => {
+              const gb = parseFloat(e.target.value) || 0;
+              setFormData({ ...formData, storageQuota: Math.floor(gb * 1024 * 1024 * 1024) });
+            }}
             icon={<HiOutlineDatabase />}
             suffix={
               <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest pr-2">
-                {formatSize(formData.storageQuota)}
+                GB
               </span>
             }
           />

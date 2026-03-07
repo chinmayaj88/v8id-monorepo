@@ -1,6 +1,7 @@
 import { IShareRepository } from '../../interfaces/repositories/share.repository.interface.js';
 import { IUserRepository } from '../../interfaces/user/user-repository.interface.js';
 import { ListSharedWithMeResult } from '../../dtos/files/file-item.dto.js';
+import { FileMapper } from '../../utils/file.mapper.js';
 
 export class ListSharedWithMeUseCase {
   constructor(
@@ -27,25 +28,10 @@ export class ListSharedWithMeUseCase {
       id: s.id,
       permission: s.permission,
       sharedAt: s.createdAt,
-      file: {
-        id: s.file.id,
-        name: s.file.name,
-        size: s.file.size.toString(),
-        mimeType: s.file.mimeType,
-        extension: s.file.extension,
-        thumbnailUrl: s.file.thumbnailKey ? `api/files/${s.file.id}/thumbnail` : null,
-        createdAt: s.file.createdAt,
-        updatedAt: s.file.updatedAt,
+      file: FileMapper.toDTO(s.file, {
         isOwner: false,
         ownerName: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-        tier: s.file.storageTier,
-        sharedUsers: [
-          {
-            name: `${s.owner.firstName} ${s.owner.lastName}`.trim(),
-            avatarUrl: s.owner.avatarPath,
-          },
-        ],
-      },
+      }),
     }));
 
     const incomingFolders = incomingFolderShares.map((s: any) => ({
@@ -78,20 +64,10 @@ export class ListSharedWithMeUseCase {
           id: s.id, // Use one share ID as reference
           permission: s.permission,
           sharedAt: s.createdAt,
-          file: {
-            id: s.file.id,
-            name: s.file.name,
-            size: s.file.size.toString(),
-            mimeType: s.file.mimeType,
-            extension: s.file.extension,
-            thumbnailUrl: s.file.thumbnailKey ? `api/files/${s.file.id}/thumbnail` : null,
-            createdAt: s.file.createdAt,
-            updatedAt: s.file.updatedAt,
+          file: FileMapper.toDTO(s.file, {
             isOwner: true,
             ownerName: 'Me',
-            tier: s.file.storageTier,
-            sharedUsers: [],
-          },
+          }),
         });
       }
 
