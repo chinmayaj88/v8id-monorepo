@@ -20,6 +20,7 @@ export interface VerifyCredentialsResult {
     id: string;
     email: string;
     role: string;
+    hasVaultSetup?: boolean;
   };
 }
 
@@ -136,6 +137,7 @@ export class VerifyCredentialsUseCase {
         id: user.id,
         email: user.email,
         role: user.role,
+        hasVaultSetup: !!user.vaultPasswordHash,
       },
     };
   }

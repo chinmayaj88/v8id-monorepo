@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAppSelector, useAppDispatch } from '@/store/hooks';
+import { setVaultSetupFlag } from '@/store/slices/authSlice';
 import {
-  fetchSecrets,
+  setupVault,
   unlockVault,
   lockVault,
   addSecret,
+  fetchSecrets,
   deleteSecret,
   getSecretDetails,
   VaultSecret,
@@ -32,12 +34,19 @@ import { useModal } from '@/components/ui/ModalProvider';
 export default function VaultPage() {
   const dispatch = useAppDispatch();
   const { secrets, isUnlocked, isLoading } = useAppSelector(state => state.vault);
+  const { user } = useAppSelector(state => state.auth);
   const { showConfirmation, showNotification } = useModal();
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [viewSecretId, setViewSecretId] = useState<string | null>(null);
-  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Password / Unlock form state
+  const [vaultPassword, setVaultPassword] = useState('');
+  const [isSettingUp, setIsSettingUp] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
 
   // Add Secret Form State
   const [newSecret, setNewSecret] = useState({
@@ -50,14 +59,92 @@ export default function VaultPage() {
   });
 
   useEffect(() => {
+    if (user && user.hasVaultSetup === false) {
+      setIsSettingUp(true);
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (isUnlocked) {
       dispatch(fetchSecrets());
     }
   }, [isUnlocked, dispatch]);
 
-  const handleUnlock = () => {
-    // In a real app, we would verify a master password/PIN here or re-authenticate
-    dispatch(unlockVault());
+  // Auto-lock vault after inactivity
+  useEffect(() => {
+    if (!isUnlocked) return;
+
+    let inactivityTimer: NodeJS.Timeout;
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      // Auto lock after 3 minutes of inactivity
+      inactivityTimer = setTimeout(
+        () => {
+          dispatch(lockVault());
+          showNotification({
+            title: 'Vault Locked',
+            message: 'Your vault was locked due to inactivity.',
+            type: 'success',
+          });
+        },
+        3 * 60 * 1000
+      );
+    };
+
+    // Events to watch for activity
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+
+    activityEvents.forEach(event => {
+      document.addEventListener(event, resetTimer);
+    });
+
+    // Start timer initially
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [isUnlocked, dispatch, showNotification]);
+
+  const handleUnlockOrSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setIsAuthLoading(true);
+
+    try {
+      if (isSettingUp) {
+        if (vaultPassword.length < 8) {
+          setAuthError('Password must be at least 8 characters long');
+          setIsAuthLoading(false);
+          return;
+        }
+        await dispatch(setupVault(vaultPassword)).unwrap();
+        dispatch(setVaultSetupFlag());
+        setIsSettingUp(false);
+        showNotification({
+          title: 'Success',
+          message: 'Vault configured successfully',
+          type: 'success',
+        });
+      } else {
+        await dispatch(unlockVault(vaultPassword)).unwrap();
+      }
+      setVaultPassword('');
+    } catch (err: any) {
+      if (
+        err === 'Vault is not configured for this account. Please set up a vault password first.'
+      ) {
+        setIsSettingUp(true);
+      } else {
+        setAuthError(err || 'Authentication failed');
+      }
+    } finally {
+      setIsAuthLoading(false);
+    }
   };
 
   const handleAddSecret = async (e: React.FormEvent) => {
@@ -160,40 +247,66 @@ export default function VaultPage() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-8 py-12 animate-in fade-in zoom-in-95 duration-700">
-          <div className="relative group cursor-pointer" onClick={handleUnlock}>
+          <div className="relative group mx-auto">
             <div
-              className="p-10 rounded-[40px] border relative z-10 shadow-2xl overflow-hidden transition-all group-hover:scale-105 group-hover:shadow-v8-primary/20"
+              className={`p-10 rounded-[40px] border relative z-10 shadow-2xl overflow-hidden transition-all`}
               style={{ backgroundColor: 'var(--card-bg)', borderColor: 'var(--border-primary)' }}
             >
               <div className="absolute inset-0 bg-linear-to-br from-purple-500/10 to-transparent opacity-50" />
               <HiOutlineShieldCheck className="h-20 w-20 text-v8-primary relative z-10" />
             </div>
-            <div className="absolute -bottom-2 -right-2 h-10 w-10 rounded-2xl bg-white dark:bg-zinc-800 border-4 border-zinc-50 dark:border-zinc-950 flex items-center justify-center shadow-lg z-20 group-hover:bg-v8-primary group-hover:text-white transition-colors">
-              <HiOutlineLockClosed className="h-5 w-5" />
+            <div className="absolute -bottom-2 -right-2 h-10 w-10 rounded-2xl bg-white dark:bg-zinc-800 border-4 border-zinc-50 dark:border-zinc-950 flex items-center justify-center shadow-lg z-20 transition-colors">
+              <HiOutlineLockClosed className="h-5 w-5 text-zinc-400" />
             </div>
           </div>
 
-          <div className="max-w-md space-y-4">
+          <div className="max-w-md w-full space-y-4">
             <h1
               className="text-2xl font-black tracking-tight"
               style={{ color: 'var(--text-primary)' }}
             >
-              Your Digital Safe
+              {isSettingUp ? 'Setup Personal Vault' : 'Your Digital Safe'}
             </h1>
             <p
               className="text-sm font-medium leading-relaxed"
               style={{ color: 'var(--text-tertiary)' }}
             >
-              Access your protected passwords and secure notes.
+              {isSettingUp
+                ? 'Create a master password to secure your digital vault.'
+                : 'Access your protected passwords and secure notes.'}
             </p>
-          </div>
 
-          <button
-            onClick={handleUnlock}
-            className="px-8 py-3 rounded-full bg-v8-primary text-white font-black uppercase tracking-widest text-[10px] hover:scale-105 active:scale-95 transition-all shadow-xl shadow-purple-500/25"
-          >
-            Unlock Vault
-          </button>
+            <form onSubmit={handleUnlockOrSetup} className="mt-8 space-y-4 text-left">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1 ml-1">
+                  Vault Master Password
+                </label>
+                <input
+                  type="password"
+                  value={vaultPassword}
+                  onChange={e => {
+                    setVaultPassword(e.target.value);
+                    setAuthError('');
+                  }}
+                  className={`w-full px-4 py-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border ${authError ? 'border-red-500/50' : 'border-zinc-200 dark:border-zinc-700'} outline-hidden focus:ring-2 focus:ring-v8-primary/20 text-center tracking-widest font-mono`}
+                  placeholder="••••••••••••"
+                  autoFocus
+                />
+                {authError && (
+                  <p className="text-xs text-red-500 mt-2 font-bold ml-1">{authError}</p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                className="w-full py-3.5 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-purple-500/20"
+                isLoading={isAuthLoading}
+              >
+                {isSettingUp ? 'Secure Vault' : 'Unlock Vault'}
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
     );

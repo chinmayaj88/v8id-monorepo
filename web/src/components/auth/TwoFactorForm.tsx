@@ -16,6 +16,7 @@ export default function TwoFactorForm() {
 
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const lastAttemptedCode = useRef<string>('');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -40,7 +41,8 @@ export default function TwoFactorForm() {
   // Auto-submit when OTP is complete
   useEffect(() => {
     const code = otp.join('');
-    if (code.length === 6 && tempToken && !isLoading) {
+    if (code.length === 6 && tempToken && !isLoading && code !== lastAttemptedCode.current) {
+      lastAttemptedCode.current = code;
       dispatch(verifyTotp({ totpCode: code, tempToken }));
     }
   }, [otp, tempToken, dispatch, isLoading]);
@@ -57,6 +59,7 @@ export default function TwoFactorForm() {
     e.preventDefault();
     const code = otp.join('');
     if (code.length !== 6 || !tempToken) return;
+    lastAttemptedCode.current = code;
     await dispatch(verifyTotp({ totpCode: code, tempToken }));
   };
 

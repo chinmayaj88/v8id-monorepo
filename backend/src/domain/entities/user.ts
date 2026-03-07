@@ -23,6 +23,7 @@ export class User {
     public readonly totpSecret?: string,
     public readonly totpVerified: boolean = false,
     public readonly tokenVersion: number = 0,
+    public readonly vaultPasswordHash?: string,
     public readonly lastLoginAt?: Date,
     public readonly createdAt: Date = new Date(),
     public readonly updatedAt: Date = new Date()
@@ -106,4 +107,3 @@ export class User {
     return available > BigInt(0) ? available : BigInt(0);
   }
 }
-

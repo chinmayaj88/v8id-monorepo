@@ -39,6 +39,9 @@ model User {
   totpSecret   String? // Encrypted TOTP secret (if exists, TOTP is enabled)
   totpVerified Boolean @default(false) // Whether TOTP setup is complete
 
+  // Vault Master Password
+  vaultPasswordHash String?
+
   // Token versioning - increment on password change to invalidate all tokens
   tokenVersion Int @default(0)
 

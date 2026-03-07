@@ -6,8 +6,12 @@ import {
   GetVaultSecretUseCase,
   SearchVaultSecretsUseCase,
   DeleteVaultSecretUseCase,
+  SetupVaultUseCase,
+  UnlockVaultUseCase,
+  ChangeVaultPasswordUseCase,
 } from '../../../application/use-cases/vault/index.js';
 import { VaultController } from '../../../presentation/controllers/vault/vault.controller.js';
+import { sharedContainer } from '../shared/shared.container.js';
 
 class VaultContainer {
   public readonly vaultRepository: VaultRepository;
@@ -18,6 +22,9 @@ class VaultContainer {
   public readonly getSecretUseCase: GetVaultSecretUseCase;
   public readonly searchSecretsUseCase: SearchVaultSecretsUseCase;
   public readonly deleteSecretUseCase: DeleteVaultSecretUseCase;
+  public readonly setupVaultUseCase: SetupVaultUseCase;
+  public readonly unlockVaultUseCase: UnlockVaultUseCase;
+  public readonly changeVaultPasswordUseCase: ChangeVaultPasswordUseCase;
 
   public readonly vaultController: VaultController;
 
@@ -31,12 +38,28 @@ class VaultContainer {
     this.searchSecretsUseCase = new SearchVaultSecretsUseCase(this.vaultRepository);
     this.deleteSecretUseCase = new DeleteVaultSecretUseCase(this.vaultRepository);
 
+    this.setupVaultUseCase = new SetupVaultUseCase(
+      sharedContainer.userRepository,
+      sharedContainer.passwordService
+    );
+    this.unlockVaultUseCase = new UnlockVaultUseCase(
+      sharedContainer.userRepository,
+      sharedContainer.passwordService
+    );
+    this.changeVaultPasswordUseCase = new ChangeVaultPasswordUseCase(
+      sharedContainer.userRepository,
+      sharedContainer.passwordService
+    );
+
     this.vaultController = new VaultController(
       this.addSecretUseCase,
       this.listSecretsUseCase,
       this.getSecretUseCase,
       this.searchSecretsUseCase,
-      this.deleteSecretUseCase
+      this.deleteSecretUseCase,
+      this.setupVaultUseCase,
+      this.unlockVaultUseCase,
+      this.changeVaultPasswordUseCase
     );
   }
 }

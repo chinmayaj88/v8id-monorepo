@@ -13,6 +13,21 @@ const authenticate = authMiddleware(
 
 router.use(authenticate);
 
+// Setup Vault Master Password
+router.post('/setup', strictMutationRateLimiter, (req, res) =>
+  vaultContainer.vaultController.setupVault(req, res)
+);
+
+// Unlock Vault
+router.post('/unlock', strictMutationRateLimiter, (req, res) =>
+  vaultContainer.vaultController.unlockVault(req, res)
+);
+
+// Change Vault Password
+router.post('/change-password', strictMutationRateLimiter, (req, res) =>
+  vaultContainer.vaultController.changeVaultPassword(req, res)
+);
+
 // List all secrets (metadata only)
 router.get('/', (req, res) => vaultContainer.vaultController.listSecrets(req, res));
 

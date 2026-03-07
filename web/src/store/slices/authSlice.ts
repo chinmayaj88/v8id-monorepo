@@ -17,6 +17,7 @@ export interface User {
   storageUsedFormatted: string;
   storageQuotaFormatted: string;
   totpEnabled?: boolean;
+  hasVaultSetup?: boolean;
 }
 
 interface AuthState {
@@ -134,6 +135,11 @@ const authSlice = createSlice({
     clearError: (state: AuthState) => {
       state.error = null;
     },
+    setVaultSetupFlag: (state: AuthState) => {
+      if (state.user) {
+        state.user.hasVaultSetup = true;
+      }
+    },
   },
   extraReducers: (builder: any) => {
     // Verify Credentials
@@ -193,6 +199,12 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuthenticatedUser, setLoading, setInitialized, logout, clearError } =
-  authSlice.actions;
+export const {
+  setAuthenticatedUser,
+  setLoading,
+  setInitialized,
+  logout,
+  clearError,
+  setVaultSetupFlag,
+} = authSlice.actions;
 export default authSlice.reducer;

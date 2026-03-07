@@ -28,6 +28,7 @@ export interface IUserRepository {
       totpSecret?: string;
       totpVerified?: boolean;
       tokenVersion?: number;
+      vaultPasswordHash?: string | null;
       lastLoginAt?: Date;
       passwordResetToken?: string | null;
       passwordResetExpires?: Date | null;

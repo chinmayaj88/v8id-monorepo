@@ -91,6 +91,7 @@ export class UserController {
         emailVerified: user.emailVerified,
         totpEnabled: !!user.totpSecret,
         totpVerified: user.totpVerified,
+        hasVaultSetup: !!user.vaultPasswordHash,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       });

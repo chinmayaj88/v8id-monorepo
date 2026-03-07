@@ -14,6 +14,7 @@ import {
   HiOutlineLogout,
 } from 'react-icons/hi';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useModal } from '@/components/ui/ModalProvider';
 import { logout } from '@/store/slices/authSlice';
 import { apiClient } from '@/lib/api';
 import { ENDPOINTS } from '@/lib/constants';
@@ -31,6 +32,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.auth.user);
+  const { showConfirmation } = useModal();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -45,6 +47,17 @@ export default function Sidebar() {
       console.error('Logout failed', error);
       dispatch(logout());
     }
+  };
+
+  const promptLogout = () => {
+    showConfirmation({
+      title: 'Sign Out',
+      message: 'Are you sure you want to sign out?',
+      confirmText: 'Sign Out',
+      cancelText: 'Cancel',
+      variant: 'danger',
+      onConfirm: handleLogout,
+    });
   };
 
   if (!mounted) return null;
@@ -195,7 +208,7 @@ export default function Sidebar() {
 
           <div className="px-3 pb-2">
             <button
-              onClick={handleLogout}
+              onClick={promptLogout}
               className="flex w-full items-center justify-center gap-2 px-4 py-2.5 text-xs font-bold transition-all duration-200 rounded-xl border group"
               style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}
               onMouseEnter={e => {

@@ -38,6 +38,7 @@ export interface VerifyTotpLoginResult {
     storageUsedFormatted: string;
     storageQuotaFormatted: string;
     totpEnabled: boolean;
+    hasVaultSetup: boolean;
   };
 }
 
@@ -308,6 +309,7 @@ export class VerifyTotpLoginUseCase {
         storageUsedFormatted: StorageUtils.formatSize(user.storageUsed),
         storageQuotaFormatted: StorageUtils.formatSize(user.storageQuota),
         totpEnabled: !!user.totpSecret,
+        hasVaultSetup: !!user.vaultPasswordHash,
       },
     };
   }

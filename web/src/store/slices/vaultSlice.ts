@@ -31,6 +31,52 @@ const initialState: VaultState = {
   isUnlocked: false,
 };
 
+export const setupVault = createAsyncThunk<void, string, { rejectValue: string }>(
+  'vault/setupVault',
+  async (vaultPassword, { rejectWithValue }) => {
+    try {
+      await apiClient.post('/vault/setup', { vaultPassword });
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.error?.message ||
+          error.response?.data?.message ||
+          'Failed to setup vault'
+      );
+    }
+  }
+);
+
+export const unlockVault = createAsyncThunk<void, string, { rejectValue: string }>(
+  'vault/unlockVault',
+  async (vaultPassword, { rejectWithValue }) => {
+    try {
+      await apiClient.post('/vault/unlock', { vaultPassword });
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.error?.message ||
+          error.response?.data?.message ||
+          'Failed to unlock vault'
+      );
+    }
+  }
+);
+
+export const changeVaultPassword = createAsyncThunk<
+  void,
+  { currentVaultPassword: string; newVaultPassword: string },
+  { rejectValue: string }
+>('vault/changeVaultPassword', async (data, { rejectWithValue }) => {
+  try {
+    await apiClient.post('/vault/change-password', data);
+  } catch (error: any) {
+    return rejectWithValue(
+      error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Failed to change vault password'
+    );
+  }
+});
+
 export const fetchSecrets = createAsyncThunk<VaultSecret[], void, { rejectValue: string }>(
   'vault/fetchSecrets',
   async (_, { rejectWithValue }) => {
@@ -38,7 +84,11 @@ export const fetchSecrets = createAsyncThunk<VaultSecret[], void, { rejectValue:
       const response = await apiClient.get('/vault');
       return response.data.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to fetch secrets');
+      return rejectWithValue(
+        error.response?.data?.error?.message ||
+          error.response?.data?.message ||
+          'Failed to fetch secrets'
+      );
     }
   }
 );
@@ -59,7 +109,11 @@ export const addSecret = createAsyncThunk<
     const response = await apiClient.post('/vault', data);
     return response.data.data;
   } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || 'Failed to add secret');
+    return rejectWithValue(
+      error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Failed to add secret'
+    );
   }
 });
 
@@ -70,7 +124,11 @@ export const deleteSecret = createAsyncThunk<string, string, { rejectValue: stri
       await apiClient.delete(`/vault/${id}`);
       return id;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || 'Failed to delete secret');
+      return rejectWithValue(
+        error.response?.data?.error?.message ||
+          error.response?.data?.message ||
+          'Failed to delete secret'
+      );
     }
   }
 );
@@ -92,9 +150,6 @@ const vaultSlice = createSlice({
   name: 'vault',
   initialState,
   reducers: {
-    unlockVault: state => {
-      state.isUnlocked = true;
-    },
     lockVault: state => {
       state.isUnlocked = false;
       state.secrets = [];
@@ -107,6 +162,12 @@ const vaultSlice = createSlice({
   },
   extraReducers: builder => {
     builder
+      .addCase(unlockVault.fulfilled, state => {
+        state.isUnlocked = true;
+      })
+      .addCase(setupVault.fulfilled, state => {
+        state.isUnlocked = true;
+      })
       .addCase(fetchSecrets.pending, state => {
         state.isLoading = true;
         state.error = null;
@@ -132,5 +193,5 @@ const vaultSlice = createSlice({
   },
 });
 
-export const { unlockVault, lockVault, clearVaultData } = vaultSlice.actions;
+export const { lockVault, clearVaultData } = vaultSlice.actions;
 export default vaultSlice.reducer;

@@ -19,7 +19,7 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [email, setEmail] = useState('jenachinmaya51@gmail.com');
-  const [password, setPassword] = useState('Msi88@server');
+  const [password, setPassword] = useState('Chinmaya@6370');
   // Handle redirects on auth state change
   useEffect(() => {
     if (isAuthenticated) {

@@ -30,6 +30,7 @@ export class UserRepository implements IUserRepository {
       prismaUser.totpSecret ?? undefined,
       prismaUser.totpVerified,
       prismaUser.tokenVersion ?? 0,
+      prismaUser.vaultPasswordHash ?? undefined,
       prismaUser.lastLoginAt ?? undefined,
       prismaUser.createdAt,
       prismaUser.updatedAt

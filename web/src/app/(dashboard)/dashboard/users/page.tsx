@@ -21,6 +21,7 @@ import Link from 'next/link';
 import AddUserModal from '@/components/dashboard/AddUserModal';
 import UniversalUserView from '@/components/dashboard/UniversalUserView';
 import { useModal } from '@/components/ui/ModalProvider';
+import Modal from '@/components/ui/Modal';
 
 interface UserItem {
   id: string;
@@ -44,7 +45,22 @@ export default function UsersPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const { showConfirmation, showNotification } = useModal();
+  const { showNotification } = useModal();
+
+  const [deleteModalState, setDeleteModalState] = useState<{
+    isOpen: boolean;
+    userIds: Set<string>;
+  }>({
+    isOpen: false,
+    userIds: new Set(),
+  });
+  const [deleteInput, setDeleteInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const targetEmail =
+    deleteModalState.userIds.size === 1
+      ? users.find(u => u.id === Array.from(deleteModalState.userIds)[0])?.email
+      : 'DELETE';
 
   const handleDeleteUsers = (userIds: Set<string>) => {
     if (userIds.size === 0) return;
@@ -58,47 +74,42 @@ export default function UsersPage() {
       return;
     }
 
-    const count = userIds.size;
-    const isSingle = count === 1;
-    let message = `Are you sure you want to delete ${count} users? This action cannot be undone.`;
+    setDeleteModalState({ isOpen: true, userIds });
+    setDeleteInput('');
+  };
 
-    if (isSingle) {
-      const id = Array.from(userIds)[0];
-      const targetUser = users.find(u => u.id === id);
-      if (targetUser) {
-        message = `Are you sure you want to delete ${targetUser.email}? This action cannot be undone.`;
-      }
+  const confirmDelete = async () => {
+    const { userIds } = deleteModalState;
+    if (userIds.size === 0) return;
+    setIsDeleting(true);
+
+    try {
+      // Send delete requests in parallel
+      const idsArray = Array.from(userIds);
+      await Promise.all(idsArray.map(id => apiClient.delete(ENDPOINTS.USER.DELETE(id))));
+
+      showNotification({
+        title: 'Success',
+        message: `${userIds.size === 1 ? 'User' : 'Users'} deleted successfully`,
+        type: 'success',
+      });
+
+      setSelectedIds(new Set());
+      fetchUsers();
+      setDeleteModalState({ isOpen: false, userIds: new Set() });
+    } catch (error: any) {
+      const errMsg =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Failed to delete user(s)';
+      showNotification({
+        title: 'Error',
+        message: errMsg,
+        type: 'error',
+      });
+    } finally {
+      setIsDeleting(false);
     }
-
-    showConfirmation({
-      title: 'Delete User' + (isSingle ? '' : 's'),
-      message,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      onConfirm: async () => {
-        try {
-          // Send delete requests in parallel
-          const idsArray = Array.from(userIds);
-          await Promise.all(idsArray.map(id => apiClient.delete(ENDPOINTS.USER.DELETE(id))));
-
-          showNotification({
-            title: 'Success',
-            message: `${isSingle ? 'User' : 'Users'} deleted successfully`,
-            type: 'success',
-          });
-
-          setSelectedIds(new Set());
-          fetchUsers();
-        } catch (error: any) {
-          const errMsg = error.response?.data?.message || 'Failed to delete user(s)';
-          showNotification({
-            title: 'Error',
-            message: errMsg,
-            type: 'error',
-          });
-        }
-      },
-    });
   };
 
   const fetchUsers = async () => {
@@ -290,6 +301,56 @@ export default function UsersPage() {
         handleClose={() => setShowAddModal(false)}
         onSuccess={fetchUsers}
       />
+
+      <Modal
+        isOpen={deleteModalState.isOpen}
+        onClose={() => setDeleteModalState(prev => ({ ...prev, isOpen: false }))}
+        title={deleteModalState.userIds.size === 1 ? 'Delete User' : 'Delete Users'}
+        footer={
+          <div className="flex justify-end gap-3 w-full">
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteModalState(prev => ({ ...prev, isOpen: false }))}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              style={{ backgroundColor: '#ef4444' }}
+              onClick={confirmDelete}
+              isLoading={isDeleting}
+              disabled={deleteInput !== targetEmail}
+            >
+              Delete
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl border bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-400">
+            <h4 className="font-black text-sm mb-1">Warning</h4>
+            <p className="text-xs font-medium leading-relaxed opacity-90">
+              {deleteModalState.userIds.size === 1
+                ? `You are about to delete the user ${targetEmail}. This action cannot be undone.`
+                : `You are about to delete ${deleteModalState.userIds.size} users. This action cannot be undone.`}
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-bold mb-2 tracking-wide text-zinc-500">
+              {deleteModalState.userIds.size === 1
+                ? `Please type ${targetEmail} to confirm`
+                : 'Please type DELETE to confirm'}
+            </label>
+            <Input
+              value={deleteInput}
+              onChange={e => setDeleteInput(e.target.value)}
+              placeholder={deleteModalState.userIds.size === 1 ? targetEmail : 'DELETE'}
+              className="w-full"
+              autoFocus
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

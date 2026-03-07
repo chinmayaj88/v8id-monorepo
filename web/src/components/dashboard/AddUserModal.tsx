@@ -71,9 +71,13 @@ export default function AddUserModal(props: AddUserModalProps) {
         type: 'success',
       });
     } catch (error: any) {
+      const errMsg =
+        error.response?.data?.error?.message ||
+        error.response?.data?.message ||
+        'Failed to create user';
       showNotification({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to create user',
+        message: errMsg,
         type: 'error',
       });
     } finally {

@@ -5,6 +5,9 @@ import {
   GetVaultSecretUseCase,
   SearchVaultSecretsUseCase,
   DeleteVaultSecretUseCase,
+  SetupVaultUseCase,
+  UnlockVaultUseCase,
+  ChangeVaultPasswordUseCase,
 } from '../../../application/use-cases/index.js';
 import { ResponseUtil } from '../../utils/response.util.js';
 import { AuthenticatedRequest } from '../../middleware/auth.middleware.js';
@@ -15,8 +18,62 @@ export class VaultController {
     private listSecretsUseCase: ListVaultSecretsUseCase,
     private getSecretUseCase: GetVaultSecretUseCase,
     private searchSecretsUseCase: SearchVaultSecretsUseCase,
-    private deleteSecretUseCase: DeleteVaultSecretUseCase
+    private deleteSecretUseCase: DeleteVaultSecretUseCase,
+    private setupVaultUseCase: SetupVaultUseCase,
+    private unlockVaultUseCase: UnlockVaultUseCase,
+    private changeVaultPasswordUseCase: ChangeVaultPasswordUseCase
   ) {}
+
+  async setupVault(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+      await this.setupVaultUseCase.execute(req.user.id, req.body);
+      ResponseUtil.success(res, undefined, 'Vault configured successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to setup vault';
+      ResponseUtil.error(res, 'SETUP_VAULT_ERROR', message);
+    }
+  }
+
+  async unlockVault(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+      await this.unlockVaultUseCase.execute(req.user.id, req.body);
+      // Let frontend know unlock succeeded (so they can enter the Vault views)
+      ResponseUtil.success(res, { unlocked: true }, 'Vault unlocked');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Invalid vault password';
+      ResponseUtil.error(res, 'UNLOCK_VAULT_ERROR', message);
+    }
+  }
+
+  async changeVaultPassword(req: AuthenticatedRequest, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        ResponseUtil.unauthorized(res);
+        return;
+      }
+      const { currentVaultPassword, newVaultPassword } = req.body;
+      if (!currentVaultPassword || !newVaultPassword) {
+        ResponseUtil.validationError(res, 'currentVaultPassword and newVaultPassword are required');
+        return;
+      }
+      await this.changeVaultPasswordUseCase.execute(req.user.id, {
+        currentVaultPassword,
+        newVaultPassword,
+      });
+      ResponseUtil.success(res, undefined, 'Vault password changed successfully');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to change vault password';
+      ResponseUtil.error(res, 'CHANGE_VAULT_PASSWORD_ERROR', message);
+    }
+  }
 
   async addSecret(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
